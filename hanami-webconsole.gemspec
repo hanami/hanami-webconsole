@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
   spec.description   = "Hanami webconsole for development"
   spec.homepage      = "http://hanamirb.org"
   spec.license       = "MIT"
-  spec.required_ruby_version = ">= 3.1"
+  spec.required_ruby_version = ">= 3.2"
 
   spec.files = `git ls-files -- lib/* CHANGELOG.md LICENSE.md README.md hanami-webconsole.gemspec`.split($INPUT_RECORD_SEPARATOR)
   spec.require_paths = ["lib"]
