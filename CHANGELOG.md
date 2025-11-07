@@ -2,6 +2,8 @@
 
 Hanami development web console.
 
+## v2.3.0
+
 ## v2.3.0.beta2 - 2025-10-17
 
 ### Changed
