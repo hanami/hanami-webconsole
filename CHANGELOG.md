@@ -2,6 +2,30 @@
 
 Hanami development web console.
 
+## [Unreleased]
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+[Unreleased]: https://github.com/hanami/hanami-webconsole/compare/v2.3.1...main
+
+## [v2.3.1] - 2025-12-18
+
+### Changed
+
+- Bypass binding_of_caller's Ruby version check and load its functionality directly. This ensures it continues to work when running under Ruby 4.0. (@timriley in #12)
+
+[v2.3.1]: https://github.com/hanami/hanami-webconsole/compare/v2.3.0...v2.3.1
+
 ## v2.3.0 - 2025-11-12
 
 ## v2.3.0.beta2 - 2025-10-17
