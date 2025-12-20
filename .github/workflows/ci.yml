@@ -14,10 +14,10 @@ jobs:
       fail-fast: false
       matrix:
         ruby:
+          - "4.0.0-preview3"
           - "3.4"
           - "3.3"
           - "3.2"
-          - "4.0.0-preview2"
     steps:
       - uses: actions/checkout@v1
       - name: Install package dependencies
