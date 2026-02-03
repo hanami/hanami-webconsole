@@ -1,0 +1,13 @@
+name:
+  gem: hanami-webconsole
+  constant: Hanami::Webconsole
+  title: Hanami Webconsole
+github_org: hanami
+gemspec:
+  authors: ["Hanakai team"]
+  email: ["info@hanakai.org"]
+  summary: "Hanami webconsole for development"
+  homepage: "https://hanamirb.org"
+  runtime_dependencies:
+    - ["better_errors", "~> 2.10", ">= 2.10.1"]
+    - ["binding_of_caller", "~> 1.0"]
