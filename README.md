@@ -1,11 +1,9 @@
-# Hanami::Webconsole
+<!--- This file is synced from hanakai-rb/repo-sync -->
 
-[Hanami](http://hanamirb.org) development web console.
+[rubygem]: https://rubygems.org/gems/hanami-webconsole
+[actions]: https://github.com/hanami/hanami-webconsole/actions
 
-## Status
-
-[![Gem Version](https://badge.fury.io/rb/hanami-webconsole.svg)](https://badge.fury.io/rb/hanami-webconsole)
-[![CI](https://github.com/hanami/webconsole/actions/workflows/ci.yml/badge.svg)](https://github.com/hanami/webconsole/actions?query=workflow%3Aci+branch%3Amain)
+# Hanami Webconsole [![Gem Version](https://badge.fury.io/rb/hanami-webconsole.svg)][rubygem] [![CI Status](https://github.com/hanami/hanami-webconsole/workflows/CI/badge.svg)][actions]
 
 ## Installation
 
@@ -55,6 +53,13 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/hanami
 
 This gem is based on the great work of [`better_errors`](https://rubygems.org/gems/better_errors) and [`binding_of_caller`](https://rubygems.org/gems/binding_of_caller) gems. Thank you!
 
-## Copyright
+## Links
 
-Copyright © 2014–2024 Hanami Team – Released under MIT License
+- [User documentation](https://hanamirb.org)
+- [API documentation](http://rubydoc.info/gems/hanami-webconsole)
+
+
+## License
+
+See `LICENSE` file.
+

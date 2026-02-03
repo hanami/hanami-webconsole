@@ -1,25 +1,37 @@
 # frozen_string_literal: true
 
-lib = File.expand_path("../lib", __FILE__)
+# This file is synced from hanakai-rb/repo-sync. To update it, edit repo-sync.yml.
+
+lib = File.expand_path("lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "hanami/webconsole/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "hanami-webconsole"
-  spec.version       = Hanami::Webconsole::VERSION
   spec.authors       = ["Hanakai team"]
   spec.email         = ["info@hanakai.org"]
-  spec.summary       = "Hanami webconsole"
-  spec.description   = "Hanami webconsole for development"
-  spec.homepage      = "http://hanamirb.org"
   spec.license       = "MIT"
-  spec.required_ruby_version = ">= 3.2"
+  spec.version       = Hanami::Webconsole::VERSION.dup
 
-  spec.files = `git ls-files -- lib/* CHANGELOG.md LICENSE.md README.md hanami-webconsole.gemspec`.split($INPUT_RECORD_SEPARATOR)
+  spec.summary       = "Hanami webconsole for development"
+  spec.description   = spec.summary
+  spec.homepage      = "https://hanamirb.org"
+  spec.files         = Dir["CHANGELOG.md", "LICENSE", "README.md", "hanami-webconsole.gemspec", "lib/**/*"]
+  spec.bindir        = "exe"
+  spec.executables   = Dir["exe/*"].map { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.metadata["allowed_push_host"] = "https://rubygems.org"
+  spec.extra_rdoc_files = ["README.md", "CHANGELOG.md", "LICENSE"]
 
-  spec.add_dependency "better_errors", "~> 2.10", ">= 2.10.1"
-  spec.add_dependency "binding_of_caller", "~> 1.0"
+  spec.metadata["allowed_push_host"] = "https://rubygems.org"
+  spec.metadata["changelog_uri"]     = "https://github.com/hanami/hanami-webconsole/blob/main/CHANGELOG.md"
+  spec.metadata["source_code_uri"]   = "https://github.com/hanami/hanami-webconsole"
+  spec.metadata["bug_tracker_uri"]   = "https://github.com/hanami/hanami-webconsole/issues"
+  spec.metadata["funding_uri"]       = "https://github.com/sponsors/hanami"
+
+  spec.required_ruby_version = ">= 3.2"
+
+  spec.add_runtime_dependency "better_errors", "~> 2.10", ">= 2.10.1"
+  spec.add_runtime_dependency "binding_of_caller", "~> 1.0"
 end
+
