@@ -32,6 +32,6 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = ">= 3.2"
 
   spec.add_runtime_dependency "better_errors", "~> 2.10", ">= 2.10.1"
-  spec.add_runtime_dependency "binding_of_caller", "~> 1.0"
+  spec.add_runtime_dependency "binding_of_caller", "~> 2.0"
 end
 

@@ -10,4 +10,4 @@ gemspec:
   homepage: "https://hanamirb.org"
   runtime_dependencies:
     - ["better_errors", "~> 2.10", ">= 2.10.1"]
-    - ["binding_of_caller", "~> 1.0"]
+    - ["binding_of_caller", "~> 2.0"]
