@@ -21,6 +21,15 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 [Unreleased]: https://github.com/hanami/hanami-webconsole/compare/v2.3.1...main
 
+## [3.0.0.rc1]
+
+### Changed
+
+- Update to binding_of_caller 2.0, which formally supports Ruby 4.0. Remove our internal workarounds for this. (@rvmtz in #14)
+- Require Ruby 3.3 or newer.
+
+[3.0.0.rc1]: https://github.com/hanami/hanami-webconsole/compare/v2.3.3...v3.0.0.rc1
+
 ## [2.3.1] - 2025-12-18
 
 ### Changed
