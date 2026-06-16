@@ -19,9 +19,9 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Security
 
-[Unreleased]: https://github.com/hanami/hanami-webconsole/compare/v2.3.1...main
+[Unreleased]: https://github.com/hanami/hanami-webconsole/compare/v3.0.0.rc1...HEAD
 
-## [3.0.0.rc1]
+## [3.0.0.rc1] - 2026-06-16
 
 ### Changed
 
