@@ -92,6 +92,7 @@ module Hanami
     require_relative "webconsole/resolution"
     require_relative "webconsole/presenters/base"
     require_relative "webconsole/presenters"
+    require_relative "webconsole/presenters/not_found"
     require_relative "webconsole/repl/session"
     require_relative "webconsole/error_page"
     require_relative "webconsole/registry"
