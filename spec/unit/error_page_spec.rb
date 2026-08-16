@@ -230,8 +230,6 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
   end
 
   describe "#severity" do
-    after { Hanami::Webconsole::Presenters.reset! }
-
     it "is :crash for an unrecognised exception" do
       expect(page.severity).to eq(:crash)
     end
@@ -277,8 +275,6 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
   end
 
   describe "#presenter" do
-    after { Hanami::Webconsole::Presenters.reset! }
-
     it "is nil when nothing is registered" do
       expect(page.presenter).to be_nil
     end

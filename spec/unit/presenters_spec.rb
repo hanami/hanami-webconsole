@@ -5,18 +5,22 @@ require "hanami/webconsole/presenters"
 RSpec.describe Hanami::Webconsole::Presenters do
   let(:presenter_class) { Class.new(Hanami::Webconsole::Presenters::Base) }
 
+  # Every example but the default registry's own starts from an empty registry. Restoring it is
+  # the suite-wide hook's job (see spec/support/presenters.rb).
   around do |example|
-    registry = Hanami::Webconsole::Presenters
-    registered = registry.registered
-    registry.reset!
+    Hanami::Webconsole::Presenters.reset! unless self.class.metadata[:default_registry]
+
     example.run
-    registry.reset!
-    registered.each { |name, klass| registry.register(name, klass) }
   end
 
-  describe "the default registry" do
-    it "registers nothing, so every error takes the generic path" do
-      expect(described_class.registered).to eq({})
+  describe "the default registry", :default_registry do
+    it "registers the presenters that ship with the gem" do
+      expect(described_class.registered).to eq(
+        "Hanami::Router::NotFoundError" => Hanami::Webconsole::Presenters::NotFound
+      )
+    end
+
+    it "leaves every other error to the generic path" do
       expect(described_class.for(RuntimeError.new("boom"))).to be_nil
     end
   end
