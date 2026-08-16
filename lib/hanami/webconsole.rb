@@ -89,6 +89,7 @@ module Hanami
     require_relative "webconsole/frame"
     require_relative "webconsole/backtrace"
     require_relative "webconsole/request_context"
+    require_relative "webconsole/resolution"
     require_relative "webconsole/presenters/base"
     require_relative "webconsole/presenters"
     require_relative "webconsole/repl/session"

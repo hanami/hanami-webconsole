@@ -311,7 +311,17 @@ module Hanami
         #
         # @api private
         # @since 3.1.0
+        # An error that offers resolutions has written a sentence worth leading with, so its
+        # message becomes the headline. The class name is still in the topbar, so nothing is lost
+        # by not repeating it here.
+        #
+        # @return [String]
+        #
+        # @api private
+        # @since 3.1.0
         def headline
+          return page.message if resolutions.any? && !page.message.empty?
+
           presenter&.headline || page.exception_class
         end
 
@@ -320,7 +330,28 @@ module Hanami
         # @api private
         # @since 3.1.0
         def message_html
-          text_with_code_spans(presenter&.lede || page.message)
+          text_with_code_spans(lede)
+        end
+
+        # Empty when a resolvable error has no detail to add: its message is already the
+        # headline, and repeating it underneath reads as a stutter.
+        #
+        # @return [String]
+        #
+        # @api private
+        # @since 3.1.0
+        def lede
+          return page.detail.to_s if resolutions.any?
+
+          presenter&.lede || page.message
+        end
+
+        # @return [Boolean]
+        #
+        # @api private
+        # @since 3.1.0
+        def lede?
+          !lede.empty?
         end
 
         # @return [Array<String>]
@@ -368,8 +399,24 @@ module Hanami
         #
         # @api private
         # @since 3.1.0
+        # The presenter's own card, for errors we cannot modify. Resolutions render their own.
+        #
+        # @return [Boolean]
+        #
+        # @api private
+        # @since 3.1.0
         def fix?
           !!presenter && (fix_command || fix_snippet || fix_items.any? || fix_note)
+        end
+
+        # Resolutions the error published for itself.
+        #
+        # @return [Array<Resolution>]
+        #
+        # @api private
+        # @since 3.1.0
+        def resolutions
+          @resolutions ||= page.resolutions
         end
 
         # @return [String]
@@ -480,6 +527,7 @@ module Hanami
           {
             "pageId" => page.id,
             "evalPath" => "#{MOUNT_PATH}/#{page.id}/eval",
+            "resolvePath" => "#{MOUNT_PATH}/#{page.id}/resolve",
             "csrfToken" => csrf_token,
             "csrfCookie" => CSRF_COOKIE_NAME,
             "bindingsAvailable" => Webconsole.bindings_available?,

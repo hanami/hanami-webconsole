@@ -70,8 +70,14 @@ module Hanami
       INTERNAL_PATH = %r{
         \A#{Regexp.escape(Webconsole::MOUNT_PATH)}
         /(?<id>[A-Za-z0-9_-]+)
-        /(?<action>variables|eval)\z
+        /(?<action>variables|eval|resolve)\z
       }x
+
+      # Serialises resolution runs across threads. See {#resolve_response}.
+      #
+      # @api private
+      # @since 3.1.0
+      RESOLUTION_LOCK = Mutex.new
 
       # @api private
       # @since 3.1.0
@@ -291,6 +297,7 @@ module Hanami
         case action
         when "variables" then variables_response(page, body)
         when "eval" then eval_response(page, body)
+        when "resolve" then resolve_response(page, body, request)
         else json_response(404, error: "Not found", explanation: "Not a recognized console call.")
         end
       end
@@ -341,6 +348,48 @@ module Hanami
           locals: frame.locals.map { |variable| variable_payload(variable) },
           instanceVariables: frame.instance_vars.map { |variable| variable_payload(variable) }
         )
+      end
+
+      # Runs one of the resolutions the error offered.
+      #
+      # Resolutions are addressed by their index in the error's own list, never by anything the
+      # request supplies, so this endpoint cannot be talked into running arbitrary code — only
+      # something the raised error already published.
+      #
+      # @api private
+      # @since 3.1.0
+      def resolve_response(page, body, request)
+        index = body["index"]
+        resolution = page.resolutions[index] if index.is_a?(::Integer) && index >= 0
+
+        unless resolution
+          return json_response(
+            404, error: "Unknown resolution",
+            explanation: "This error does not offer a resolution at that position."
+          )
+        end
+
+        # One at a time. A resolution migrates a database or rewrites files, and Puma is
+        # threaded: two of these interleaving would be worse than making the second one wait.
+        result = RESOLUTION_LOCK.synchronize { resolution.call(resolution_context(request)) }
+
+        json_response(
+          200,
+          id: page.id, index: index, name: resolution.name,
+          ok: result.ok?, output: result.output
+        )
+      end
+
+      # @api private
+      # @since 3.1.0
+      def resolution_context(request)
+        Resolution::Context.new(
+          app: (Hanami.app if defined?(Hanami.app)),
+          slice: request.get_header("hanami.slice"),
+          request: request
+        )
+      rescue StandardError
+        Resolution::Context.new(app: nil, slice: nil, request: request)
       end
 
       # @api private

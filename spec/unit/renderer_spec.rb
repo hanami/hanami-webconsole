@@ -80,11 +80,13 @@ RSpec.describe Hanami::Webconsole::Renderer do
     frames: [frame],
     request: request_context,
     presenter: nil,
+    resolutions: [],
     text: "## NoMethodError"
   )
     double(
       id: "0-a1b2c3",
       generation: 0,
+      resolutions: resolutions,
       exception_class: exception_class,
       message: message,
       detailed_extras: detailed_extras,

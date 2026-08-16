@@ -35,7 +35,53 @@
 
   <section class="hero" data-webconsole-hero>
     <h1 data-webconsole-headline><%= h(headline) %></h1>
+<% if lede? -%>
     <p class="lede" data-webconsole-message><%= message_html %></p>
+<% end -%>
+<%# One card per resolution: a button and its manual equivalent are one fix offered two ways. -%>
+<% resolutions.each_with_index do |resolution, index| -%>
+    <div class="fix" data-webconsole-fix data-webconsole-resolution-card="<%= index %>">
+      <div class="fix-title"><h2><%= h(resolution.name) %></h2></div>
+<% if resolution.executable? -%>
+      <div class="run-actions">
+        <button type="button" class="btn-primary" data-webconsole-resolution="<%= index %>"
+                data-webconsole-resolution-destructive="<%= resolution.destructive? ? "true" : "false" %>">
+          <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span class="label"><%= h(resolution.name) %></span>
+        </button>
+<% if resolution.command -%>
+        <span class="fix-note">or run it yourself &darr;</span>
+<% end -%>
+      </div>
+      <div data-webconsole-resolution-output="<%= index %>"></div>
+<% end -%>
+<% if resolution.command -%>
+      <div class="cmd">
+        <span class="prompt">$</span><code data-webconsole-command><%= h(resolution.command) %></code>
+        <button type="button" class="copy-btn" data-webconsole-copy="command">
+          <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy</span>
+        </button>
+      </div>
+<% end -%>
+<% if resolution.snippet -%>
+      <div class="snippet-wrap">
+        <pre class="snippet" data-webconsole-snippet><%= h(resolution.snippet) %></pre>
+        <button type="button" class="copy-btn" data-webconsole-copy="snippet">
+          <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy</span>
+        </button>
+      </div>
+<% end -%>
+<% if resolution.items.any? -%>
+      <ul class="fix-list">
+<% resolution.items.each do |item| -%>
+        <li><%= h(item) %></li>
+<% end -%>
+      </ul>
+<% end -%>
+<% if resolution.note -%>
+      <p class="fix-note"><%= text_with_code_spans(resolution.note) %></p>
+<% end -%>
+    </div>
+<% end -%>
 <% if fix? -%>
     <div class="fix" data-webconsole-fix>
       <div class="fix-title"><h2><%= h(fix_title) %></h2></div>

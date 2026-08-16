@@ -119,6 +119,26 @@ module Hanami
         @message ||= safely("") { exception.message.to_s }
       end
 
+      # A longer explanation the error may offer, shown under the headline.
+      #
+      # Optional, and only meaningful alongside resolutions: when an error can explain itself,
+      # `#message` reads as the headline and this is the paragraph beneath it.
+      #
+      # @return [String, nil]
+      #
+      # @api private
+      # @since 3.1.0
+      def detail
+        return @detail if defined?(@detail)
+
+        @detail = safely(nil) {
+          next nil unless exception.respond_to?(:detail)
+
+          value = exception.detail
+          value.nil? || value.to_s.empty? ? nil : value.to_s
+        }
+      end
+
       # The lines `detailed_message` adds beyond `message`.
       #
       # On Ruby 3.1+ this is where `did_you_mean`'s suggestions and `error_highlight`'s caret live.
@@ -151,9 +171,22 @@ module Hanami
       # @since 3.1.0
       def severity
         return :not_found if status == NOT_FOUND_STATUS
-        return :actionable if presenter
+        return :actionable if presenter || resolutions.any?
 
         :crash
+      end
+
+      # Steps the error itself offers for fixing it.
+      #
+      # An error that knows how to fix itself outranks a generic crash page: the backtrace
+      # collapses and the resolutions lead.
+      #
+      # @return [Array<Resolution>]
+      #
+      # @api private
+      # @since 3.1.0
+      def resolutions
+        @resolutions ||= safely([]) { Resolution.for(exception) }
       end
 
       # Class names of the exception's causes, outermost cause last.
