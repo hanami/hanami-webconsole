@@ -9,13 +9,26 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Added
 
+- Errors can now say how to fix themselves. An exception that responds to `#resolutions` has its fixes rendered on the error page: a command to copy, a snippet to paste, a list to work through, or a button that runs the fix. There is nothing to include and nothing to inherit, so a gem can offer resolutions without depending on hanami, and an app can define them on its own errors. (@afomera in #15)
+- Error pages now show the exception's `#cause` chain, `did_you_mean` suggestions and `error_highlight` carets, none of which better_errors surfaced. (@afomera in #15)
+- A "copy as text" button, putting the error, request and backtrace on the clipboard as Markdown. (@afomera in #15)
+- The per-frame console now keeps a history, navigable with the up and down arrows. (@afomera in #15)
+
 ### Changed
+
+- Replace better_errors with a Hanami-native error page, styled to match `Hanami::Web::Welcome`. The console and its security model carry over unchanged: loopback only, a double-submit CSRF token in an httponly cookie, and a strict Content-Security-Policy with a per-response nonce. (@afomera in #15)
+- Status codes now come from `config.render_error_responses` directly, so `Hanami::Router::NotFoundError` renders a 404 without patching `BetterErrors::Middleware#show_error_page`. (@afomera in #15)
+- Error pages are held in a bounded registry stamped with a generation counter. More than one error page is interactive at a time, and a page from before a code reload reports an expired session rather than evaluating against unloaded constants. (@afomera in #15)
 
 ### Deprecated
 
 ### Removed
 
+- The dependency on better_errors. (@afomera in #15)
+
 ### Fixed
+
+- binding_of_caller is now probed at load rather than only required. On an engine where it loads but raises when called, the error page degrades to one without local variables or a console, instead of breaking every exception raised in the process. (@afomera in #15)
 
 ### Security
 

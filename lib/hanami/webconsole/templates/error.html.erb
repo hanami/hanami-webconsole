@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= h(page.exception_class) %> &middot; Hanami</title>
+  <style nonce="<%= h(nonce) %>">
+<%= stylesheet %>  </style>
+</head>
+<body>
+
+<!-- Lucide icons (ISC). Inlined as a sprite: the page CSP blocks external assets. -->
+<%= icon_sprite %>
+
+<div data-webconsole-shell data-severity="<%= severity %>">
+  <header class="topbar">
+    <svg class="logo" viewBox="0 0 201 194" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hanami">
+      <path fill="#FF6C89" fill-rule="evenodd" clip-rule="evenodd" d="M48.1827 120.394C43.5166 120.84 38.6883 120.362 33.9539 118.828L24.3571 115.723C5.86366 109.736 -4.2754 89.9154 1.7354 71.4882C7.74194 53.0631 27.6357 42.9638 46.1334 48.9512L55.7302 52.0564C60.4645 53.5899 64.6525 56.0303 68.1617 59.1227C66.2961 54.843 65.2588 50.1194 65.2588 45.1579V35.1053C65.2588 15.7308 81.05 0.000991821 100.495 0.000991821C119.941 0.000991821 135.728 15.7308 135.728 35.1053V45.1579C135.728 50.1194 134.695 54.843 132.825 59.1227C136.334 56.0303 140.522 53.5899 145.261 52.0564L154.857 48.9512C173.351 42.9638 193.245 53.0631 199.255 71.4882C205.266 89.9154 195.127 109.736 176.634 115.723L167.037 118.828C162.298 120.362 157.47 120.84 152.808 120.394C156.843 122.764 160.467 125.978 163.395 129.994L169.325 138.126C180.758 153.801 177.265 175.771 161.53 187.16C145.798 198.548 123.749 195.069 112.316 179.395L106.387 171.26C103.458 167.246 101.511 162.819 100.495 158.261C99.4794 162.819 97.5326 167.246 94.6041 171.26L88.6745 179.395C77.242 195.069 55.1882 198.548 39.4568 187.16C23.7254 175.771 20.2332 153.801 31.6614 138.126L37.5953 129.994C40.5196 125.978 44.1441 122.764 48.1827 120.394Z" />
+      <circle cx="100.49" cy="102.192" r="45.17" fill="#FFC9C4" />
+      <path fill-rule="evenodd" clip-rule="evenodd" fill="#000" d="M78.1877 101.341C78.1877 103.219 76.6564 104.745 74.7716 104.745C72.8851 104.745 71.3555 103.219 71.3555 101.341C71.3555 94.5942 76.8527 89.1157 83.6248 89.1157C90.397 89.1157 95.8958 94.5942 95.8958 101.341C95.8958 103.219 94.3646 104.745 92.4797 104.745C90.5949 104.745 89.0636 103.219 89.0636 101.341C89.0636 98.35 86.6273 95.9226 83.6248 95.9226C80.624 95.9226 78.1877 98.35 78.1877 101.341Z" />
+      <path fill-rule="evenodd" clip-rule="evenodd" fill="#000" d="M112.005 101.341C112.005 103.219 110.474 104.745 108.589 104.745C106.703 104.745 105.173 103.219 105.173 101.341C105.173 94.5942 110.67 89.1157 117.443 89.1157C124.215 89.1157 129.714 94.5942 129.714 101.341C129.714 103.219 128.182 104.745 126.297 104.745C124.413 104.745 122.881 103.219 122.881 101.341C122.881 98.35 120.445 95.9226 117.443 95.9226C114.442 95.9226 112.005 98.35 112.005 101.341Z" />
+    </svg>
+    <span class="klass" data-webconsole-exception-class><%= h(page.exception_class) %></span>
+    <span class="divider"></span>
+    <span class="req" data-webconsole-request-summary><%= request_summary_html %></span>
+    <span class="spacer"></span>
+    <button type="button" class="open-editor" data-webconsole-copy="text"
+            title="Copy the error, request and backtrace as plain text">
+      <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy as text</span>
+    </button>
+    <span class="status-pill" data-webconsole-status>
+      <svg class="icon" aria-hidden="true"><use href="#i-<%= severity_icon %>"/></svg><span class="status-code"><%= h(status_code) %></span><span class="status-reason"><%= h(status_reason) %></span>
+    </span>
+  </header>
+
+  <section class="hero" data-webconsole-hero>
+    <h1 data-webconsole-headline><%= h(headline) %></h1>
+<% if lede? -%>
+    <p class="lede" data-webconsole-message><%= message_html %></p>
+<% end -%>
+<%# One card per resolution: a button and its manual equivalent are one fix offered two ways. -%>
+<% resolutions.each_with_index do |resolution, index| -%>
+    <div class="fix" data-webconsole-fix data-webconsole-resolution-card="<%= index %>">
+      <div class="fix-title"><h2><%= h(resolution.name) %></h2></div>
+<% if resolution.executable? -%>
+      <div class="run-actions">
+        <button type="button" class="btn-primary" data-webconsole-resolution="<%= index %>"
+                data-webconsole-resolution-destructive="<%= resolution.destructive? ? "true" : "false" %>">
+          <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span class="label"><%= h(resolution.name) %></span>
+        </button>
+<% if resolution.command -%>
+        <span class="fix-note">or run it yourself &darr;</span>
+<% end -%>
+      </div>
+      <div data-webconsole-resolution-output="<%= index %>"></div>
+<% end -%>
+<% if resolution.command -%>
+      <div class="cmd">
+        <span class="prompt">$</span><code data-webconsole-command><%= h(resolution.command) %></code>
+        <button type="button" class="copy-btn" data-webconsole-copy="command">
+          <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy</span>
+        </button>
+      </div>
+<% end -%>
+<% if resolution.snippet -%>
+      <div class="snippet-wrap">
+        <pre class="snippet" data-webconsole-snippet><%= h(resolution.snippet) %></pre>
+        <button type="button" class="copy-btn" data-webconsole-copy="snippet">
+          <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy</span>
+        </button>
+      </div>
+<% end -%>
+<% if resolution.items.any? -%>
+      <ul class="fix-list">
+<% resolution.items.each do |item| -%>
+        <li><%= h(item) %></li>
+<% end -%>
+      </ul>
+<% end -%>
+<% if resolution.note -%>
+      <p class="fix-note"><%= text_with_code_spans(resolution.note) %></p>
+<% end -%>
+    </div>
+<% end -%>
+<% if fix? -%>
+    <div class="fix" data-webconsole-fix>
+      <div class="fix-title"><h2><%= h(fix_title) %></h2></div>
+<% if fix_command -%>
+      <div class="cmd">
+        <span class="prompt">$</span><code data-webconsole-command><%= h(fix_command) %></code>
+        <button type="button" class="copy-btn" data-webconsole-copy="command">
+          <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy</span>
+        </button>
+      </div>
+<% elsif fix_snippet -%>
+      <div class="snippet-wrap">
+        <pre class="snippet" data-webconsole-snippet><%= h(fix_snippet) %></pre>
+        <button type="button" class="copy-btn" data-webconsole-copy="snippet">
+          <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy</span>
+        </button>
+      </div>
+<% end -%>
+<% if fix_items.any? -%>
+      <ul class="fix-list" data-webconsole-fix-items>
+<% fix_items.each do |item| -%>
+        <li><%= h(item) %></li>
+<% end -%>
+      </ul>
+<% end -%>
+<% if fix_note -%>
+      <p class="fix-note" data-webconsole-fix-note><%= text_with_code_spans(fix_note) %></p>
+<% end -%>
+    </div>
+<% end -%>
+<% if extras.any? -%>
+    <div class="caret-box" data-webconsole-extras><%= extras_html %></div>
+<% end -%>
+<% if suggestions.any? -%>
+    <p class="chips" data-webconsole-suggestions><span class="eyebrow">Did you mean</span><% suggestions.each do |suggestion| %><code><%= h(suggestion) %></code><% end %></p>
+<% end -%>
+<% if causes.any? -%>
+    <p class="chips" data-webconsole-causes><span class="eyebrow">Caused by</span><% causes.each do |cause| %><code><%= h(cause) %></code><% end %></p>
+<% end -%>
+  </section>
+
+  <div class="disclosure" data-webconsole-disclosure<%= collapsed? ? "" : " hidden" %>>
+    <button type="button" data-webconsole-disclosure-toggle aria-expanded="false" aria-controls="webconsole-workbench">
+      <svg class="icon chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+      <span data-webconsole-disclosure-label>Show backtrace</span>
+      <span class="count" data-webconsole-disclosure-count>(<%= frames.length %> <%= frames.length == 1 ? "frame" : "frames" %>, <%= app_frames_count %> in your app)</span>
+    </button>
+  </div>
+
+  <section class="workbench" id="webconsole-workbench" data-webconsole-workbench<%= collapsed? ? " hidden" : "" %>>
+    <div class="col frames-col">
+      <div class="col-head">
+        <span class="eyebrow">Backtrace</span>
+        <span class="spacer"></span>
+        <div class="seg" role="group" aria-label="Filter frames">
+          <button type="button" data-webconsole-filter="app" aria-pressed="<%= app_only? ? "true" : "false" %>">App</button>
+          <button type="button" data-webconsole-filter="all" aria-pressed="<%= app_only? ? "false" : "true" %>">All</button>
+        </div>
+      </div>
+<% if frames.any? -%>
+      <ul class="frames<%= app_only? ? " app-only" : "" %>" data-webconsole-frame-list>
+<% frames.each_with_index do |frame, index| -%>
+        <li class="<%= frame.app? ? "is-app" : "is-gem" %>" data-webconsole-frame-kind="<%= h(frame.kind.to_s) %>">
+          <button type="button" data-webconsole-frame data-webconsole-frame-index="<%= index %>"
+                  aria-current="<%= index == initial_frame_index ? "true" : "false" %>">
+            <span class="fr-loc"><%= h(frame.display_path) %><span class="ln">:<%= h(frame.lineno.to_s) %></span></span>
+            <span class="fr-meth"><%= h(frame.label) %></span>
+          </button>
+        </li>
+<% end -%>
+      </ul>
+      <p class="frames-note" data-webconsole-frames-note></p>
+<% else -%>
+      <p class="frames-empty" data-webconsole-frames-empty>This exception carries no backtrace.</p>
+<% end -%>
+    </div>
+
+    <div class="col">
+      <div class="col-head">
+        <span class="src-path" data-webconsole-source-path></span>
+        <span class="spacer"></span>
+        <a class="open-editor" data-webconsole-open-editor href="#">
+          <svg class="icon" aria-hidden="true"><use href="#i-external-link"/></svg>Open in editor
+        </a>
+      </div>
+      <div class="code" data-webconsole-code></div>
+      <div class="tabs" role="tablist" aria-label="Frame variables">
+        <button type="button" role="tab" data-webconsole-tab="locals" aria-selected="true">Locals <span class="count" data-webconsole-tab-count="locals"></span></button>
+        <button type="button" role="tab" data-webconsole-tab="ivars" aria-selected="false">Instance <span class="count" data-webconsole-tab-count="ivars"></span></button>
+        <button type="button" role="tab" data-webconsole-tab="console" aria-selected="false">Console <span class="count" data-webconsole-tab-count="console"></span></button>
+      </div>
+      <div data-webconsole-panel></div>
+    </div>
+  </section>
+
+  <section class="context" data-webconsole-context>
+<% context_panels.each do |panel| -%>
+    <div class="ctx-panel" data-webconsole-context-panel="<%= h(panel[:title]) %>">
+      <div class="ctx-head">
+        <svg class="icon" aria-hidden="true"><use href="#i-<%= panel[:icon] %>"/></svg>
+        <span class="eyebrow"><%= h(panel[:title]) %></span>
+<% if panel[:search] -%>
+        <span class="spacer"></span>
+        <div class="ctx-search">
+          <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" data-webconsole-search placeholder="<%= h(panel[:search]) %>"
+                 autocomplete="off" spellcheck="false" aria-label="<%= h(panel[:search]) %>">
+          <button type="button" class="ctx-clear" data-webconsole-search-clear hidden aria-label="Clear filter">
+            <svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>
+          </button>
+        </div>
+<% end -%>
+      </div>
+      <div class="kv-wrap">
+        <table class="kv">
+          <tbody data-webconsole-rows>
+<% panel[:rows].each do |name, value, filtered, highlight| -%>
+            <tr data-webconsole-row<%= highlight ? " class=\"is-near\" data-webconsole-near" : "" %>>
+              <td class="k-name" data-webconsole-row-key><%= h(name) %></td>
+              <td class="k-val<%= filtered ? " filtered" : "" %>" data-webconsole-row-value><%= h(value) %></td>
+            </tr>
+<% end -%>
+          </tbody>
+        </table>
+        <p class="ctx-empty" data-webconsole-context-empty hidden>No matches</p>
+      </div>
+<% if panel[:search] -%>
+      <p class="ctx-count" data-webconsole-context-count data-webconsole-noun="<%= h(panel[:noun]) %>"><%= panel[:rows].length %> <%= h(panel[:noun]) %> &middot; press / to filter</p>
+<% end -%>
+    </div>
+<% end -%>
+  </section>
+
+  <p class="meta" data-webconsole-meta><%= h(meta_line) %></p>
+</div>
+
+<script type="application/json" data-webconsole-frames><%= payload_json %></script>
+
+<script nonce="<%= h(nonce) %>">
+<%= javascript %></script>
+</body>
+</html>
