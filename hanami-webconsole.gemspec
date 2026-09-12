@@ -30,9 +30,7 @@ Gem::Specification.new do |spec|
 
   spec.required_ruby_version = ">= 3.3"
 
-  spec.add_runtime_dependency "rack", ">= 2.0"
-  # Required for per-frame local variables and the console. Loaded defensively: if this ever
-  # fails to build on a new Ruby, the error page still renders without those features.
+  spec.add_runtime_dependency "better_errors", "~> 2.10", ">= 2.10.1"
   spec.add_runtime_dependency "binding_of_caller", "~> 2.0"
 end
 
