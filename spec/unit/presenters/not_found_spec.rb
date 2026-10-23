@@ -34,9 +34,9 @@ RSpec.describe Hanami::Webconsole::Presenters::NotFound do
   end
 
   # Stands in for `Hanami::Router::NotFoundError`, which carries the slice that was routing.
-  def error(path: "/nope", method: "GET", routes: [], slice: :build)
+  def error(path: "/nope", method: "GET", routes: [])
     router = Class.new { define_method(:routes) { routes } }.new
-    slice = Class.new { define_method(:router) { router } }.new if slice == :build
+    slice = Class.new { define_method(:router) { router } }.new
 
     Class.new(StandardError) {
       define_method(:env) { {"REQUEST_METHOD" => method, "PATH_INFO" => path} }
@@ -59,10 +59,6 @@ RSpec.describe Hanami::Webconsole::Presenters::NotFound do
       expect(described_class.new(error(routes: [])).lede).to eq(
         "This app has no routes yet. Add one in config/routes.rb."
       )
-    end
-
-    it "is nil when the routes cannot be read, leaving the error's own message to speak" do
-      expect(described_class.new(error(slice: nil)).lede).to be_nil
     end
   end
 
@@ -94,10 +90,6 @@ RSpec.describe Hanami::Webconsole::Presenters::NotFound do
 
       expect(panel.first).to eq("Routes (1000)")
       expect(panel.last.length).to eq(1_000)
-    end
-
-    it "is empty when the routes cannot be read" do
-      expect(described_class.new(error(slice: nil)).context_panels).to eq([])
     end
   end
 

@@ -28,8 +28,6 @@ module Hanami
         end
 
         def lede
-          return unless routes
-
           return "This app has no routes yet. Add one in config/routes.rb." if routes.empty?
 
           "Check the routes below for the one you meant, or add a new route."
@@ -79,21 +77,16 @@ module Hanami
 
         # Returns the routes of the slice that raised the error.
         #
-        # Returns nil if there are no routes to read, i.e. with an older Hanami (whose error
-        # carries no slice) or an older hanami-router (whose router can't list its routes). This
-        # is different from an empty array, which means the app genuinely has no routes.
-        #
-        # @return [Array<Hanami::Router::Route>, nil]
+        # @return [Array<Hanami::Router::Route>]
         def routes
-          router = exception.slice&.router if exception.respond_to?(:slice)
-          router.routes if router.respond_to?(:routes)
+          exception.slice.router.routes
         end
 
         # Hide HEAD routes. The router generates one for every GET, so showing them would double
         # up the list with routes the user never defined. `hanami routes` hides them for the same
         # reason.
         def listed_routes
-          @listed_routes ||= Array(routes).reject(&:head?)
+          @listed_routes ||= routes.reject(&:head?)
         end
 
         # Highlight the rows for suggested paths. Paths that exist only under a different HTTP
@@ -135,7 +128,7 @@ module Hanami
         #
         # Never suggests the root path: almost any short path is a character or two away from it.
         def near_paths
-          @near_paths ||= Array(routes)
+          @near_paths ||= routes
             # Include only paths reachable by the same HTTP method
             .select { |route| route.http_method == verb || route.http_method == "*" }
             # A route path is a _pattern_, like `/books/:id`
