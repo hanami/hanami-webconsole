@@ -128,6 +128,53 @@ RSpec.describe Hanami::Webconsole::Presenters::NotFound do
       expect(presenter.suggestions).to eq(["/books"])
     end
 
+    it "reads a dynamic segment as the param it would fill" do
+      presenter = described_class.new(error(path: "/bookz/1", routes: routes))
+
+      expect(presenter.suggestions).to eq(["/books/:id"])
+    end
+
+    it "suggests the route whose constraints the path failed" do
+      presenter = described_class.new(error(path: "/books/abc", routes: routes))
+
+      expect(presenter.suggestions).to eq(["/books/:id"])
+    end
+
+    it "reads a glob as the rest of the path" do
+      files = routes + [route("GET", "/files/*path", "files.show")]
+      presenter = described_class.new(error(path: "/filez/a/b.txt", routes: files))
+
+      expect(presenter.suggestions).to eq(["/files/*path"])
+    end
+
+    it "never suggests the root path for a short path" do
+      rooted = routes + [route("GET", "/", "home.show")]
+      presenter = described_class.new(error(path: "/x", routes: rooted))
+
+      expect(presenter.suggestions).to eq([])
+    end
+
+    it "does not suggest a route of another shape that is only close as text" do
+      presenter = described_class.new(error(path: "/bookz/1", routes: routes))
+
+      expect(presenter.suggestions).not_to include("/books")
+    end
+
+    it "is not misled by a long param value shared with other routes" do
+      uuid = "550e8400-e29b-41d4-a716-446655440000"
+      others = routes + [route("GET", "/users/:id", "users.show"), route("GET", "/orders/:id", "orders.show")]
+
+      expect(described_class.new(error(path: "/bookz/#{uuid}", routes: others)).suggestions).to eq(["/books/:id"])
+      expect(described_class.new(error(path: "/xyz/#{uuid}", routes: others)).suggestions).to eq([])
+    end
+
+    it "does not let param or glob names make an unrelated pattern look close" do
+      uuid = "550e8400-e29b-41d4-a716-446655440000"
+      files = routes + [route("GET", "/files/*path", "files.show")]
+
+      expect(described_class.new(error(path: "/orders/#{uuid}", routes: files)).suggestions).to eq([])
+    end
+
     it "only suggests paths reachable by the method that was requested" do
       presenter = described_class.new(error(path: "/bookss", method: "DELETE", routes: routes))
 
