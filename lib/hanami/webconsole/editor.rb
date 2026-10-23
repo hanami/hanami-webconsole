@@ -16,15 +16,11 @@ module Hanami
     # never be the reason an error page fails to render.
     #
     # @api private
-    # @since 3.1.0
     class Editor
       # URL templates, keyed by canonical editor name.
       #
       # `%{path}` keeps its slashes (it is a path segment), `%{escaped_path}` is form-encoded
       # (it is a query parameter value).
-      #
-      # @api private
-      # @since 3.1.0
       TEMPLATES = {
         vscode: "vscode://file/%{path}:%{line}",
         vscodium: "vscodium://file/%{path}:%{line}",
@@ -34,9 +30,6 @@ module Hanami
       }.freeze
 
       # Aliases for the names above, so that both `code` and `vscode` work.
-      #
-      # @api private
-      # @since 3.1.0
       ALIASES = {
         code: :vscode,
         codium: :vscodium,
@@ -47,34 +40,21 @@ module Hanami
         mate: :txmt
       }.freeze
 
-      # @api private
-      # @since 3.1.0
       DEFAULT = :vscode
 
       # Environment variable naming the editor to link to.
-      #
-      # @api private
-      # @since 3.1.0
       ENV_KEY = "HANAMI_EDITOR"
 
       # Returns an editor configured from the environment.
       #
       # @return [Editor]
-      #
-      # @api private
-      # @since 3.1.0
       def self.from_env(env = ENV)
         new(env[ENV_KEY] || DEFAULT)
       end
 
       # @return [Symbol] the canonical editor name
-      #
-      # @api private
-      # @since 3.1.0
       attr_reader :name
 
-      # @api private
-      # @since 3.1.0
       def initialize(name = DEFAULT)
         @name = canonical_name(name)
         @template = TEMPLATES.fetch(@name)
@@ -86,9 +66,6 @@ module Hanami
       # @param line [Integer, nil]
       #
       # @return [String]
-      #
-      # @api private
-      # @since 3.1.0
       def url(path, line = 1)
         format(
           @template,
@@ -101,9 +78,6 @@ module Hanami
       # Returns the URL scheme, for use in a Content-Security-Policy.
       #
       # @return [String]
-      #
-      # @api private
-      # @since 3.1.0
       def scheme
         "#{@name}://"
       end
@@ -113,15 +87,10 @@ module Hanami
       # Percent-encodes a path for use as a URL path segment, keeping its separators.
       #
       # `URI::DEFAULT_PARSER.escape` would do this, but it is deprecated as of Ruby 3.4.
-      #
-      # @api private
-      # @since 3.1.0
       def escape_path(path)
         URI.encode_www_form_component(path).gsub("+", "%20").gsub("%2F", "/")
       end
 
-      # @api private
-      # @since 3.1.0
       def canonical_name(name)
         symbol = name.to_s.strip.downcase.to_sym
         symbol = ALIASES.fetch(symbol, symbol)

@@ -12,7 +12,6 @@ module Hanami
     # given Ruby, the error page still renders, minus local variables and the console.
     #
     # @api private
-    # @since 3.1.0
     def self.bindings_available?
       @bindings_available
     end
@@ -28,7 +27,6 @@ module Hanami
     # @return [Boolean]
     #
     # @api private
-    # @since 3.1.0
     def self.probe_bindings(prober = -> { ::Kernel.binding.callers })
       require "binding_of_caller"
       prober.call
@@ -47,13 +45,11 @@ module Hanami
     # embedded in the page for the double-submit check.
     #
     # @api private
-    # @since 3.1.0
     CSRF_COOKIE_NAME = "Hanami-Webconsole-CSRF-Token"
 
     # Path the console's internal endpoints are mounted at.
     #
     # @api private
-    # @since 3.1.0
     MOUNT_PATH = "/_hanami/webconsole"
 
     # Generation counter, bumped whenever application code is reloaded.
@@ -64,13 +60,11 @@ module Hanami
     # instead, and the console reports that the session has expired.
     #
     # @api private
-    # @since 3.1.0
     def self.generation
       @generation ||= 0
     end
 
     # @api private
-    # @since 3.1.0
     def self.reloaded!
       @generation = generation + 1
     end

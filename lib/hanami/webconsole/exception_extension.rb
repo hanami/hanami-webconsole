@@ -17,29 +17,21 @@ module Hanami
     # `:development` group only.
     #
     # @api private
-    # @since 3.1.0
     module ExceptionExtension
       @capturing = true
 
       class << self
-        # @api private
-        # @since 3.1.0
         def capturing?
           @capturing
         end
 
         # Gives up on binding capture for the rest of the process. Locals and the console go
         # away; everything else on the error page keeps working.
-        #
-        # @api private
-        # @since 3.1.0
         def stand_down!
           @capturing = false
         end
       end
 
-      # @api private
-      # @since 3.1.0
       def set_backtrace(*)
         # `set_backtrace` can be called more than once as an exception propagates, and re-raising
         # would otherwise overwrite the original frames with the (shorter, less useful) stack of
@@ -59,9 +51,6 @@ module Hanami
       end
 
       # @return [Array<Binding>]
-      #
-      # @api private
-      # @since 3.1.0
       def __hanami_webconsole_bindings
         @__hanami_webconsole_bindings || []
       end

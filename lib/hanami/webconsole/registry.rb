@@ -17,14 +17,9 @@ module Hanami
     # Thread-safe: a development server handles requests concurrently.
     #
     # @api private
-    # @since 3.1.0
     class Registry
-      # @api private
-      # @since 3.1.0
       DEFAULT_MAX = 16
 
-      # @api private
-      # @since 3.1.0
       def initialize(max: DEFAULT_MAX)
         @max = [max.to_i, 0].max
         @pages = {}
@@ -36,9 +31,6 @@ module Hanami
       # @param page [ErrorPage]
       #
       # @return [String] the page id
-      #
-      # @api private
-      # @since 3.1.0
       def put(page)
         @mutex.synchronize do
           @pages.delete(page.id)
@@ -60,9 +52,6 @@ module Hanami
       # @param id [String, nil]
       #
       # @return [ErrorPage, nil]
-      #
-      # @api private
-      # @since 3.1.0
       def fetch(id)
         @mutex.synchronize do
           page = @pages[id]
@@ -80,9 +69,6 @@ module Hanami
       # Drops every page from a previous generation.
       #
       # @return [self]
-      #
-      # @api private
-      # @since 3.1.0
       def sweep!
         @mutex.synchronize { drop_stale }
         self
@@ -91,9 +77,6 @@ module Hanami
       # Number of pages currently held.
       #
       # @return [Integer]
-      #
-      # @api private
-      # @since 3.1.0
       def size
         @mutex.synchronize { @pages.size }
       end

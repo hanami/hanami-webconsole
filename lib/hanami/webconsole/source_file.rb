@@ -14,33 +14,20 @@ module Hanami
     # instead of failing while it tries to explain another failure.
     #
     # @api private
-    # @since 3.1.0
     module SourceFile
       # A window of lines around a highlighted line.
       #
       # `lines` have no trailing newlines. `first_lineno` is the 1-based number of `lines.first`,
       # so line `n` is `lines[n - first_lineno]`.
-      #
-      # @api private
-      # @since 3.1.0
       Excerpt = Struct.new(:path, :first_lineno, :lines, :highlight_lineno, keyword_init: true)
 
       # Largest file we will read. Anything bigger is almost certainly not hand-written source.
-      #
-      # @api private
-      # @since 3.1.0
       MAX_SIZE = 2 * 1024 * 1024
 
       # Maximum number of files held in the cache.
-      #
-      # @api private
-      # @since 3.1.0
       CACHE_LIMIT = 64
 
       # Number of lines shown either side of the highlighted line.
-      #
-      # @api private
-      # @since 3.1.0
       DEFAULT_CONTEXT = 7
 
       @cache = {}
@@ -55,9 +42,6 @@ module Hanami
         #
         # @return [Excerpt, nil] nil when the file is missing, unreadable, binary, too large, or
         #   the requested line lies outside it
-        #
-        # @api private
-        # @since 3.1.0
         def read(path, around:, context: DEFAULT_CONTEXT)
           path = path.to_s
           around = Integer(around)
@@ -83,8 +67,6 @@ module Hanami
 
         private
 
-        # @api private
-        # @since 3.1.0
         def lines_for(path)
           stat = File.stat(path)
           return nil unless stat.file?
@@ -103,8 +85,6 @@ module Hanami
           nil
         end
 
-        # @api private
-        # @since 3.1.0
         def fetch(key)
           @mutex.synchronize do
             lines = @cache.delete(key)
@@ -113,8 +93,6 @@ module Hanami
           end
         end
 
-        # @api private
-        # @since 3.1.0
         def store(key, lines)
           @mutex.synchronize do
             @cache.delete_if { |(cached_path, _, _), _| cached_path == key.first }
@@ -123,8 +101,6 @@ module Hanami
           end
         end
 
-        # @api private
-        # @since 3.1.0
         def load(path)
           content = File.read(path, mode: "rb")
           return nil if content.include?("\0")

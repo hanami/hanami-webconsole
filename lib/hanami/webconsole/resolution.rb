@@ -41,33 +41,20 @@ module Hanami
     # rather than passed around as-is, and nothing it does may raise.
     #
     # @api private
-    # @since 3.1.0
     class Resolution
       # What a resolution is handed when it runs.
       #
       # Deliberately thin. Once gems write resolutions against this it is public API, and adding
       # to it later is easy where taking things away is not.
-      #
-      # @api private
-      # @since 3.1.0
       Context = Struct.new(:app, :slice, :request, keyword_init: true)
 
-      # @api private
-      # @since 3.1.0
       Result = Struct.new(:ok, :output, keyword_init: true) do
-        # @api private
-        # @since 3.1.0
         def ok? = !!ok
       end
 
       # Longest accepted value for any single piece of guidance.
-      #
-      # @api private
-      # @since 3.1.0
       MAX_TEXT = 10_000
 
-      # @api private
-      # @since 3.1.0
       MAX_ITEMS = 50
 
       # Reads the resolutions an exception offers.
@@ -76,9 +63,6 @@ module Hanami
       #
       # @return [Array<Resolution>] empty for any error that offers none, or offers something
       #   that does not fit the contract
-      #
-      # @api private
-      # @since 3.1.0
       def self.for(exception)
         return [] unless exception.respond_to?(:resolutions)
 
@@ -89,8 +73,6 @@ module Hanami
         []
       end
 
-      # @api private
-      # @since 3.1.0
       def self.build(candidate)
         name = name_of(candidate)
         return unless name
@@ -108,8 +90,6 @@ module Hanami
       end
       private_class_method :build
 
-      # @api private
-      # @since 3.1.0
       def self.name_of(candidate)
         return unless candidate.respond_to?(:name)
 
@@ -120,8 +100,6 @@ module Hanami
       end
       private_class_method :name_of
 
-      # @api private
-      # @since 3.1.0
       def self.content_of(candidate)
         content = %i[command snippet note].to_h { |key| [key, text(candidate, key)] }
         content[:items] = items(candidate)
@@ -129,8 +107,6 @@ module Hanami
       end
       private_class_method :content_of
 
-      # @api private
-      # @since 3.1.0
       def self.destructive?(candidate)
         candidate.respond_to?(:destructive?) && !!candidate.destructive?
       rescue ::Exception # rubocop:disable Lint/RescueException
@@ -138,8 +114,6 @@ module Hanami
       end
       private_class_method :destructive?
 
-      # @api private
-      # @since 3.1.0
       def self.text(candidate, method)
         return unless candidate.respond_to?(method)
 
@@ -155,8 +129,6 @@ module Hanami
       end
       private_class_method :text
 
-      # @api private
-      # @since 3.1.0
       def self.items(candidate)
         return [] unless candidate.respond_to?(:items)
 
@@ -169,12 +141,8 @@ module Hanami
       end
       private_class_method :items
 
-      # @api private
-      # @since 3.1.0
       attr_reader :name, :command, :snippet, :note, :items
 
-      # @api private
-      # @since 3.1.0
       def initialize(name:, destructive:, target:, executable: true,
                      command: nil, snippet: nil, note: nil, items: [])
         @name = name
@@ -195,17 +163,11 @@ module Hanami
       # no button and nothing to execute — so it needs none of the endpoint's machinery.
       #
       # @return [Boolean]
-      #
-      # @api private
-      # @since 3.1.0
       def executable? = @executable
 
       # Whether there is anything to show beyond the name and a button.
       #
       # @return [Boolean]
-      #
-      # @api private
-      # @since 3.1.0
       def guidance? = !(command.nil? && snippet.nil? && note.nil? && items.empty?)
 
       # Whether running this changes something the developer may not want changed.
@@ -215,9 +177,6 @@ module Hanami
       # away on a page that appears by itself when something breaks.
       #
       # @return [Boolean]
-      #
-      # @api private
-      # @since 3.1.0
       def destructive? = @destructive
 
       # Runs the resolution.
@@ -225,9 +184,6 @@ module Hanami
       # @param context [Context]
       #
       # @return [Result] never raises; a failure is a Result, not an exception
-      #
-      # @api private
-      # @since 3.1.0
       def call(context)
         unless executable?
           return Result.new(ok: false, output: "This resolution is guidance only.")
@@ -242,16 +198,12 @@ module Hanami
 
       private
 
-      # @api private
-      # @since 3.1.0
       def format_output(output)
         return "" if output.nil? || output == true
 
         Inspector.call(output, limit: 4_000)
       end
 
-      # @api private
-      # @since 3.1.0
       def format_exception(exception)
         "#{Inspector.class_name(exception)}: #{exception.message}"
       rescue ::Exception # rubocop:disable Lint/RescueException

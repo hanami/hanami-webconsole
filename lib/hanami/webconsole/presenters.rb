@@ -12,7 +12,6 @@ module Hanami
     # Lookup walks the exception's ancestry, so registering a superclass covers its subclasses.
     #
     # @api private
-    # @since 3.1.0
     module Presenters
       @registry = {}
       @mutex = Mutex.new
@@ -28,9 +27,6 @@ module Hanami
         # @param presenter_class [Class]
         #
         # @return [Class] the registered presenter class
-        #
-        # @api private
-        # @since 3.1.0
         def register(exception_class_name, presenter_class)
           @mutex.synchronize do
             @registry[exception_class_name.to_s] = presenter_class
@@ -47,9 +43,6 @@ module Hanami
         # @param exception [Exception]
         #
         # @return [Presenters::Base, nil]
-        #
-        # @api private
-        # @since 3.1.0
         def for(exception)
           presenter_class = lookup(exception)
           return nil unless presenter_class
@@ -62,9 +55,6 @@ module Hanami
         # All registered presenters, keyed by exception class name.
         #
         # @return [Hash{String => Class}]
-        #
-        # @api private
-        # @since 3.1.0
         def registered
           @mutex.synchronize { @registry.dup }
         end
@@ -72,9 +62,6 @@ module Hanami
         # Removes every registration.
         #
         # @return [void]
-        #
-        # @api private
-        # @since 3.1.0
         def reset!
           @mutex.synchronize { @registry.clear }
         end

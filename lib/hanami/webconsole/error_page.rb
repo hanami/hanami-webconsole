@@ -15,46 +15,26 @@ module Hanami
     # to something safe instead.
     #
     # @api private
-    # @since 3.1.0
     class ErrorPage
       # Status used when the exception maps to nothing in `config.render_error_responses`.
-      #
-      # @api private
-      # @since 3.1.0
       DEFAULT_ERROR_RESPONSE = :internal_server_error
 
-      # @api private
-      # @since 3.1.0
       DEFAULT_STATUS = 500
 
-      # @api private
-      # @since 3.1.0
       NOT_FOUND_STATUS = 404
 
       # Cause chains are walked, not trusted: stop after this many.
-      #
-      # @api private
-      # @since 3.1.0
       MAX_CAUSES = 10
       private_constant :MAX_CAUSES
 
       # Frames listed by {#to_text}, before truncating.
-      #
-      # @api private
-      # @since 3.1.0
       MAX_TEXT_FRAMES = 25
       private_constant :MAX_TEXT_FRAMES
 
-      # @api private
-      # @since 3.1.0
       attr_reader :exception
 
-      # @api private
-      # @since 3.1.0
       attr_reader :env
 
-      # @api private
-      # @since 3.1.0
       attr_reader :config
 
       # The id under which this page is stored in the {Registry}.
@@ -63,23 +43,14 @@ module Hanami
       # recognised and dropped rather than evaluated against unloaded constants.
       #
       # @return [String]
-      #
-      # @api private
-      # @since 3.1.0
       attr_reader :id
 
       # @return [Integer]
-      #
-      # @api private
-      # @since 3.1.0
       attr_reader :generation
 
       # Builds a page id for the given generation.
       #
       # @return [String]
-      #
-      # @api private
-      # @since 3.1.0
       def self.generate_id(generation = Webconsole.generation)
         "#{generation}-#{SecureRandom.hex(8)}"
       end
@@ -91,9 +62,6 @@ module Hanami
       # @param id [String, nil]
       # @param generation [Integer]
       # @param bindings [Array<Binding>, nil] bindings aligned to the exception's backtrace
-      #
-      # @api private
-      # @since 3.1.0
       def initialize(exception:, env:, config:, id: nil, generation: Webconsole.generation, bindings: nil)
         @exception = exception
         @env = env || {}
@@ -104,17 +72,11 @@ module Hanami
       end
 
       # @return [String]
-      #
-      # @api private
-      # @since 3.1.0
       def exception_class
         @exception_class ||= class_name_of(exception)
       end
 
       # @return [String]
-      #
-      # @api private
-      # @since 3.1.0
       def message
         @message ||= safely("") { exception.message.to_s }
       end
@@ -125,9 +87,6 @@ module Hanami
       # `#message` reads as the headline and this is the paragraph beneath it.
       #
       # @return [String, nil]
-      #
-      # @api private
-      # @since 3.1.0
       def detail
         return @detail if defined?(@detail)
 
@@ -146,9 +105,6 @@ module Hanami
       # of `message`, so they are diffed out of `detailed_message` rather than recomputed.
       #
       # @return [Array<String>]
-      #
-      # @api private
-      # @since 3.1.0
       def detailed_extras
         @detailed_extras ||= compute_detailed_extras
       end
@@ -156,9 +112,6 @@ module Hanami
       # The response status for this exception, per `config.render_error_responses`.
       #
       # @return [Integer]
-      #
-      # @api private
-      # @since 3.1.0
       def status
         @status ||= safely(DEFAULT_STATUS) { Rack::Utils.status_code(error_response) }
       end
@@ -166,9 +119,6 @@ module Hanami
       # Which of the page's three shapes to render.
       #
       # @return [Symbol] `:not_found`, `:actionable` or `:crash`
-      #
-      # @api private
-      # @since 3.1.0
       def severity
         return :not_found if status == NOT_FOUND_STATUS
         return :actionable if presenter || resolutions.any?
@@ -182,9 +132,6 @@ module Hanami
       # collapses and the resolutions lead.
       #
       # @return [Array<Resolution>]
-      #
-      # @api private
-      # @since 3.1.0
       def resolutions
         @resolutions ||= safely([]) { Resolution.for(exception) }
       end
@@ -192,49 +139,31 @@ module Hanami
       # Class names of the exception's causes, outermost cause last.
       #
       # @return [Array<String>]
-      #
-      # @api private
-      # @since 3.1.0
       def causes
         @causes ||= compute_causes
       end
 
       # @return [Backtrace]
-      #
-      # @api private
-      # @since 3.1.0
       def backtrace
         @backtrace ||= Backtrace.new(exception: exception, root: root, bindings: @bindings)
       end
 
       # @return [Array<Frame>]
-      #
-      # @api private
-      # @since 3.1.0
       def frames
         @frames ||= safely([]) { backtrace.frames }
       end
 
       # @return [Array<Frame>]
-      #
-      # @api private
-      # @since 3.1.0
       def app_frames
         @app_frames ||= safely([]) { backtrace.app_frames }
       end
 
       # @return [RequestContext]
-      #
-      # @api private
-      # @since 3.1.0
       def request
         @request ||= RequestContext.new(env: env, filters: filters)
       end
 
       # @return [Filters]
-      #
-      # @api private
-      # @since 3.1.0
       def filters
         @filters ||= Filters.new(filter_keys)
       end
@@ -242,9 +171,6 @@ module Hanami
       # The app root, used to classify frames.
       #
       # @return [String]
-      #
-      # @api private
-      # @since 3.1.0
       def root
         @root ||= safely(Dir.pwd) {
           config.respond_to?(:root) ? config.root.to_s : Dir.pwd
@@ -254,9 +180,6 @@ module Hanami
       # The presenter for this exception, when one is registered.
       #
       # @return [Presenters::Base, nil]
-      #
-      # @api private
-      # @since 3.1.0
       def presenter
         return @presenter if defined?(@presenter)
 
@@ -271,9 +194,6 @@ module Hanami
       # stack is readable at a glance.
       #
       # @return [String]
-      #
-      # @api private
-      # @since 3.1.0
       def to_text
         safely(fallback_text) { text_blocks.compact.join("\n\n") + "\n" }
       end

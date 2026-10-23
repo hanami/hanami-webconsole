@@ -12,18 +12,12 @@ module Hanami
       # Subclasses are expected to override at least {#headline} and {#lede}.
       #
       # @api private
-      # @since 3.1.0
       class Base
         # The exception being presented.
         #
         # @return [Exception]
-        #
-        # @api private
-        # @since 3.1.0
         attr_reader :exception
 
-        # @api private
-        # @since 3.1.0
         def initialize(exception)
           @exception = exception
         end
@@ -31,9 +25,6 @@ module Hanami
         # Short, human title for the error, replacing the exception class name.
         #
         # @return [String, nil]
-        #
-        # @api private
-        # @since 3.1.0
         def headline
           nil
         end
@@ -43,9 +34,6 @@ module Hanami
         # Plain text: it is escaped before rendering.
         #
         # @return [String, nil]
-        #
-        # @api private
-        # @since 3.1.0
         def lede
           nil
         end
@@ -53,9 +41,6 @@ module Hanami
         # A shell command that fixes the error, if there is one.
         #
         # @return [String, nil]
-        #
-        # @api private
-        # @since 3.1.0
         def command
           nil
         end
@@ -63,9 +48,6 @@ module Hanami
         # A source snippet illustrating the fix, if there is one.
         #
         # @return [String, nil]
-        #
-        # @api private
-        # @since 3.1.0
         def snippet
           nil
         end
@@ -73,9 +55,6 @@ module Hanami
         # Supporting facts, rendered as a list.
         #
         # @return [Array<String>]
-        #
-        # @api private
-        # @since 3.1.0
         def items
           []
         end
@@ -83,9 +62,6 @@ module Hanami
         # A caveat or aside shown under the fix.
         #
         # @return [String, nil]
-        #
-        # @api private
-        # @since 3.1.0
         def note
           nil
         end
@@ -93,9 +69,6 @@ module Hanami
         # Things to try, when there is no single fix.
         #
         # @return [Array<String>]
-        #
-        # @api private
-        # @since 3.1.0
         def suggestions
           []
         end
@@ -106,9 +79,6 @@ module Hanami
         # `[name, value, filtered?, highlight?]`.
         #
         # @return [Array<Array>]
-        #
-        # @api private
-        # @since 3.1.0
         def context_panels
           []
         end

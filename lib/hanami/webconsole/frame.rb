@@ -10,7 +10,6 @@ module Hanami
     # render it without any further processing, and never touch the underlying object.
     #
     # @api private
-    # @since 3.1.0
     Variable = Struct.new(:name, :class_name, :value, keyword_init: true)
 
     # One entry in a backtrace, together with everything the page shows for it: where it points,
@@ -25,29 +24,17 @@ module Hanami
     # {#instance_vars} and {#receiver_inspect}.
     #
     # @api private
-    # @since 3.1.0
     class Frame
-      # @api private
-      # @since 3.1.0
       EMPTY_VARIABLES = [].freeze
 
       # Path segment that separates an installed gem's directory from the rest of a gem home.
-      #
-      # @api private
-      # @since 3.1.0
       GEMS_SEGMENT = "/gems/"
 
       # Matches a path that lives inside an installed gem, wherever that gem home happens to be.
       # Covers RubyGems homes, `bundle config path` targets, and bundler's git gem checkouts.
-      #
-      # @api private
-      # @since 3.1.0
       GEMS_DIRECTORY = %r{/gems/[^/]+/}
 
       # Prefixes used by paths that are not files at all: `<internal:kernel>`, `(eval)`, `(irb)`.
-      #
-      # @api private
-      # @since 3.1.0
       VIRTUAL_PREFIXES = ["<", "("].freeze
 
       class << self
@@ -57,9 +44,6 @@ module Hanami
         # recomputed for every frame of every backtrace.
         #
         # @return [Array<String>]
-        #
-        # @api private
-        # @since 3.1.0
         def gem_paths
           @gem_paths ||= begin
             paths = Array(Gem.path)
@@ -73,42 +57,24 @@ module Hanami
       end
 
       # @return [String] absolute where the backtrace gave us one
-      #
-      # @api private
-      # @since 3.1.0
       attr_reader :path
 
       # @return [Integer] 0 when the backtrace did not give us a line
-      #
-      # @api private
-      # @since 3.1.0
       attr_reader :lineno
 
       # @return [String] e.g. "Bookshelf::Repositories::BookRepo#find_with_reviews"
-      #
-      # @api private
-      # @since 3.1.0
       attr_reader :label
 
       # @return [Binding, nil]
-      #
-      # @api private
-      # @since 3.1.0
       attr_reader :binding
 
       # @return [String] the app root this frame was classified against
-      #
-      # @api private
-      # @since 3.1.0
       attr_reader :root
 
       # @param location [Thread::Backtrace::Location] or any object answering #path, #lineno and
       #   #label
       # @param root [String] the app root, used to classify the frame
       # @param binding [Binding, nil]
-      #
-      # @api private
-      # @since 3.1.0
       def initialize(location:, root:, binding: nil)
         @root = root.to_s.chomp(File::SEPARATOR)
         @binding = binding
@@ -123,17 +89,11 @@ module Hanami
       # else: Ruby itself, C frames, `eval`'d code, and paths that no longer exist on disk.
       #
       # @return [Symbol] :app, :gem or :core
-      #
-      # @api private
-      # @since 3.1.0
       def kind
         @kind ||= detect_kind
       end
 
       # @return [Boolean]
-      #
-      # @api private
-      # @since 3.1.0
       def app?
         kind == :app
       end
@@ -143,17 +103,11 @@ module Hanami
       # rather than a hundred characters of installation prefix.
       #
       # @return [String]
-      #
-      # @api private
-      # @since 3.1.0
       def display_path
         @display_path ||= detect_display_path
       end
 
       # @return [SourceFile::Excerpt, nil] nil when the source cannot be read
-      #
-      # @api private
-      # @since 3.1.0
       def source
         return @source if defined?(@source)
 
@@ -161,25 +115,16 @@ module Hanami
       end
 
       # @return [Array<Variable>] empty when no binding was captured for this frame
-      #
-      # @api private
-      # @since 3.1.0
       def locals
         @locals ||= build_locals
       end
 
       # @return [Array<Variable>] empty when no binding was captured for this frame
-      #
-      # @api private
-      # @since 3.1.0
       def instance_vars
         @instance_vars ||= build_instance_vars
       end
 
       # @return [String, nil] safe-inspected `self`, nil when no binding was captured
-      #
-      # @api private
-      # @since 3.1.0
       def receiver_inspect
         return @receiver_inspect if defined?(@receiver_inspect)
 
@@ -188,8 +133,6 @@ module Hanami
 
       private
 
-      # @api private
-      # @since 3.1.0
       def extract_path(location)
         absolute = location.absolute_path if location.respond_to?(:absolute_path)
         (absolute || location.path).to_s
@@ -197,24 +140,18 @@ module Hanami
         ""
       end
 
-      # @api private
-      # @since 3.1.0
       def extract_lineno(location)
         Integer(location.lineno)
       rescue StandardError
         0
       end
 
-      # @api private
-      # @since 3.1.0
       def extract_label(location)
         location.label.to_s
       rescue StandardError
         ""
       end
 
-      # @api private
-      # @since 3.1.0
       def detect_kind
         return :core if path.empty? || virtual_path?
         return :core unless file?
@@ -224,14 +161,10 @@ module Hanami
         :core
       end
 
-      # @api private
-      # @since 3.1.0
       def virtual_path?
         VIRTUAL_PREFIXES.any? { |prefix| path.start_with?(prefix) }
       end
 
-      # @api private
-      # @since 3.1.0
       def file?
         File.file?(path)
       rescue StandardError
@@ -240,33 +173,24 @@ module Hanami
 
       # Vendored dependencies live under the app root but are not the developer's code, so they
       # are excluded here and picked up by the gem check instead.
-      #
-      # @api private
-      # @since 3.1.0
       def app_path?
         return false if root.empty?
 
         under?(path, root) && !under?(path, "#{root}/vendor")
       end
 
-      # @api private
-      # @since 3.1.0
       def gem_path?
         return true if GEMS_DIRECTORY.match?(path)
 
         self.class.gem_paths.any? { |directory| under?(path, directory) }
       end
 
-      # @api private
-      # @since 3.1.0
       def under?(candidate, directory)
         return false if directory.empty?
 
         candidate.start_with?("#{directory}#{File::SEPARATOR}")
       end
 
-      # @api private
-      # @since 3.1.0
       def detect_display_path
         case kind
         when :app then strip_prefix(path, root)
@@ -275,8 +199,6 @@ module Hanami
         end
       end
 
-      # @api private
-      # @since 3.1.0
       def gem_display_path
         index = path.rindex(GEMS_SEGMENT)
         return path[(index + GEMS_SEGMENT.length)..] if index
@@ -285,16 +207,12 @@ module Hanami
         directory ? strip_prefix(path, directory) : path
       end
 
-      # @api private
-      # @since 3.1.0
       def strip_prefix(value, directory)
         return value unless under?(value, directory)
 
         value[(directory.length + 1)..] || value
       end
 
-      # @api private
-      # @since 3.1.0
       def build_locals
         return EMPTY_VARIABLES unless binding
 
@@ -305,8 +223,6 @@ module Hanami
         EMPTY_VARIABLES
       end
 
-      # @api private
-      # @since 3.1.0
       def build_instance_vars
         return EMPTY_VARIABLES unless binding
 
@@ -318,8 +234,6 @@ module Hanami
         EMPTY_VARIABLES
       end
 
-      # @api private
-      # @since 3.1.0
       def build_receiver_inspect
         return nil unless binding
 
@@ -330,9 +244,6 @@ module Hanami
 
       # A single unreadable value must not take the whole panel down with it, so failures here
       # drop the variable rather than propagate.
-      #
-      # @api private
-      # @since 3.1.0
       def variable(name, value)
         Variable.new(
           name: name.to_s,
