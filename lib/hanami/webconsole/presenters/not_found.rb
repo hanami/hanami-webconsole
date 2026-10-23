@@ -19,15 +19,6 @@ module Hanami
       # @api private
       # @since 3.1.0
       class NotFound < Base
-        # Routes listed before truncating.
-        #
-        # An app with more routes than this is not going to be read off the page, and the panel
-        # has a filter box for finding one by name.
-        #
-        # @api private
-        # @since 3.1.0
-        MAX_ROUTES = 200
-
         # @api private
         # @since 3.1.0
         MAX_SUGGESTIONS = 3
@@ -96,15 +87,17 @@ module Hanami
           "Add it to `config/routes.rb`."
         end
 
+        # Every route is listed, however many there are: the panel's filter box can only find
+        # the rows that are on the page.
+        #
         # @return [Array<Array>]
         #
         # @api private
         # @since 3.1.0
         def context_panels
-          listed = listable_routes
-          return [] if listed.empty?
+          return [] if listed_routes.empty?
 
-          [[panel_title(listed), listed.map { |route| row_for(route) }]]
+          [["Routes (#{listed_routes.length})", listed_routes.map { |route| row_for(route) }]]
         end
 
         private
@@ -130,20 +123,8 @@ module Hanami
 
         # HEAD routes are generated for every GET, so listing them doubles the panel with rows
         # nobody defined. `hanami routes` hides them for the same reason.
-        def listable_routes
-          @listable_routes ||= listed_routes.first(MAX_ROUTES)
-        end
-
         def listed_routes
           @listed_routes ||= routes.reject { |route| head?(route) && verb != "HEAD" }
-        end
-
-        # Says so when the list is truncated, rather than showing a count that disagrees with
-        # `hanami routes`.
-        def panel_title(listed)
-          total = listed_routes.length
-
-          listed.length < total ? "Routes (#{listed.length} of #{total})" : "Routes (#{total})"
         end
 
         def row_for(route)

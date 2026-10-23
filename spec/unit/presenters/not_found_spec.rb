@@ -107,13 +107,13 @@ RSpec.describe Hanami::Webconsole::Presenters::NotFound do
       expect(panel.last.map(&:first)).to include("HEAD /books")
     end
 
-    it "truncates a very long list, and says that it did" do
-      many = Array.new(described_class::MAX_ROUTES + 5) { |i| route("GET", "/route-#{i}", "route.#{i}") }
+    it "lists every route of a large app, so the filter can find any of them" do
+      many = Array.new(1_000) { |i| route("GET", "/route-#{i}", "route.#{i}") }
 
       panel = described_class.new(error(routes: many)).context_panels.first
 
-      expect(panel.first).to eq("Routes (#{described_class::MAX_ROUTES} of #{many.length})")
-      expect(panel.last.length).to eq(described_class::MAX_ROUTES)
+      expect(panel.first).to eq("Routes (1000)")
+      expect(panel.last.length).to eq(1_000)
     end
 
     it "is empty when the routes cannot be read" do
