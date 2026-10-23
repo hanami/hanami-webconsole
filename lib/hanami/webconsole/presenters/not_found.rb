@@ -163,12 +163,10 @@ module Hanami
           }
         end
 
+        # A path that exists only under another method never reaches here: the router raises
+        # `NotAllowedError` for it instead.
         def near?(route)
-          safely(false) {
-            next false if head?(route)
-
-            near_paths.include?(route.path) || (route.path == path && route.http_method != verb)
-          }
+          safely(false) { !head?(route) && near_paths.include?(route.path) }
         end
 
         # Returns the route patterns closest to the requested path, closest first.

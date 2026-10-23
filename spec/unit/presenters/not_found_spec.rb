@@ -194,13 +194,6 @@ RSpec.describe Hanami::Webconsole::Presenters::NotFound do
       expect(rows.select(&:last).map(&:first)).to eq(["GET /books", "POST /books"])
     end
 
-    it "highlights a path that exists only under another method" do
-      presenter = described_class.new(error(path: "/books", method: "DELETE", routes: routes))
-      rows = presenter.context_panels.first.last
-
-      expect(rows.select(&:last).map(&:first)).to eq(["GET /books", "POST /books"])
-    end
-
     it "highlights nothing when nothing is close" do
       expect(presenter.context_panels.first.last.select(&:last)).to eq([])
     end
