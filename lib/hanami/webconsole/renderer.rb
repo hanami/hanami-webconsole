@@ -115,6 +115,9 @@ module Hanami
 
         FILTERED = "[FILTERED]"
 
+        # A `'quoted'` or `` `backticked` `` run in escaped text. See {#text_with_code_spans}.
+        CODE_SPAN = /(?<![[:alnum:]])&#39;([^&<>\s]+)&#39;(?![[:alnum:]])|`([^`&<>]*)`/
+
         attr_reader :page, :nonce, :csrf_token
 
         def initialize(page:, nonce:, csrf_token: nil)
@@ -355,9 +358,16 @@ module Hanami
         # Wraps quoted or backticked runs in `<code>`, the way the design shows identifiers in the
         # lede. Runs after escaping, on escaped text, so it can only ever add `<code>` tags.
         #
+        # Single quotes are for Ruby's own messages, which quote names that way (`undefined method
+        # 'titel' for an instance of Book`). Only quotes that work as quotes count: the opening
+        # quote must not follow a letter or digit, the closing quote must not come before one,
+        # and there is no whitespace between them. An apostrophe in ordinary English (`slice's`,
+        # `can't`, `users'`) therefore stays as text, and writers need no rule other than to use
+        # backticks for code.
+        #
         # @return [String]
         def text_with_code_spans(text)
-          h(text).gsub(/&#39;([^&<>]*)&#39;|`([^`&<>]*)`/) {
+          h(text).gsub(CODE_SPAN) {
             "<code>#{Regexp.last_match(1) || Regexp.last_match(2)}</code>"
           }
         end
