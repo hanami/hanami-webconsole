@@ -176,7 +176,7 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
 
     it "is empty when detailed_message raises" do
       exception = RuntimeError.new("boom")
-      allow(exception).to receive(:detailed_message).and_raise(NoMemoryError)
+      allow(exception).to receive(:detailed_message).and_raise(SystemStackError)
 
       page = described_class.new(exception: exception, env: env, config: config)
 
@@ -279,10 +279,11 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
       expect(page.presenter).to be_nil
     end
 
-    it "is the registered presenter" do
+    it "is the registered presenter, guarded so that none of its parts can raise" do
       Hanami::Webconsole::Presenters.register("RuntimeError", Hanami::Webconsole::Presenters::Base)
 
-      expect(page.presenter).to be_a(Hanami::Webconsole::Presenters::Base)
+      expect(page.presenter).to be_a(Hanami::Webconsole::Presenters::Guard)
+      expect(page.presenter.presenter).to be_a(Hanami::Webconsole::Presenters::Base)
     end
   end
 

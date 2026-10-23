@@ -94,6 +94,66 @@ RSpec.describe Hanami::Webconsole::Presenters do
     end
   end
 
+  describe Hanami::Webconsole::Presenters::Guard do
+    subject(:guard) { described_class.new(presenter) }
+
+    let(:exception) { RuntimeError.new("boom") }
+    let(:presenter) { presenter_class.new(exception) }
+
+    let(:presenter_class) {
+      Class.new(Hanami::Webconsole::Presenters::Base) {
+        attr_reader :reads
+
+        def headline
+          @reads = reads.to_i + 1
+          "Headline"
+        end
+
+        def lede = raise("broken lede")
+
+        def suggestions = raise(NotImplementedError)
+
+        def context_panels = raise(SystemStackError)
+      }
+    }
+
+    it "passes through the parts that work" do
+      expect(guard.headline).to eq("Headline")
+    end
+
+    it "falls back to the default for a part that raises, leaving the others intact" do
+      expect(guard.lede).to be_nil
+      expect(guard.headline).to eq("Headline")
+    end
+
+    it "falls back for a NotImplementedError and a runaway recursion" do
+      expect(guard.suggestions).to eq([])
+      expect(guard.context_panels).to eq([])
+    end
+
+    it "lets errors that must stop the request through" do
+      allow(presenter).to receive(:note).and_raise(Interrupt)
+
+      expect { guard.note }.to raise_error(Interrupt)
+    end
+
+    it "reads each part once" do
+      2.times { guard.headline }
+
+      expect(presenter.reads).to eq(1)
+    end
+
+    it "exposes the exception" do
+      expect(guard.exception).to be(exception)
+    end
+
+    it "covers every part of the Base interface" do
+      parts = Hanami::Webconsole::Presenters::Base.public_instance_methods(false) - [:exception]
+
+      expect(described_class::PARTS.keys).to match_array(parts)
+    end
+  end
+
   describe Hanami::Webconsole::Presenters::Base do
     subject(:presenter) { described_class.new(exception) }
 

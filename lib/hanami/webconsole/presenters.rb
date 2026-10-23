@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "presenters/base"
+require_relative "presenters/guard"
 
 module Hanami
   module Webconsole

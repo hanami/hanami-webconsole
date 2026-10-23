@@ -9,6 +9,9 @@ module Hanami
       # went wrong in the developer's terms, and demotes the backtrace to a disclosure. Everything
       # here returns a safe default, so a subclass only implements the parts it can speak to.
       #
+      # The error page reads presenters through a {Guard}, so a part that raises falls back to
+      # its default here. Subclasses need not rescue anything themselves.
+      #
       # Subclasses are expected to override at least {#headline} and {#lede}.
       #
       # @api private

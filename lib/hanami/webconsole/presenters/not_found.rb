@@ -44,7 +44,7 @@ module Hanami
         # @api private
         # @since 3.1.0
         def lede
-          return nil unless router
+          return nil unless routes
 
           return "This app has no routes yet. Add one in config/routes.rb." if routes.empty?
 
@@ -107,52 +107,43 @@ module Hanami
 
         private
 
-        # The router of the slice that raised, when it can list its routes.
+        # The routes of the slice that raised.
         #
-        # @return [Hanami::Router, nil]
-        def router
-          return @router if defined?(@router)
-
-          @router = safely(nil) {
-            next nil unless exception.respond_to?(:slice)
-
-            router = exception.slice&.router
-            router.respond_to?(:routes) ? router : nil
-          }
-        end
-
-        # @return [Array<Hanami::Router::Route>]
+        # Nil when there are none to read: against an older hanami, whose error carries no slice,
+        # or an older hanami-router, whose router cannot list its routes. That is distinct from
+        # an empty list, which means the app really has no routes.
+        #
+        # @return [Array<Hanami::Router::Route>, nil]
         def routes
-          @routes ||= safely([]) { router ? Array(router.routes) : [] }
+          return @routes if defined?(@routes)
+
+          router = exception.slice&.router if exception.respond_to?(:slice)
+          @routes = router.respond_to?(:routes) ? Array(router.routes) : nil
         end
 
         # HEAD routes are generated for every GET, so listing them doubles the panel with rows
         # nobody defined. `hanami routes` hides them for the same reason.
         def listed_routes
-          @listed_routes ||= routes.reject { |route| head?(route) && verb != "HEAD" }
+          @listed_routes ||= Array(routes).reject { |route| route.head? && verb != "HEAD" }
         end
 
         def row_for(route)
-          name = safely("") { "#{route.http_method} #{route.path}".strip }
-
-          [name, endpoint_for(route), false, near?(route)]
+          ["#{route.http_method} #{route.path}".strip, endpoint_for(route), false, near?(route)]
         end
 
         # Mirrors the columns of `hanami routes`: the endpoint, then the route name and
         # constraints when it has them.
         def endpoint_for(route)
-          safely("") {
-            parts = [route.inspect_to.to_s]
-            parts << "as #{route.inspect_as}" if route.as?
-            parts << "(#{route.inspect_constraints})" if route.constraints?
-            parts.join(" ")
-          }
+          parts = [route.inspect_to.to_s]
+          parts << "as #{route.inspect_as}" if route.as?
+          parts << "(#{route.inspect_constraints})" if route.constraints?
+          parts.join(" ")
         end
 
         # A path that exists only under another method never reaches here: the router raises
         # `NotAllowedError` for it instead.
         def near?(route)
-          safely(false) { !head?(route) && near_paths.include?(route.path) }
+          !route.head? && near_paths.include?(route.path)
         end
 
         # Returns the route patterns closest to the requested path, closest first.
@@ -177,17 +168,15 @@ module Hanami
         #
         # Never suggests the root path: almost any short path is a character or two away from it.
         def near_paths
-          @near_paths ||= safely([]) {
-            routes
-              # Include only paths reachable by the same HTTP method
-              .select { |route| route.http_method == verb || route.http_method == "*" }
-              # A route path is a _pattern_, like `/books/:id`
-              .map(&:path)
-              .uniq
-              .filter_map { |pattern| near_match(pattern) }
-              .sort_by.with_index { |(_pattern, distance), index| [distance, index] }
-              .map(&:first)
-          }
+          @near_paths ||= Array(routes)
+            # Include only paths reachable by the same HTTP method
+            .select { |route| route.http_method == verb || route.http_method == "*" }
+            # A route path is a _pattern_, like `/books/:id`
+            .map(&:path)
+            .uniq
+            .filter_map { |pattern| near_match(pattern) }
+            .sort_by.with_index { |(_pattern, distance), index| [distance, index] }
+            .map(&:first)
         end
 
         # @return [Array(String, Integer), nil] the pattern and its distance, when it is close
@@ -248,10 +237,6 @@ module Hanami
           !path.empty? && SNIPPET_VERBS.key?(verb) && suggestions.empty?
         end
 
-        def head?(route)
-          safely(false) { route.head? }
-        end
-
         def request_summary
           @request_summary ||= "#{verb} #{path}".strip
         end
@@ -265,20 +250,9 @@ module Hanami
         end
 
         def env_value(key)
-          safely("") {
-            next "" unless exception.respond_to?(:env)
+          return "" unless exception.respond_to?(:env)
 
-            exception.env.to_h[key].to_s
-          }
-        end
-
-        # Nothing here may raise: this presenter runs while a page is being built for an error
-        # that has already happened, and a presenter that blows up leaves the developer with a
-        # worse page than no presenter at all.
-        def safely(fallback)
-          yield
-        rescue Exception # rubocop:disable Lint/RescueException
-          fallback
+          exception.env.to_h[key].to_s
         end
       end
 

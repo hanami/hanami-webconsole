@@ -239,7 +239,9 @@ RSpec.describe Hanami::Webconsole::Presenters::NotFound do
     end
   end
 
-  describe "when the error misbehaves" do
+  describe "when the error misbehaves, as the error page reads it" do
+    subject(:presenter) { Hanami::Webconsole::Presenters::Guard.new(described_class.new(exception)) }
+
     let(:exception) {
       Class.new(StandardError) {
         def env = raise("no env")
@@ -249,10 +251,33 @@ RSpec.describe Hanami::Webconsole::Presenters::NotFound do
     }
 
     it "still renders, with nothing to show" do
-      expect(presenter.headline).to eq("No route matched this request")
+      expect(presenter.headline).to be_nil
       expect(presenter.lede).to be_nil
       expect(presenter.suggestions).to eq([])
       expect(presenter.snippet).to be_nil
+      expect(presenter.context_panels).to eq([])
+    end
+  end
+
+  describe "when the router fails to list its routes, as the error page reads it" do
+    subject(:presenter) { Hanami::Webconsole::Presenters::Guard.new(described_class.new(exception)) }
+
+    let(:exception) {
+      router = Class.new { def routes = raise("no routes") }.new
+      slice = Class.new { define_method(:router) { router } }.new
+
+      Class.new(StandardError) {
+        define_method(:env) { {"REQUEST_METHOD" => "GET", "PATH_INFO" => "/nope"} }
+        define_method(:slice) { slice }
+      }.new("No route found for GET /nope")
+    }
+
+    it "does not claim the app has no routes" do
+      expect(presenter.lede).to be_nil
+    end
+
+    it "keeps the parts that do not need the routes" do
+      expect(presenter.headline).to eq("No route matched GET /nope")
       expect(presenter.context_panels).to eq([])
     end
   end
