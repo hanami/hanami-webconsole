@@ -48,12 +48,6 @@ RSpec.describe Hanami::Webconsole::Presenters::NotFound do
     it "names the request that went unmatched" do
       expect(presenter.headline).to eq("No route matched GET /nope")
     end
-
-    it "falls back when the error carries no request" do
-      exception = Class.new(StandardError).new("boom")
-
-      expect(described_class.new(exception).headline).to eq("No route matched this request")
-    end
   end
 
   describe "#lede" do

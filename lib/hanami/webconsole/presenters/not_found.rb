@@ -24,9 +24,7 @@ module Hanami
         }.freeze
 
         def headline
-          return "No route matched this request" if request_summary.empty?
-
-          "No route matched #{request_summary}"
+          "No route matched #{verb} #{request_path}"
         end
 
         def lede
@@ -88,7 +86,7 @@ module Hanami
         # @return [Array<Hanami::Router::Route>, nil]
         def routes
           router = exception.slice&.router if exception.respond_to?(:slice)
-          Array(router.routes) if router.respond_to?(:routes)
+          router.routes if router.respond_to?(:routes)
         end
 
         # Hide HEAD routes. The router generates one for every GET, so showing them would double
@@ -103,7 +101,7 @@ module Hanami
         # never reach here.
         def row_for(route)
           highlight = near_paths.include?(route.path)
-          ["#{route.http_method} #{route.path}".strip, endpoint_for(route), false, highlight]
+          ["#{route.http_method} #{route.path}", endpoint_for(route), false, highlight]
         end
 
         # Match the columns from `hanami routes`: the endpoint, followed by the route name and
@@ -150,7 +148,7 @@ module Hanami
 
         # @return [Array(String, Integer), nil] the pattern and its distance, when it is close
         def near_match(pattern)
-          return if request_path.empty? || pattern == "/"
+          return if pattern == "/"
 
           projected = project(request_path, pattern)
           distance = ::DidYouMean::Levenshtein.distance(pattern, projected)
@@ -203,25 +201,15 @@ module Hanami
         end
 
         def snippet?
-          !request_path.empty? && SNIPPET_VERBS.key?(verb) && suggestions.empty?
-        end
-
-        def request_summary
-          @request_summary ||= "#{verb} #{request_path}".strip
+          SNIPPET_VERBS.key?(verb) && suggestions.empty?
         end
 
         def verb
-          @verb ||= env_value("REQUEST_METHOD")
+          exception.env["REQUEST_METHOD"]
         end
 
         def request_path
-          @request_path ||= env_value("PATH_INFO")
-        end
-
-        def env_value(key)
-          return "" unless exception.respond_to?(:env)
-
-          exception.env.to_h[key].to_s
+          exception.env["PATH_INFO"]
         end
       end
 
