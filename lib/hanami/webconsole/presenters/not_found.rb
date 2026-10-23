@@ -74,9 +74,14 @@ module Hanami
         def snippet
           return nil unless snippet?
 
-          %(#{SNIPPET_VERBS.fetch(verb)} "#{path}", to: "...")
+          # `#inspect` quotes the path as a Ruby string, so a `"` or `#{` in it cannot break out.
+          %(#{SNIPPET_VERBS.fetch(verb)} #{path.inspect}, to: "...")
         end
 
+        # A slice's routes are evaluated into the app's router, and a route does not record which
+        # slice defined it, so this cannot tell when the path belongs to a slice. It says so
+        # rather than send a slice route to the app's routes file.
+        #
         # @return [String, nil]
         #
         # @api private
@@ -84,7 +89,7 @@ module Hanami
         def note
           return nil unless snippet?
 
-          "Add it to `config/routes.rb`."
+          "Add it to `config/routes.rb`, or to a slice's routes (without its `at:` prefix)."
         end
 
         # Every route is listed, however many there are: the panel's filter box can only find

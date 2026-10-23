@@ -228,8 +228,14 @@ RSpec.describe Hanami::Webconsole::Presenters::NotFound do
       expect(presenter.snippet).to be_nil
     end
 
-    it "carries a note pointing at the routes file" do
-      expect(presenter.note).to eq("Add it to `config/routes.rb`.")
+    it "quotes the path as a Ruby string, whatever it contains" do
+      presenter = described_class.new(error(path: %(/a"b/\#{c}), routes: routes))
+
+      expect(presenter.snippet).to eq(%(get "/a\\"b/\\\#{c}", to: "..."))
+    end
+
+    it "carries a note pointing at the app and slice routes" do
+      expect(presenter.note).to eq("Add it to `config/routes.rb`, or to a slice's routes (without its `at:` prefix).")
     end
   end
 
