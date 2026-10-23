@@ -57,16 +57,8 @@ RSpec.describe Hanami::Webconsole::Presenters::NotFound do
   end
 
   describe "#lede" do
-    it "counts the routes that were available, as the panel lists them" do
-      expect(presenter.lede).to eq("The router has 3 routes, and none of them matched this request.")
-    end
-
-    it "counts one route in the singular" do
-      one = [route("GET", "/books", "books.index"), route("HEAD", "/books", "books.index")]
-
-      expect(described_class.new(error(routes: one)).lede).to eq(
-        "The router has 1 route, and it did not match this request."
-      )
+    it "points to the routes listed below" do
+      expect(presenter.lede).to eq("Check the routes below for the one you meant, or add a new route.")
     end
 
     it "says so when the app has no routes" do
@@ -99,12 +91,6 @@ RSpec.describe Hanami::Webconsole::Presenters::NotFound do
 
     it "hides the HEAD routes the router generates for every GET" do
       expect(panel.last.map(&:first)).not_to include("HEAD /books")
-    end
-
-    it "keeps HEAD routes when the request itself was a HEAD" do
-      panel = described_class.new(error(method: "HEAD", routes: routes)).context_panels.first
-
-      expect(panel.last.map(&:first)).to include("HEAD /books")
     end
 
     it "lists every route of a large app, so the filter can find any of them" do

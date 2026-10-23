@@ -7,98 +7,70 @@ module Hanami
     module Presenters
       # Presenter for `Hanami::Router::NotFoundError`.
       #
-      # A 404 in development is almost always a typo or a route that was never added, so the page
-      # answers the two questions the developer actually has: what did I ask for, and what could I
-      # have asked for. The routes the app does have are listed in a panel, the closest matches are
-      # offered as "Did you mean" chips, and the row for each of those is highlighted in the list.
+      # In development, a 404 usually means a typo, or a route that hasn't been added yet. To help
+      # with both, we list the app's routes in a panel, offer the closest matches as "Did you mean"
+      # suggestions, and highlight the rows for those matches in the list.
       #
-      # The routes come from the slice carried by the error (hanami 3.1+), whose router answers
-      # `#routes` (hanami-router 3.1+). Against an older hanami, or an error raised outside a
-      # slice, there is nothing to list and the page falls back to the message alone.
+      # The routes come from the slice attached to the error, via its router's `#routes`.
       #
       # @api private
-      # @since 3.1.0
       class NotFound < Base
-        # @api private
-        # @since 3.1.0
-        MAX_SUGGESTIONS = 3
-
-        # HTTP methods with a router DSL method of their own, for {#snippet}. HEAD is absent
-        # deliberately: the router defines it alongside every GET.
+        # HTTP methods that have their own method in the router DSL, for use in {#snippet}.
         #
-        # @api private
-        # @since 3.1.0
+        # HEAD maps to `get`, since the router defines a HEAD route alongside every GET route.
         SNIPPET_VERBS = {
           "GET" => "get", "HEAD" => "get", "POST" => "post", "PATCH" => "patch",
           "PUT" => "put", "DELETE" => "delete", "OPTIONS" => "options", "TRACE" => "trace"
         }.freeze
 
-        # @api private
-        # @since 3.1.0
         def headline
           return "No route matched this request" if request_summary.empty?
 
           "No route matched #{request_summary}"
         end
 
-        # @api private
-        # @since 3.1.0
         def lede
-          return nil unless routes
+          return unless routes
 
           return "This app has no routes yet. Add one in config/routes.rb." if routes.empty?
 
-          # Counts what the panel lists, so the two numbers on the page agree.
-          count = listed_routes.length
-          return "The router has 1 route, and it did not match this request." if count == 1
-
-          "The router has #{count} routes, and none of them matched this request."
+          "Check the routes below for the one you meant, or add a new route."
         end
 
-        # The routes the developer probably meant, as chips under the message.
+        # Returns the routes the developer probably meant, to show as chips under the message.
         #
         # @return [Array<String>]
-        #
-        # @api private
-        # @since 3.1.0
         def suggestions
-          @suggestions ||= near_paths.first(MAX_SUGGESTIONS)
+          @suggestions ||= near_paths.first(3)
         end
 
         # A route definition to paste, when there is nothing close enough to suggest.
         #
         # @return [String, nil]
-        #
-        # @api private
-        # @since 3.1.0
         def snippet
-          return nil unless snippet?
+          return unless snippet?
 
-          # `#inspect` quotes the path as a Ruby string, so a `"` or `#{` in it cannot break out.
-          %(#{SNIPPET_VERBS.fetch(verb)} #{path.inspect}, to: "...")
+          # The snippet is Ruby code to paste into the routes file, so use `#inspect` to turn the
+          # path into a string literal. This escapes any characters that are special inside double
+          # quotes (`"`, `\` or `#{`), so the pasted route matches the requested path exactly.
+          %(#{SNIPPET_VERBS.fetch(verb)} #{request_path.inspect}, to: "...")
         end
 
-        # A slice's routes are evaluated into the app's router, and a route does not record which
-        # slice defined it, so this cannot tell when the path belongs to a slice. It says so
-        # rather than send a slice route to the app's routes file.
+        # Slice routes are evaluated into the app's router, and a route doesn't record the slice
+        # that defined it, so we can't tell whether the path belongs to a slice. Mention slices in
+        # the note, rather than (possibly wrongly) pointing only to the app's routes file.
         #
         # @return [String, nil]
-        #
-        # @api private
-        # @since 3.1.0
         def note
-          return nil unless snippet?
+          return unless snippet?
 
           "Add it to `config/routes.rb`, or to a slice's routes (without its `at:` prefix)."
         end
 
-        # Every route is listed, however many there are: the panel's filter box can only find
-        # the rows that are on the page.
+        # List every route, no matter how many. The panel's filter box only searches the rows on
+        # the page, so a truncated list would hide routes from the filter.
         #
         # @return [Array<Array>]
-        #
-        # @api private
-        # @since 3.1.0
         def context_panels
           return [] if listed_routes.empty?
 
@@ -107,43 +79,40 @@ module Hanami
 
         private
 
-        # The routes of the slice that raised.
+        # Returns the routes of the slice that raised the error.
         #
-        # Nil when there are none to read: against an older hanami, whose error carries no slice,
-        # or an older hanami-router, whose router cannot list its routes. That is distinct from
-        # an empty list, which means the app really has no routes.
+        # Returns nil if there are no routes to read, i.e. with an older Hanami (whose error
+        # carries no slice) or an older hanami-router (whose router can't list its routes). This
+        # is different from an empty array, which means the app genuinely has no routes.
         #
         # @return [Array<Hanami::Router::Route>, nil]
         def routes
-          return @routes if defined?(@routes)
-
           router = exception.slice&.router if exception.respond_to?(:slice)
-          @routes = router.respond_to?(:routes) ? Array(router.routes) : nil
+          Array(router.routes) if router.respond_to?(:routes)
         end
 
-        # HEAD routes are generated for every GET, so listing them doubles the panel with rows
-        # nobody defined. `hanami routes` hides them for the same reason.
+        # Hide HEAD routes. The router generates one for every GET, so showing them would double
+        # up the list with routes the user never defined. `hanami routes` hides them for the same
+        # reason.
         def listed_routes
-          @listed_routes ||= Array(routes).reject { |route| route.head? && verb != "HEAD" }
+          @listed_routes ||= Array(routes).reject(&:head?)
         end
 
+        # Highlight the rows for suggested paths. Paths that exist only under a different HTTP
+        # method don't need highlighting: the router raises `NotAllowedError` for those, so they
+        # never reach here.
         def row_for(route)
-          ["#{route.http_method} #{route.path}".strip, endpoint_for(route), false, near?(route)]
+          highlight = near_paths.include?(route.path)
+          ["#{route.http_method} #{route.path}".strip, endpoint_for(route), false, highlight]
         end
 
-        # Mirrors the columns of `hanami routes`: the endpoint, then the route name and
-        # constraints when it has them.
+        # Match the columns from `hanami routes`: the endpoint, followed by the route name and
+        # constraints, if present.
         def endpoint_for(route)
           parts = [route.inspect_to.to_s]
           parts << "as #{route.inspect_as}" if route.as?
           parts << "(#{route.inspect_constraints})" if route.constraints?
           parts.join(" ")
-        end
-
-        # A path that exists only under another method never reaches here: the router raises
-        # `NotAllowedError` for it instead.
-        def near?(route)
-          !route.head? && near_paths.include?(route.path)
         end
 
         # Returns the route patterns closest to the requested path, closest first.
@@ -181,9 +150,9 @@ module Hanami
 
         # @return [Array(String, Integer), nil] the pattern and its distance, when it is close
         def near_match(pattern)
-          return if path.empty? || pattern == "/"
+          return if request_path.empty? || pattern == "/"
 
-          projected = project(path, pattern)
+          projected = project(request_path, pattern)
           distance = ::DidYouMean::Levenshtein.distance(pattern, projected)
 
           # Consider a pattern close enough if it's within a quarter of the path's length in
@@ -215,18 +184,18 @@ module Hanami
         #
         #   project("/books/1", "/books")                           # => "/books/1"
         #   project("/files", "/files/*path")                       # => "/files"
-        def project(path, pattern)
-          segments = path.split("/", -1)
+        def project(request_path, pattern)
+          segments = request_path.split("/", -1)
           pattern_segments = pattern.split("/", -1)
 
           if (glob = pattern_segments.index { |segment| segment.start_with?("*") })
-            return path if segments.length <= glob
+            return request_path if segments.length <= glob
 
             segments = segments.first(glob) + [pattern_segments[glob]]
             pattern_segments = pattern_segments.first(glob + 1)
           end
 
-          return path unless segments.length == pattern_segments.length
+          return request_path unless segments.length == pattern_segments.length
 
           segments.zip(pattern_segments).map { |segment, pattern_segment|
             pattern_segment.start_with?(":") ? pattern_segment : segment
@@ -234,19 +203,19 @@ module Hanami
         end
 
         def snippet?
-          !path.empty? && SNIPPET_VERBS.key?(verb) && suggestions.empty?
+          !request_path.empty? && SNIPPET_VERBS.key?(verb) && suggestions.empty?
         end
 
         def request_summary
-          @request_summary ||= "#{verb} #{path}".strip
+          @request_summary ||= "#{verb} #{request_path}".strip
         end
 
         def verb
           @verb ||= env_value("REQUEST_METHOD")
         end
 
-        def path
-          @path ||= env_value("PATH_INFO")
+        def request_path
+          @request_path ||= env_value("PATH_INFO")
         end
 
         def env_value(key)
