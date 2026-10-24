@@ -13,6 +13,7 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 - Error pages now show the exception's `#cause` chain, `did_you_mean` suggestions and `error_highlight` carets, none of which better_errors surfaced. (@afomera in #15)
 - A "copy as text" button, putting the error, request and backtrace on the clipboard as Markdown. (@afomera in #15)
 - The per-frame console now keeps a history, navigable with the up and down arrows. (@afomera in #15)
+- For `Hanami::Router::NotFoundError`, show the app's routes and suggests the closest matches (e.g. `/books/:id` for `/bookz/1`). (@afomera and @timriley in #16)
 
 ### Changed
 

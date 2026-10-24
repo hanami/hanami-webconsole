@@ -1,13 +1,15 @@
 # frozen_string_literal: true
 
 require_relative "presenters/base"
+require_relative "presenters/guard"
 
 module Hanami
   module Webconsole
     # Registry mapping exception class names to presenters.
     #
-    # Nothing is registered by default: every error takes the generic page. Presenters are added
-    # one at a time, each gated on an exception class specific enough to be worth recognising.
+    # Only {Presenters::NotFound} is registered by default; every other error takes the generic
+    # page. Presenters are added one at a time, each gated on an exception class specific enough
+    # to be worth recognising.
     #
     # Lookup walks the exception's ancestry, so registering a superclass covers its subclasses.
     #

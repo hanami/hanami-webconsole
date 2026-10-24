@@ -177,13 +177,15 @@ module Hanami
         }
       end
 
-      # The presenter for this exception, when one is registered.
+      # The presenter for this exception, when one is registered, guarded so that none of its
+      # parts can raise.
       #
-      # @return [Presenters::Base, nil]
+      # @return [Presenters::Guard, nil]
       def presenter
         return @presenter if defined?(@presenter)
 
-        @presenter = Presenters.for(exception)
+        found = Presenters.for(exception)
+        @presenter = found && Presenters::Guard.new(found)
       end
 
       # The whole error as Markdown.
@@ -316,7 +318,7 @@ module Hanami
         return [] unless detailed.is_a?(String)
 
         lines_beyond_message(detailed)
-      rescue Exception # rubocop:disable Lint/RescueException
+      rescue StandardError, ScriptError, SystemStackError
         []
       end
 
@@ -383,9 +385,12 @@ module Hanami
         "Exception"
       end
 
+      # The same errors {Backtrace} rescues: `ScriptError` because `NotImplementedError` is one,
+      # and `SystemStackError` for a runaway recursion in app code. Signals, `SystemExit`,
+      # timeouts and `NoMemoryError` are not rescued: those must still stop the request.
       def safely(fallback)
         yield
-      rescue Exception # rubocop:disable Lint/RescueException
+      rescue StandardError, ScriptError, SystemStackError
         fallback
       end
     end

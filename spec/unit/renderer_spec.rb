@@ -124,6 +124,33 @@ RSpec.describe Hanami::Webconsole::Renderer do
       expect(html).to include("&lt;script&gt;alert(1)&lt;/script&gt;")
     end
 
+    it "shows a name quoted the way Ruby quotes names as code" do
+      html = described_class.render_html(error_page, nonce: "n0nce")
+
+      expect(html).to include("undefined method <code>titel</code> for an instance of Book")
+    end
+
+    it "shows a backticked run as code" do
+      html = described_class.render_html(error_page(message: "Add it to `config/routes.rb`."), nonce: "n0nce")
+
+      expect(html).to include("Add it to <code>config/routes.rb</code>.")
+    end
+
+    it "leaves apostrophes in ordinary English as text" do
+      message = "The slice's routes can't hold the users' paths"
+      html = described_class.render_html(error_page(message: message), nonce: "n0nce")
+
+      expect(html).to include("The slice&#39;s routes can&#39;t hold the users&#39; paths")
+      expect(html).not_to include("<code>")
+    end
+
+    it "finds a quoted name among apostrophes" do
+      message = "Can't find 'Books::Show' in the slice's container"
+      html = described_class.render_html(error_page(message: message), nonce: "n0nce")
+
+      expect(html).to include("Can&#39;t find <code>Books::Show</code> in the slice&#39;s container")
+    end
+
     it "escapes source lines, variables and request values" do
       page = error_page(
         frames: [
