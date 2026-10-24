@@ -9,5 +9,5 @@ gemspec:
   summary: "Hanami webconsole for development"
   homepage: "https://hanamirb.org"
   runtime_dependencies:
-    - ["better_errors", "~> 2.10", ">= 2.10.1"]
+    - ["rack", ">= 2.0"]
     - ["binding_of_caller", "~> 2.0"]
