@@ -84,16 +84,20 @@ module Hanami
         class << self
           # @return [ERB]
           def template
-            @template ||= ERB.new(File.read(TEMPLATE_PATH), trim_mode: "-")
+            @template ||= ERB.new(File.read(TEMPLATE_PATH, encoding: Encoding::UTF_8), trim_mode: "-")
           end
 
           # Read once and held for the life of the process: the same assets are inlined into
           # every error page.
           #
+          # The template and assets are UTF-8, so they're read as UTF-8 whatever the default
+          # external encoding is. Without a UTF-8 locale (e.g. `LANG` unset in a Docker image), Ruby
+          # would read them as US-ASCII, and joining them would raise `Encoding::CompatibilityError`.
+          #
           # @return [String]
           def asset(name)
             @assets ||= {}
-            @assets[name] ||= File.read(File.join(TEMPLATE_DIR, ASSETS.fetch(name)))
+            @assets[name] ||= File.read(File.join(TEMPLATE_DIR, ASSETS.fetch(name)), encoding: Encoding::UTF_8)
           end
         end
 

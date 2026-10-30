@@ -386,4 +386,34 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     expect(html).to include(%(data-webconsole-context-panel="Headers"))
     expect(html).to include(%(class="k-val filtered"))
   end
+
+  # Without a UTF-8 locale (`LANG` unset, as in many Docker images), Ruby reads files as US-ASCII.
+  describe "under a default external encoding that isn't UTF-8" do
+    around do |example|
+      verbose = $VERBOSE
+      external = Encoding.default_external
+      cached = %i[@template @assets].to_h { |name| [name, described_class.instance_variable_get(name)] }
+
+      # Read the template and assets again, under the new encoding
+      cached.each_key { |name| described_class.instance_variable_set(name, nil) }
+
+      begin
+        # Setting the encoding warns in verbose mode
+        $VERBOSE = nil
+        Encoding.default_external = Encoding::US_ASCII
+        example.run
+      ensure
+        Encoding.default_external = external
+        $VERBOSE = verbose
+        cached.each { |name, value| described_class.instance_variable_set(name, value) }
+      end
+    end
+
+    it "renders the page, with its non-ASCII template and assets intact" do
+      html = html_for(error_page)
+
+      expect(html.encoding).to eq(Encoding::UTF_8)
+      expect(html).not_to be_ascii_only
+    end
+  end
 end
