@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   tests:
-    name: Tests (Ruby ${{ matrix.ruby }})
+    name: Tests (Ruby ${{ matrix.ruby }}, Rack ${{ matrix.rack }})
     runs-on: ubuntu-latest
     continue-on-error: ${{ matrix.optional || false }}
     strategy:
@@ -28,11 +28,16 @@ jobs:
           - "3.4"
           - "3.3"
           - "jruby"
+        rack:
+          - "~> 2.0"
+          - "~> 3.0"
         include:
           - ruby: "4.0"
+            rack: "~> 2.0"
             coverage: "true"
     env:
       COVERAGE: ${{ matrix.coverage }}
+      RACK_MATRIX_VALUE: ${{ matrix.rack || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
@@ -45,6 +50,8 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
+        env:
+          RACK_MATRIX_VALUE: ${{ matrix.rack || '' }}
       - name: Run all tests
         id: test
         run: |
@@ -57,6 +64,8 @@ jobs:
             exit 0  # Ignore error here to keep the green checkmark
           fi
           exit ${status}
+        env:
+          RACK_MATRIX_VALUE: ${{ matrix.rack || '' }}
       - name: Create optional failure comment
         if: ${{ matrix.optional && github.event.pull_request }}
         uses: hanakai-rb/repo-sync/pr-comment-artifact@main

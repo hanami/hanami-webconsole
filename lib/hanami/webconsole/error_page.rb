@@ -3,33 +3,25 @@
 require "rack/utils"
 require "securerandom"
 
-require_relative "presenters"
+require_relative "../diagnostics"
+require_relative "safety"
 
 module Hanami
   module Webconsole
     # The view model for a single error.
     #
-    # Everything the page shows is reachable from here, and everything here is already computed:
-    # the template asks questions, it does not do work. Nothing on this object raises — an error
-    # page that fails to render leaves the developer with nothing at all, so every value degrades
-    # to something safe instead.
+    # Nothing on this object raises, otherwise the error page cannot render at all, so every value
+    # degrades to something safe.
     #
     # @api private
     class ErrorPage
+      include Safety
+
       # Status used when the exception maps to nothing in `config.render_error_responses`.
       DEFAULT_ERROR_RESPONSE = :internal_server_error
 
+      # Status code used as a safe fallback for {#status}.
       DEFAULT_STATUS = 500
-
-      NOT_FOUND_STATUS = 404
-
-      # Cause chains are walked, not trusted: stop after this many.
-      MAX_CAUSES = 10
-      private_constant :MAX_CAUSES
-
-      # Frames listed by {#to_text}, before truncating.
-      MAX_TEXT_FRAMES = 25
-      private_constant :MAX_TEXT_FRAMES
 
       attr_reader :exception
 
@@ -57,18 +49,19 @@ module Hanami
 
       # @param exception [Exception]
       # @param env [Hash] the Rack env
-      # @param config [Hanami::Config] the app config, or anything answering `render_error_responses`,
-      #   `root` and `logger`
+      # @param config [Hanami::Config] the app config
       # @param id [String, nil]
       # @param generation [Integer]
       # @param bindings [Array<Binding>, nil] bindings aligned to the exception's backtrace
-      def initialize(exception:, env:, config:, id: nil, generation: Webconsole.generation, bindings: nil)
+      # @param slice [Hanami::Slice, nil] the slice the middleware belongs to, for diagnostics
+      def initialize(exception:, env:, config:, id: nil, generation: Webconsole.generation, bindings: nil, slice: nil)
         @exception = exception
         @env = env || {}
         @config = config
         @generation = generation
         @id = id || self.class.generate_id(generation)
         @bindings = bindings
+        @slice = slice
       end
 
       # @return [String]
@@ -79,23 +72,6 @@ module Hanami
       # @return [String]
       def message
         @message ||= safely("") { exception.message.to_s }
-      end
-
-      # A longer explanation the error may offer, shown under the headline.
-      #
-      # Optional, and only meaningful alongside resolutions: when an error can explain itself,
-      # `#message` reads as the headline and this is the paragraph beneath it.
-      #
-      # @return [String, nil]
-      def detail
-        return @detail if defined?(@detail)
-
-        @detail = safely(nil) {
-          next nil unless exception.respond_to?(:detail)
-
-          value = exception.detail
-          value.nil? || value.to_s.empty? ? nil : value.to_s
-        }
       end
 
       # The lines `detailed_message` adds beyond `message`.
@@ -116,36 +92,41 @@ module Hanami
         @status ||= safely(DEFAULT_STATUS) { Rack::Utils.status_code(error_response) }
       end
 
-      # Which of the page's three shapes to render.
+      # Returns true if the diagnostic offers a fix.
       #
-      # @return [Symbol] `:not_found`, `:actionable` or `:crash`
-      def severity
-        return :not_found if status == NOT_FOUND_STATUS
-        return :actionable if presenter || resolutions.any?
-
-        :crash
+      # When a fix is present, it leads and the backtrace starts collapsed. Otherwise the backtrace
+      # is the developer's best lead, so it stays open.
+      #
+      # @return [Boolean]
+      def actionable?
+        !diagnostic&.fix.nil?
       end
 
-      # Steps the error itself offers for fixing it.
+      # Returns the diagnostic for the exception, wrapped so it's safe to use, or nil if no
+      # diagnostic applies.
       #
-      # An error that knows how to fix itself outranks a generic crash page: the backtrace
-      # collapses and the resolutions lead.
+      # This is built only once per page. Since the page is kept in the registry, this means the
+      # run endpoint runs the fix on the same diagnostic that rendered the page.
       #
-      # @return [Array<Resolution>]
-      def resolutions
-        @resolutions ||= safely([]) { Resolution.for(exception) }
+      # @return [Hanami::Diagnostics::Wrapper, nil]
+      def diagnostic
+        return @diagnostic if defined?(@diagnostic)
+
+        @diagnostic = safely(nil) {
+          Hanami::Diagnostics::Registry.for(exception, Hanami::Diagnostics::Context.new(slice: @slice))
+        }
       end
 
       # Class names of the exception's causes, outermost cause last.
       #
       # @return [Array<String>]
       def causes
-        @causes ||= compute_causes
+        @causes ||= Hanami::Diagnostics::Causes.of(exception).map { |cause| class_name_of(cause) }
       end
 
       # @return [Backtrace]
       def backtrace
-        @backtrace ||= Backtrace.new(exception: exception, root: root, bindings: @bindings)
+        @backtrace ||= Backtrace.new(exception:, root:, bindings: @bindings)
       end
 
       # @return [Array<Frame>]
@@ -160,7 +141,7 @@ module Hanami
 
       # @return [RequestContext]
       def request
-        @request ||= RequestContext.new(env: env, filters: filters)
+        @request ||= RequestContext.new(env:, filters:)
       end
 
       # @return [Filters]
@@ -177,139 +158,7 @@ module Hanami
         }
       end
 
-      # The presenter for this exception, when one is registered, guarded so that none of its
-      # parts can raise.
-      #
-      # @return [Presenters::Guard, nil]
-      def presenter
-        return @presenter if defined?(@presenter)
-
-        found = Presenters.for(exception)
-        @presenter = found && Presenters::Guard.new(found)
-      end
-
-      # The whole error as Markdown.
-      #
-      # This backs both the "Copy as text" button and the `text/plain` response, so it has two
-      # audiences: a GitHub issue or an LLM prompt, and a terminal. It is a deliverable, not a
-      # debug dump — app frames are indented and gem frames are commented out, so the shape of the
-      # stack is readable at a glance.
-      #
-      # @return [String]
-      def to_text
-        safely(fallback_text) { text_blocks.compact.join("\n\n") + "\n" }
-      end
-
       private
-
-      def text_blocks
-        [
-          "## #{exception_class}",
-          message.empty? ? nil : message,
-          metadata_block,
-          extras_block,
-          backtrace_block,
-          source_block
-        ]
-      end
-
-      def metadata_block
-        bullets = []
-        bullets << "- Request: #{request_summary}" if request_summary
-        bullets << "- Status: #{status}"
-        bullets << "- Caused by: #{causes.join(' → ')}" if causes.any?
-        bullets.join("\n")
-      end
-
-      def request_summary
-        return @request_summary if defined?(@request_summary)
-
-        @request_summary = safely(nil) {
-          summary = "#{request.method_name} #{request.path}".strip
-          summary.empty? ? nil : summary
-        }
-      end
-
-      def extras_block
-        return nil if detailed_extras.empty?
-
-        detailed_extras.join("\n")
-      end
-
-      def backtrace_block
-        listed = frames.first(MAX_TEXT_FRAMES)
-        return nil if listed.empty?
-
-        lines = [backtrace_heading]
-        lines.concat(listed.map { |frame| text_frame(frame) })
-
-        remaining = frames.length - listed.length
-        lines << "  # … #{remaining} more #{pluralize(remaining, 'frame')}" if remaining.positive?
-
-        lines.join("\n")
-      end
-
-      def backtrace_heading
-        app_count = app_frames.length
-        "### Backtrace (#{app_count} application #{pluralize(app_count, 'frame')} of #{frames.length})"
-      end
-
-      # App frames are indented, gem and core frames are commented out. Both prefixes are the same
-      # width, so the paths line up and the app frames read as the signal they are.
-      def text_frame(frame)
-        prefix = safely(false) { frame.app? } ? "    " : "  # "
-        label = safely(nil) { frame.label }
-        location = "#{safely(nil) { frame.display_path }}:#{safely(nil) { frame.lineno }}"
-
-        label ? "#{prefix}#{location}:in '#{label}'" : "#{prefix}#{location}"
-      end
-
-      def source_block
-        frame = source_frame
-        return nil unless frame
-
-        excerpt = safely(nil) { frame.source }
-        return nil unless excerpt
-
-        lines = safely(nil) { excerpt.lines }
-        return nil if lines.nil? || lines.empty?
-
-        [
-          "### Source: #{safely(nil) { frame.display_path }}:#{safely(nil) { frame.lineno }}",
-          "```ruby",
-          *excerpt_lines(excerpt, lines),
-          "```"
-        ].join("\n")
-      end
-
-      # The frame worth showing source for: the first application frame, since that is where the
-      # developer can act. Falls back to the raise point when the stack never enters the app.
-      def source_frame
-        return @source_frame if defined?(@source_frame)
-
-        @source_frame = app_frames.first || frames.first
-      end
-
-      def excerpt_lines(excerpt, lines)
-        first_lineno = safely(1) { excerpt.first_lineno.to_i }
-        highlight = safely(nil) { excerpt.highlight_lineno }
-        width = (first_lineno + lines.length - 1).to_s.length
-
-        lines.each_with_index.map { |line, index|
-          lineno = first_lineno + index
-          marker = lineno == highlight ? ">" : " "
-
-          "#{marker} #{lineno.to_s.rjust(width)} | #{line}".rstrip
-        }
-      end
-
-      def fallback_text
-        "## #{safely('Exception') { class_name_of(exception) }}\n"
-      end
-
-      def pluralize(count, noun)
-        count == 1 ? noun : "#{noun}s"
-      end
 
       def compute_detailed_extras
         return [] unless exception.respond_to?(:detailed_message)
@@ -318,7 +167,7 @@ module Hanami
         return [] unless detailed.is_a?(String)
 
         lines_beyond_message(detailed)
-      rescue StandardError, ScriptError, SystemStackError
+      rescue *Safety::ERRORS
         []
       end
 
@@ -337,23 +186,6 @@ module Hanami
 
           text
         }
-      end
-
-      def compute_causes
-        result = []
-        current = exception
-
-        MAX_CAUSES.times do
-          current = current.cause
-          break unless current.is_a?(Exception)
-          break if current.equal?(exception)
-
-          result << class_name_of(current)
-        end
-
-        result
-      rescue StandardError
-        []
       end
 
       def error_response
@@ -383,15 +215,6 @@ module Hanami
         name.nil? || name.empty? ? klass.to_s : name
       rescue StandardError
         "Exception"
-      end
-
-      # The same errors {Backtrace} rescues: `ScriptError` because `NotImplementedError` is one,
-      # and `SystemStackError` for a runaway recursion in app code. Signals, `SystemExit`,
-      # timeouts and `NoMemoryError` are not rescued: those must still stop the request.
-      def safely(fallback)
-        yield
-      rescue StandardError, ScriptError, SystemStackError
-        fallback
       end
     end
   end

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "safety"
 require_relative "source_file"
 
 module Hanami
@@ -219,7 +220,7 @@ module Hanami
         binding.local_variables.filter_map { |name|
           variable(name, binding.local_variable_get(name))
         }
-      rescue StandardError, ScriptError, SystemStackError
+      rescue *Safety::ERRORS
         EMPTY_VARIABLES
       end
 
@@ -230,7 +231,7 @@ module Hanami
         receiver.instance_variables.filter_map { |name|
           variable(name, receiver.instance_variable_get(name))
         }
-      rescue StandardError, ScriptError, SystemStackError
+      rescue *Safety::ERRORS
         EMPTY_VARIABLES
       end
 
@@ -238,7 +239,7 @@ module Hanami
         return nil unless binding
 
         Inspector.call(binding.receiver).to_s
-      rescue StandardError, ScriptError, SystemStackError
+      rescue *Safety::ERRORS
         nil
       end
 
@@ -250,7 +251,7 @@ module Hanami
           class_name: Inspector.class_name(value).to_s,
           value: Inspector.call(value).to_s
         )
-      rescue StandardError, ScriptError, SystemStackError
+      rescue *Safety::ERRORS
         nil
       end
     end

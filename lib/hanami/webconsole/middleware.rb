@@ -57,11 +57,13 @@ module Hanami
       INTERNAL_PATH = %r{
         \A#{Regexp.escape(Webconsole::MOUNT_PATH)}
         /(?<id>[A-Za-z0-9_-]+)
-        /(?<action>variables|eval|resolve)\z
+        /(?<action>variables|eval|run)\z
       }x
 
-      # Serialises resolution runs across threads. See {#resolve_response}.
-      RESOLUTION_LOCK = Mutex.new
+      # The lock that makes fixes run one at a time, across all threads and browser tabs.
+      #
+      # See {#with_run_lock}.
+      RUN_LOCK = Mutex.new
 
       HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 
@@ -69,9 +71,13 @@ module Hanami
 
       JSON_CONTENT_TYPE = "application/json; charset=utf-8"
 
-      def initialize(app, config)
+      # @param app [#call] the Rack app below
+      # @param slice [Hanami::Slice] the slice this middleware belongs to. Its config gives the
+      #   error responses, the root and the logger's filters, and diagnostics get the slice itself.
+      def initialize(app, slice)
         @app = app
-        @config = config
+        @slice = slice
+        @config = slice.config
         @registry = Registry.new
       end
 
@@ -145,11 +151,11 @@ module Hanami
       # so the plain text branch would otherwise swallow it.
       def negotiate(request, page, csrf_token, csp_nonce)
         if json?(request)
-          [JSON_CONTENT_TYPE, Renderer.render_json(page)]
+          [JSON_CONTENT_TYPE, Rendering::JSON.new(page).to_s]
         elsif text?(request)
-          [TEXT_CONTENT_TYPE, Renderer.render_text(page)]
+          [TEXT_CONTENT_TYPE, Rendering::Markdown.new(page).to_s]
         else
-          [HTML_CONTENT_TYPE, Renderer.render_html(page, nonce: csp_nonce, csrf_token: csrf_token)]
+          [HTML_CONTENT_TYPE, Rendering::HTML.new(page, nonce: csp_nonce, csrf_token:).to_s]
         end
       end
 
@@ -177,14 +183,15 @@ module Hanami
         ].join("; ")
       end
 
+      # The page stamps itself with the current generation, and makes its id from it (see
+      # {ErrorPage.generate_id}).
       def build_page(env, exception)
         ErrorPage.new(
-          exception: exception,
-          env: env,
+          exception:,
+          env:,
           config: @config,
-          id: "#{Webconsole.generation}-#{SecureRandom.hex(8)}",
-          generation: Webconsole.generation,
-          bindings: bindings_for(exception)
+          bindings: bindings_for(exception),
+          slice: @slice
         )
       end
 
@@ -241,7 +248,7 @@ module Hanami
         case action
         when "variables" then variables_response(page, body)
         when "eval" then eval_response(page, body)
-        when "resolve" then resolve_response(page, body, request)
+        when "run" then run_response(page)
         else json_response(404, error: "Not found", explanation: "Not a recognized console call.")
         end
       end
@@ -285,41 +292,56 @@ module Hanami
         )
       end
 
-      # Runs one of the resolutions the error offered.
+      # Runs the fix offered by the page's diagnostic, and returns the result as a JSON response.
       #
-      # Resolutions are addressed by their index in the error's own list, never by anything the
-      # request supplies, so this endpoint cannot be talked into running arbitrary code — only
-      # something the raised error already published.
-      def resolve_response(page, body, request)
-        index = body["index"]
-        resolution = page.resolutions[index] if index.is_a?(::Integer) && index >= 0
+      # A page has at most one fix, and it belongs to the same diagnostic that rendered the page.
+      # The request doesn't choose anything, so this endpoint can't be made to run arbitrary code.
+      # It can only run the fix that the error already offered.
+      #
+      # @param page [ErrorPage]
+      #
+      # @return [Array] a Rack response
+      def run_response(page)
+        diagnostic = page.diagnostic
 
-        unless resolution
+        unless diagnostic&.runnable_fix?
           return json_response(
-            404, error: "Unknown resolution",
-            explanation: "This error does not offer a resolution at that position."
+            404, error: "No fix to run", explanation: "This error doesn't offer a fix that can run."
           )
         end
 
-        # One at a time. A resolution migrates a database or rewrites files, and Puma is
-        # threaded: two of these interleaving would be worse than making the second one wait.
-        result = RESOLUTION_LOCK.synchronize { resolution.call(resolution_context(request)) }
+        result = with_run_lock { diagnostic.run_fix }
 
-        json_response(
-          200,
-          id: page.id, index: index, name: resolution.name,
-          ok: result.ok?, output: result.output
-        )
+        unless result
+          return json_response(
+            409, error: "Busy", explanation: "Another fix is still running. Try again when it finishes."
+          )
+        end
+
+        json_response(200, id: page.id, name: diagnostic.fix.name, ok: result.ok?, output: result.output)
       end
 
-      def resolution_context(request)
-        Resolution::Context.new(
-          app: (Hanami.app if defined?(Hanami.app)),
-          slice: request.get_header("hanami.slice"),
-          request: request
-        )
-      rescue StandardError
-        Resolution::Context.new(app: nil, slice: nil, request: request)
+      # Calls the given block while holding the lock for running fixes.
+      #
+      # This makes sure fixes run one at a time. A fix may change the database or write files, and
+      # since Puma is threaded, two fixes running at once would be worse than making the second one
+      # fail.
+      #
+      # If another fix is already running, this returns nil at once rather than waiting. Fixes are
+      # safe to run twice, so a request that waited would most often just repeat the work. Not
+      # waiting also means a fix that hangs doesn't leave every later click hanging too.
+      #
+      # @yieldreturn [Object]
+      #
+      # @return [Object, nil] the block's result, or nil if another fix is running
+      def with_run_lock
+        return nil unless RUN_LOCK.try_lock
+
+        begin
+          yield
+        ensure
+          RUN_LOCK.unlock
+        end
       end
 
       def eval_response(page, body)
@@ -331,7 +353,7 @@ module Hanami
         unless frame.binding
           return json_response(
             200,
-            id: page.id, index: frame_index(body), source: source, error: true,
+            id: page.id, index: frame_index(body), source:, error: true,
             output: "The console is unavailable for this frame."
           )
         end
@@ -341,7 +363,7 @@ module Hanami
 
         json_response(
           200,
-          id: page.id, index: frame_index(body), source: source,
+          id: page.id, index: frame_index(body), source:,
           output: output.to_s, error: !!error
         )
       end

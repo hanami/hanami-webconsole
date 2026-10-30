@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "frame"
+require_relative "safety"
 
 module Hanami
   module Webconsole
@@ -69,9 +70,9 @@ module Hanami
         return EMPTY_FRAMES if locations.nil? || locations.empty?
 
         locations.each_with_index.map { |location, index|
-          Frame.new(location: location, root: root, binding: binding_at(index))
+          Frame.new(location:, root:, binding: binding_at(index))
         }
-      rescue StandardError, ScriptError, SystemStackError
+      rescue *Safety::ERRORS
         EMPTY_FRAMES
       end
 

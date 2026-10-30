@@ -25,7 +25,7 @@ RSpec.describe Hanami::Webconsole::Backtrace do
   end
 
   def backtrace_for(exception, bindings: nil)
-    described_class.new(exception: exception, root: root, bindings: bindings)
+    described_class.new(exception:, root:, bindings:)
   end
 
   def exception_with(lines)
@@ -236,7 +236,7 @@ RSpec.describe Hanami::Webconsole::Backtrace do
 
     it "tolerates a nil root" do
       exception = exception_with(["/a/one.rb:1:in 'x'"])
-      subject = described_class.new(exception: exception, root: nil)
+      subject = described_class.new(exception:, root: nil)
 
       expect(subject.frames.first.kind).to eq(:core)
       expect(subject.app_frames).to eq([])
