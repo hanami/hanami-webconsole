@@ -3,33 +3,29 @@
 require "rack/utils"
 require "securerandom"
 
-require_relative "presenters"
+require_relative "diagnostics"
+require_relative "text"
 
 module Hanami
   module Webconsole
     # The view model for a single error.
     #
-    # Everything the page shows is reachable from here, and everything here is already computed:
-    # the template asks questions, it does not do work. Nothing on this object raises — an error
-    # page that fails to render leaves the developer with nothing at all, so every value degrades
-    # to something safe instead.
+    # Nothing on this object raises, otherwise the error page cannot render at all, so every value
+    # degrades to something safe.
     #
     # @api private
     class ErrorPage
       # Status used when the exception maps to nothing in `config.render_error_responses`.
       DEFAULT_ERROR_RESPONSE = :internal_server_error
 
+      # Status code used as a safe fallback for {#status}.
       DEFAULT_STATUS = 500
 
-      NOT_FOUND_STATUS = 404
-
-      # Cause chains are walked, not trusted: stop after this many.
+      # Maximum number of steps to take when computing an exception's causes.
       MAX_CAUSES = 10
-      private_constant :MAX_CAUSES
 
-      # Frames listed by {#to_text}, before truncating.
+      # Frames listed by {#to_text} before truncating.
       MAX_TEXT_FRAMES = 25
-      private_constant :MAX_TEXT_FRAMES
 
       attr_reader :exception
 
@@ -57,18 +53,19 @@ module Hanami
 
       # @param exception [Exception]
       # @param env [Hash] the Rack env
-      # @param config [Hanami::Config] the app config, or anything answering `render_error_responses`,
-      #   `root` and `logger`
+      # @param config [Hanami::Config] the app config
       # @param id [String, nil]
       # @param generation [Integer]
       # @param bindings [Array<Binding>, nil] bindings aligned to the exception's backtrace
-      def initialize(exception:, env:, config:, id: nil, generation: Webconsole.generation, bindings: nil)
+      # @param slice [Hanami::Slice, nil] the slice the middleware belongs to, for diagnostics
+      def initialize(exception:, env:, config:, id: nil, generation: Webconsole.generation, bindings: nil, slice: nil)
         @exception = exception
         @env = env || {}
         @config = config
         @generation = generation
         @id = id || self.class.generate_id(generation)
         @bindings = bindings
+        @slice = slice
       end
 
       # @return [String]
@@ -79,23 +76,6 @@ module Hanami
       # @return [String]
       def message
         @message ||= safely("") { exception.message.to_s }
-      end
-
-      # A longer explanation the error may offer, shown under the headline.
-      #
-      # Optional, and only meaningful alongside resolutions: when an error can explain itself,
-      # `#message` reads as the headline and this is the paragraph beneath it.
-      #
-      # @return [String, nil]
-      def detail
-        return @detail if defined?(@detail)
-
-        @detail = safely(nil) {
-          next nil unless exception.respond_to?(:detail)
-
-          value = exception.detail
-          value.nil? || value.to_s.empty? ? nil : value.to_s
-        }
       end
 
       # The lines `detailed_message` adds beyond `message`.
@@ -116,24 +96,26 @@ module Hanami
         @status ||= safely(DEFAULT_STATUS) { Rack::Utils.status_code(error_response) }
       end
 
-      # Which of the page's three shapes to render.
+      # Returns true if the diagnostic offers a fix.
       #
-      # @return [Symbol] `:not_found`, `:actionable` or `:crash`
-      def severity
-        return :not_found if status == NOT_FOUND_STATUS
-        return :actionable if presenter || resolutions.any?
-
-        :crash
+      # When a fix is present, it leads and the backtrace starts collapsed. Otherwise the backtrace
+      # is the developer's best lead, so it stays open.
+      #
+      # @return [Boolean]
+      def actionable?
+        !diagnostic&.fix.nil?
       end
 
-      # Steps the error itself offers for fixing it.
+      # The diagnostic for this exception, when one applies, wrapped so it's safe to use.
       #
-      # An error that knows how to fix itself outranks a generic crash page: the backtrace
-      # collapses and the resolutions lead.
+      # Built once, so the run endpoint runs the fix on the same diagnostic that rendered the
+      # page.
       #
-      # @return [Array<Resolution>]
-      def resolutions
-        @resolutions ||= safely([]) { Resolution.for(exception) }
+      # @return [Diagnostics::Wrapper, nil]
+      def diagnostic
+        return @diagnostic if defined?(@diagnostic)
+
+        @diagnostic = safely(nil) { Diagnostics.for(exception, Diagnostics::Context.new(slice: @slice)) }
       end
 
       # Class names of the exception's causes, outermost cause last.
@@ -177,17 +159,6 @@ module Hanami
         }
       end
 
-      # The presenter for this exception, when one is registered, guarded so that none of its
-      # parts can raise.
-      #
-      # @return [Presenters::Guard, nil]
-      def presenter
-        return @presenter if defined?(@presenter)
-
-        found = Presenters.for(exception)
-        @presenter = found && Presenters::Guard.new(found)
-      end
-
       # The whole error as Markdown.
       #
       # This backs both the "Copy as text" button and the `text/plain` response, so it has two
@@ -202,12 +173,19 @@ module Hanami
 
       private
 
+      # In the same order as the page. A diagnostic's title isn't included: it's a label for the
+      # page's headline, and here the class name and message already say what it says.
+      #
+      # Text in diagnostics is already Markdown, so it passes through as it is.
       def text_blocks
         [
           "## #{exception_class}",
           message.empty? ? nil : message,
-          metadata_block,
           extras_block,
+          diagnostic_text(&:explanation),
+          metadata_block,
+          diagnostic_text { |diagnostic| fix_text(diagnostic.fix) if diagnostic.fix },
+          diagnostic_text { |diagnostic| dataset_text(diagnostic.dataset) if diagnostic.dataset },
           backtrace_block,
           source_block
         ]
@@ -228,6 +206,39 @@ module Hanami
           summary = "#{request.method_name} #{request.path}".strip
           summary.empty? ? nil : summary
         }
+      end
+
+      # One part of the diagnostic as text, or nil when there's no diagnostic or no such part.
+      def diagnostic_text
+        diagnostic = self.diagnostic
+        return nil unless diagnostic
+
+        safely(nil) { yield(diagnostic) }
+      end
+
+      def fix_text(fix)
+        heading = fix.name ? "### Fix: #{fix.name}" : "### Fix it"
+        "#{heading}\n\n#{fix.text.strip}"
+      end
+
+      # A table with column headings becomes a Markdown table. Without them, it becomes a list.
+      def dataset_text(dataset)
+        rows =
+          if dataset.columns.any?
+            [
+              table_row(dataset.columns),
+              table_row(dataset.columns.map { "---" }),
+              *dataset.rows.map { |row| table_row(row) }
+            ]
+          else
+            dataset.rows.map { |row| "- #{row.reject(&:empty?).join(" — ")}" }
+          end
+
+        "### #{dataset.title}\n\n#{rows.join("\n")}"
+      end
+
+      def table_row(cells)
+        "| #{cells.map { |cell| cell.gsub("|", "\\|") }.join(" | ")} |"
       end
 
       def extras_block

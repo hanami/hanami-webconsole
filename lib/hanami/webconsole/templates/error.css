@@ -6,8 +6,6 @@
     --color-amber-text: oklch(52% 0.12 78);
     --color-success: oklch(50% 0.13 150);
     --success-wash: oklch(50% 0.13 150 / 0.12);
-    --color-info: oklch(50% 0.1 252);
-    --info-wash: oklch(50% 0.1 252 / 0.1);
 
     --box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px;
     --foreground-rgb: 0, 0, 0;
@@ -26,7 +24,7 @@
     --primary-wash: oklch(71.93% 0.18 10.67 / 0.1);
     --amber-wash: rgba(255, 211, 59, 0.18);
 
-    /* severity-driven, swapped by [data-severity] */
+    /* swapped by [data-actionable] */
     --signal: var(--color-primary);
     --signal-text: var(--color-critical);
     --signal-wash: var(--primary-wash);
@@ -41,18 +39,11 @@
     --syn-num: oklch(51% 0.15 258);
   }
 
-  [data-severity="actionable"] {
+  [data-actionable] {
     --signal: var(--color-amber);
     --signal-text: var(--color-amber-text);
     --signal-wash: var(--amber-wash);
     --signal-ink: #1a1400;
-  }
-
-  [data-severity="notfound"] {
-    --signal: var(--color-info);
-    --signal-text: var(--color-info);
-    --signal-wash: var(--info-wash);
-    --signal-ink: #fff;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -64,8 +55,6 @@
       --color-amber-text: #FFD33B;
       --color-success: oklch(76% 0.15 150);
       --success-wash: oklch(76% 0.15 150 / 0.14);
-      --color-info: oklch(78% 0.11 252);
-      --info-wash: oklch(78% 0.11 252 / 0.14);
       --box-shadow: rgba(255, 255, 255, 0.05) 0px 10px 15px -3px, rgba(255, 255, 255, 0.05) 0px 4px 6px -4px;
       --surface: rgba(var(--foreground-rgb), 0.055);
       --surface-strong: rgba(var(--foreground-rgb), 0.11);
@@ -90,8 +79,6 @@
     --color-amber-text: #FFD33B;
     --color-success: oklch(76% 0.15 150);
     --success-wash: oklch(76% 0.15 150 / 0.14);
-    --color-info: oklch(78% 0.11 252);
-    --info-wash: oklch(78% 0.11 252 / 0.14);
     --box-shadow: rgba(255, 255, 255, 0.05) 0px 10px 15px -3px, rgba(255, 255, 255, 0.05) 0px 4px 6px -4px;
     --surface: rgba(var(--foreground-rgb), 0.055);
     --surface-strong: rgba(var(--foreground-rgb), 0.11);
@@ -227,7 +214,7 @@
     color: var(--muted);
     overflow-wrap: anywhere;
   }
-  .hero .lede code {
+  .hero .lede :is(p, li) code {
     font-family: var(--font-mono);
     font-size: 0.92em;
     color: rgb(var(--foreground-rgb));
@@ -236,6 +223,9 @@
     padding: 0.1em 0.32em;
   }
 
+  /* Text in the format messages and diagnostics share: paragraphs, lists and code blocks. */
+  .prose { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
+  .prose ul { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.25rem; }
   .caret-box {
     font-family: var(--font-mono);
     font-size: 0.8125rem;
@@ -252,8 +242,8 @@
   .caret-box .caret { color: var(--signal-text); font-weight: 700; }
 
   .chips { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; font-size: 0.875rem; min-width: 0; }
-  /* Cause chains and did-you-mean chips both land here, and both carry fully qualified
-     constant names with no break opportunities. */
+  /* Cause chains land here, and carry fully qualified constant names with no break
+     opportunities. */
   .chips code {
     font-family: var(--font-mono);
     font-weight: 700;
@@ -279,6 +269,14 @@
     max-width: 78ch;
   }
   .fix h2 { font-size: 1rem; font-weight: 800; letter-spacing: -0.01em; }
+  .fix-text { font-size: 0.9375rem; line-height: 1.5; overflow-wrap: anywhere; }
+  .fix-text :is(p, li) code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: var(--surface-strong);
+    border-radius: 4px;
+    padding: 0.1em 0.32em;
+  }
 
   .cmd {
     display: flex;
@@ -406,15 +404,6 @@
     .spinner { animation: none; }
   }
 
-  .fix-list { list-style: none; display: flex; flex-direction: column; gap: 0.3rem; }
-  .fix-list li {
-    font-family: var(--font-mono);
-    font-size: 0.8125rem;
-    color: var(--muted);
-    display: flex;
-    gap: 0.6rem;
-  }
-  .fix-list li::before { content: "→"; color: var(--signal-text); flex: 0 0 auto; }
   .fix-note { font-size: 0.875rem; color: var(--muted); line-height: 1.5; overflow-wrap: anywhere; }
   .fix-note code {
     font-family: var(--font-mono);
@@ -782,9 +771,22 @@
   .kv .k-name { font-weight: 700; white-space: nowrap; width: 1%; }
   .kv .k-val { color: var(--muted); word-break: break-word; }
   .filtered { color: var(--signal-text); font-weight: 700; }
-  .kv tr.is-near td { background: var(--signal-wash); }
-  .kv tr.is-near .k-name { font-weight: 800; }
-  .kv tr.is-near .k-val { color: rgb(var(--foreground-rgb)); }
+  .kv th {
+    padding: 0.42rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--faint);
+    position: sticky;
+    top: 0;
+    background: rgb(var(--background-rgb));
+  }
+  /* A table with more than two columns needs the room. */
+  .ctx-panel.is-wide { grid-column: 1 / -1; border-right: 0; }
+  .ctx-panel.is-wide .kv-wrap { max-height: 22rem; }
 
   .snippet {
     font-family: var(--font-mono);

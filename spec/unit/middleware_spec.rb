@@ -6,7 +6,7 @@ require "json"
 # stubbed here so this spec runs standalone, and so a change in their internals cannot quietly
 # change what the middleware is asserted to do.
 RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
-  subject(:middleware) { described_class.new(inner_app, config) }
+  subject(:middleware) { described_class.new(inner_app, slice) }
 
   let(:app) { middleware }
 
@@ -28,6 +28,7 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
 
   let(:error_responses) { Hash.new(:internal_server_error) }
   let(:config) { double("Config", render_error_responses: error_responses, root: "/app") }
+  let(:slice) { double("Slice", config: config) }
 
   # --- collaborators ---------------------------------------------------------------------------
 
@@ -236,6 +237,7 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
       args = page_args.fetch(0)
       expect(args[:exception]).to be(raised)
       expect(args[:config]).to be(config)
+      expect(args[:slice]).to be(slice)
       expect(args[:env]).to include("PATH_INFO" => "/")
       expect(args[:generation]).to eq(Hanami::Webconsole.generation)
       expect(args[:id]).to match(/\A#{Hanami::Webconsole.generation}-[0-9a-f]+\z/)
@@ -439,6 +441,87 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
         post eval_path, "{not json", "CONTENT_TYPE" => "application/json"
 
         expect(last_response.status).to eq(400)
+      end
+
+      describe "running the fix" do
+        let(:run_path) { "/_hanami/webconsole/#{page_id}/run" }
+
+        let(:diagnostic_class) {
+          Class.new do
+            def initialize(action) = @action = action
+
+            def fix = {name: "Generate action", text: "Generate it."}
+
+            def run_fix = @action.call
+          end
+        }
+
+        let(:runs) { [] }
+
+        let(:action) {
+          lambda {
+            runs << :ran
+            "Created app/actions/books/show.rb"
+          }
+        }
+
+        let(:diagnostic) { Hanami::Webconsole::Diagnostics::Wrapper.new(diagnostic_class.new(action)) }
+
+        before { allow(error_page).to receive(:diagnostic).and_return(diagnostic) }
+
+        it "runs the fix and returns its output" do
+          console_post(run_path, {"csrfToken" => csrf_token})
+
+          expect(last_response.status).to eq(200)
+          expect(json_body).to eq(
+            "id" => page_id, "name" => "Generate action", "ok" => true,
+            "output" => "Created app/actions/books/show.rb"
+          )
+          expect(runs).to eq([:ran])
+        end
+
+        it "reports a fix that raises as failed" do
+          action = -> { raise "permission denied" }
+          allow(error_page).to receive(:diagnostic).and_return(
+            Hanami::Webconsole::Diagnostics::Wrapper.new(diagnostic_class.new(action))
+          )
+
+          console_post(run_path, {"csrfToken" => csrf_token})
+
+          expect(last_response.status).to eq(200)
+          expect(json_body).to include("ok" => false, "output" => "RuntimeError: permission denied")
+        end
+
+        it "reports 404 when the page has no fix that can run" do
+          allow(error_page).to receive(:diagnostic).and_return(nil)
+
+          console_post(run_path, {"csrfToken" => csrf_token})
+
+          expect(last_response.status).to eq(404)
+          expect(json_body["error"]).to eq("No fix to run")
+        end
+
+        it "waits only so long for another fix to finish, then reports 409" do
+          stub_const("#{described_class}::RUN_LOCK_WAIT", 0.05)
+          described_class::RUN_LOCK.lock
+
+          begin
+            console_post(run_path, {"csrfToken" => csrf_token})
+          ensure
+            described_class::RUN_LOCK.unlock
+          end
+
+          expect(last_response.status).to eq(409)
+          expect(json_body["explanation"]).to match(/another fix is still running/i)
+          expect(runs).to be_empty
+        end
+
+        it "requires a valid CSRF token" do
+          console_post(run_path, {"csrfToken" => "some-other-token"})
+
+          expect(last_response.status).to eq(403)
+          expect(runs).to be_empty
+        end
       end
     end
 

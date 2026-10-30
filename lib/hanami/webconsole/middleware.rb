@@ -57,11 +57,16 @@ module Hanami
       INTERNAL_PATH = %r{
         \A#{Regexp.escape(Webconsole::MOUNT_PATH)}
         /(?<id>[A-Za-z0-9_-]+)
-        /(?<action>variables|eval|resolve)\z
+        /(?<action>variables|eval|run)\z
       }x
 
-      # Serialises resolution runs across threads. See {#resolve_response}.
-      RESOLUTION_LOCK = Mutex.new
+      # Runs fixes one at a time, across threads and tabs. See {#run_response}.
+      RUN_LOCK = Mutex.new
+
+      # How long a fix waits for another fix to finish, in seconds.
+      RUN_LOCK_WAIT = 5
+
+      RUN_LOCK_POLL = 0.05
 
       HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 
@@ -69,9 +74,13 @@ module Hanami
 
       JSON_CONTENT_TYPE = "application/json; charset=utf-8"
 
-      def initialize(app, config)
+      # @param app [#call] the Rack app below
+      # @param slice [Hanami::Slice] the slice this middleware belongs to. Its config gives the
+      #   error responses, the root and the logger's filters, and diagnostics get the slice itself.
+      def initialize(app, slice)
         @app = app
-        @config = config
+        @slice = slice
+        @config = slice.config
         @registry = Registry.new
       end
 
@@ -184,7 +193,8 @@ module Hanami
           config: @config,
           id: "#{Webconsole.generation}-#{SecureRandom.hex(8)}",
           generation: Webconsole.generation,
-          bindings: bindings_for(exception)
+          bindings: bindings_for(exception),
+          slice: @slice
         )
       end
 
@@ -241,7 +251,7 @@ module Hanami
         case action
         when "variables" then variables_response(page, body)
         when "eval" then eval_response(page, body)
-        when "resolve" then resolve_response(page, body, request)
+        when "run" then run_response(page)
         else json_response(404, error: "Not found", explanation: "Not a recognized console call.")
         end
       end
@@ -285,41 +295,52 @@ module Hanami
         )
       end
 
-      # Runs one of the resolutions the error offered.
+      # Runs the fix the page's diagnostic offers.
       #
-      # Resolutions are addressed by their index in the error's own list, never by anything the
-      # request supplies, so this endpoint cannot be talked into running arbitrary code — only
-      # something the raised error already published.
-      def resolve_response(page, body, request)
-        index = body["index"]
-        resolution = page.resolutions[index] if index.is_a?(::Integer) && index >= 0
+      # A page has at most one fix, and it belongs to the same diagnostic that rendered the page.
+      # The request chooses nothing, so this endpoint can't be talked into running arbitrary
+      # code: only the fix the raised error already offered.
+      def run_response(page)
+        diagnostic = page.diagnostic
 
-        unless resolution
+        unless diagnostic&.runnable_fix?
           return json_response(
-            404, error: "Unknown resolution",
-            explanation: "This error does not offer a resolution at that position."
+            404, error: "No fix to run", explanation: "This error doesn't offer a fix that can run."
           )
         end
 
-        # One at a time. A resolution migrates a database or rewrites files, and Puma is
-        # threaded: two of these interleaving would be worse than making the second one wait.
-        result = RESOLUTION_LOCK.synchronize { resolution.call(resolution_context(request)) }
+        result = with_run_lock { diagnostic.run_fix }
 
-        json_response(
-          200,
-          id: page.id, index: index, name: resolution.name,
-          ok: result.ok?, output: result.output
-        )
+        unless result
+          return json_response(
+            409, error: "Busy", explanation: "Another fix is still running. Try again when it finishes."
+          )
+        end
+
+        json_response(200, id: page.id, name: diagnostic.fix.name, ok: result.ok?, output: result.output)
       end
 
-      def resolution_context(request)
-        Resolution::Context.new(
-          app: (Hanami.app if defined?(Hanami.app)),
-          slice: request.get_header("hanami.slice"),
-          request: request
-        )
-      rescue StandardError
-        Resolution::Context.new(app: nil, slice: nil, request: request)
+      # One at a time. A fix may change the database or write files, and Puma is threaded: two
+      # fixes interleaving would be worse than making the second one wait.
+      #
+      # Waits only so long, so a fix that hangs doesn't leave every later click hanging with it.
+      # The running fix itself is never interrupted: Ruby can't safely stop a thread from outside.
+      #
+      # @return [Object, nil] the block's result, or nil if the lock wasn't free in time
+      def with_run_lock
+        deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + RUN_LOCK_WAIT
+
+        until RUN_LOCK.try_lock
+          return nil if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+
+          sleep(RUN_LOCK_POLL)
+        end
+
+        begin
+          yield
+        ensure
+          RUN_LOCK.unlock
+        end
       end
 
       def eval_response(page, body)

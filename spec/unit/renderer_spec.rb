@@ -50,13 +50,14 @@ RSpec.describe Hanami::Webconsole::Renderer do
   end
 
   def request_context(
+    method_name: "GET",
     params: {"id" => "247"},
     session: {},
     cookies: {},
     headers: {"User-Agent" => "Mozilla/5.0"}
   )
     double(
-      method_name: "GET",
+      method_name: method_name,
       path: "/books/247",
       format: "text/html",
       ip: "127.0.0.1",
@@ -75,29 +76,35 @@ RSpec.describe Hanami::Webconsole::Renderer do
     message: "undefined method 'titel' for an instance of Book",
     detailed_extras: [],
     status: 500,
-    severity: :crash,
     causes: [],
     frames: [frame],
     request: request_context,
-    presenter: nil,
-    resolutions: [],
+    diagnostic: nil,
     text: "## NoMethodError"
   )
     double(
       id: "0-a1b2c3",
       generation: 0,
-      resolutions: resolutions,
       exception_class: exception_class,
       message: message,
       detailed_extras: detailed_extras,
       status: status,
-      severity: severity,
+      actionable?: !diagnostic&.fix.nil?,
+      diagnostic: diagnostic,
       causes: causes,
       frames: frames,
       request: request,
-      presenter: presenter,
       to_text: text
     )
+  end
+
+  # A real wrapped diagnostic, around one that returns the given parts.
+  def diagnostic(**parts)
+    source = Class.new {
+      parts.each { |name, value| define_method(name) { value } }
+    }.new
+
+    Hanami::Webconsole::Diagnostics::Wrapper.new(source)
   end
 
   def payload(html)
@@ -287,37 +294,173 @@ RSpec.describe Hanami::Webconsole::Renderer do
       expect(html).to include(%(<span class="caret">       ^^^^^</span>))
     end
 
-    it "renders a presenter's fix card, escaped" do
-      presenter = double(
-        headline: "Run the pending migrations",
-        lede: "Your schema is behind #{xss}",
-        command: "bundle exec hanami db migrate #{xss}",
-        snippet: nil,
-        items: ["20250811103012_create_books.rb"],
-        note: nil,
-        suggestions: [],
-        context_panels: []
-      )
-      html = described_class.render_html(
-        error_page(presenter: presenter, severity: :actionable), nonce: "n0nce"
-      )
+    it "renders a multi-line message as paragraphs and a list" do
+      message = "Template `index' could not be found in paths:\n\n - app/templates\n - slices/main/templates"
+      html = described_class.render_html(error_page(message: message), nonce: "n0nce")
 
-      expect(html).to include("data-webconsole-fix")
-      expect(html).to include("Run the pending migrations")
-      expect(html).to include("20250811103012_create_books.rb")
-      expect(html).not_to include(xss)
-      expect(html).to include(%(data-severity="actionable"))
+      expect(html).to include("<p>Template <code>index</code> could not be found in paths:</p>")
+      expect(html).to include("<ul><li>app/templates</li><li>slices/main/templates</li></ul>")
     end
 
-    it "maps a 404 to the notfound severity and collapses the backtrace" do
-      html = described_class.render_html(
-        error_page(severity: :not_found, status: 404), nonce: "n0nce"
-      )
+    it "keeps a single line break in a message" do
+      html = described_class.render_html(error_page(message: "First line\nSecond line"), nonce: "n0nce")
 
-      expect(html).to include(%(data-severity="notfound"))
-      expect(html).to include(%(<span class="status-code">404</span>))
-      expect(html).to include(%(<span class="status-reason">Not Found</span>))
-      expect(html).to match(/data-webconsole-workbench hidden/)
+      expect(html).to include("<p>First line<br>\nSecond line</p>")
+    end
+
+    describe "a crash" do
+      subject(:html) { described_class.render_html(error_page, nonce: "n0nce") }
+
+      it "leads with the class name and message, and an open backtrace" do
+        expect(html).to include(%(<h1 data-webconsole-headline>NoMethodError</h1>))
+        expect(html).to include("data-webconsole-message")
+        expect(html).to include("<div data-webconsole-shell>")
+        expect(html).to include("#i-triangle-alert")
+        expect(html).not_to match(/data-webconsole-workbench hidden/)
+      end
+
+      it "looks like a crash for a 404 with no diagnostic, and still shows the status" do
+        html = described_class.render_html(error_page(status: 404), nonce: "n0nce")
+
+        expect(html).to include("<div data-webconsole-shell>")
+        expect(html).to include(%(<span class="status-code">404</span>))
+        expect(html).to include(%(<span class="status-reason">Not Found</span>))
+      end
+    end
+
+    describe "a diagnostic" do
+      it "shows a title in place of the class name, and still shows the message under it" do
+        page = error_page(
+          diagnostic: diagnostic(title: "Missing method"),
+          detailed_extras: ["Did you mean?  title"]
+        )
+        html = described_class.render_html(page, nonce: "n0nce")
+
+        expect(html).to include(%(<h1 data-webconsole-headline>Missing method</h1>))
+        expect(html).to include(%(data-webconsole-exception-class>NoMethodError</span>))
+        expect(html).to include("undefined method <code>titel</code>")
+        expect(html.index("data-webconsole-headline")).to be < html.index("data-webconsole-message")
+        expect(html.index("data-webconsole-message")).to be < html.index(%(<div class="caret-box" data-webconsole-extras>))
+      end
+
+      it "shows the explanation after the message and its extras" do
+        page = error_page(diagnostic: diagnostic(explanation: "Why."), detailed_extras: ["Did you mean?  title"])
+        html = described_class.render_html(page, nonce: "n0nce")
+
+        expect(html.index(%(<div class="caret-box" data-webconsole-extras>))).to be < html.index("data-webconsole-explanation")
+      end
+
+      it "shows an explanation as an extra paragraph" do
+        html = described_class.render_html(
+          error_page(diagnostic: diagnostic(explanation: "The route points to `books.show`.")), nonce: "n0nce"
+        )
+
+        expect(html).to include("data-webconsole-message")
+        expect(html).to include("The route points to <code>books.show</code>.")
+      end
+
+      it "is not actionable without a fix" do
+        html = described_class.render_html(
+          error_page(diagnostic: diagnostic(explanation: "Why it happened.")), nonce: "n0nce"
+        )
+
+        expect(html).to include("<div data-webconsole-shell>")
+        expect(html).not_to include(%(<div class="fix" data-webconsole-fix>))
+      end
+
+      it "is actionable with a fix, and collapses the backtrace" do
+        html = described_class.render_html(
+          error_page(diagnostic: diagnostic(fix: "Did you mean `/books/:id`?")), nonce: "n0nce"
+        )
+
+        expect(html).to include("<div data-webconsole-shell data-actionable>")
+        expect(html).to include("#i-wrench")
+        expect(html).to match(/data-webconsole-workbench hidden/)
+      end
+
+      it "heads an unnamed fix generically" do
+        html = described_class.render_html(error_page(diagnostic: diagnostic(fix: "Do this.")), nonce: "n0nce")
+
+        expect(html).to include("<h2>Fix it</h2>")
+        expect(html).to include("<p>Do this.</p>")
+      end
+
+      it "heads a named fix with its name" do
+        html = described_class.render_html(
+          error_page(diagnostic: diagnostic(fix: {name: "Add a route", text: "Add it."})), nonce: "n0nce"
+        )
+
+        expect(html).to include("<h2>Add a route</h2>")
+        expect(html).not_to include(%(class="btn-primary" data-webconsole-run))
+      end
+
+      it "shows a shell block as a command, and a Ruby block as highlighted code" do
+        text = "Run:\n\n```sh\nbundle exec hanami db migrate\n```\n\nOr add:\n\n```ruby\nget \"/x\", to: \"...\"\n```"
+        html = described_class.render_html(error_page(diagnostic: diagnostic(fix: text)), nonce: "n0nce")
+
+        expect(html).to include(%(<span class="prompt">$</span><code data-webconsole-command>bundle exec hanami db migrate</code>))
+        expect(html).to include(%(<pre class="snippet" data-webconsole-snippet data-webconsole-highlight>get &quot;/x&quot;, to: &quot;...&quot;</pre>))
+        expect(html.scan(%(data-webconsole-copy="command")).length).to eq(1)
+        expect(html.scan(%(data-webconsole-copy="snippet")).length).to eq(1)
+      end
+
+      it "escapes diagnostic text" do
+        page = error_page(diagnostic: diagnostic(title: xss, explanation: xss, fix: {name: xss, text: "```sh\n#{xss}\n```"}))
+        html = described_class.render_html(page, nonce: "n0nce")
+
+        expect(html).not_to include(xss)
+      end
+
+      describe "with a fix that can run" do
+        it "puts the fix's name on the button, not in a heading" do
+          page = error_page(diagnostic: diagnostic(fix: {name: "Generate action", text: "Generate it."}, run_fix: "done"))
+          html = described_class.render_html(page, nonce: "n0nce")
+
+          expect(html).to match(%r{data-webconsole-run>\s*<svg[^>]*><use href="#i-play"/></svg><span class="label">Generate action</span>})
+          expect(html).not_to include("<h2>Generate action</h2>")
+          expect(html).to include("data-webconsole-run-output")
+        end
+
+        it "labels the button generically for an unnamed fix" do
+          html = described_class.render_html(error_page(diagnostic: diagnostic(fix: "Do it.", run_fix: "done")), nonce: "n0nce")
+
+          expect(html).to include(%(<span class="label">Run this fix</span>))
+          expect(html).to include("<h2>Fix it</h2>")
+        end
+
+        it "tells the page where to run it, and whether reloading retries the request" do
+          page = error_page(diagnostic: diagnostic(fix: "Do it.", run_fix: "done"))
+
+          expect(payload(described_class.render_html(page, nonce: "n0nce"))).to include(
+            "runPath" => "/_hanami/webconsole/0-a1b2c3/run", "retryable" => true
+          )
+        end
+
+        it "doesn't retry a request that wasn't a GET" do
+          page = error_page(diagnostic: diagnostic(fix: "Do it.", run_fix: "done"), request: request_context(method_name: "POST"))
+
+          expect(payload(described_class.render_html(page, nonce: "n0nce"))["retryable"]).to be(false)
+        end
+      end
+
+      it "shows a two-column table as a normal panel, before the request panels" do
+        page = error_page(diagnostic: diagnostic(dataset: {title: "Pending", rows: {"a.rb" => "1", "b.rb" => "2"}}))
+        html = described_class.render_html(page, nonce: "n0nce")
+
+        expect(html.index(%(data-webconsole-context-panel="Pending"))).to be < html.index(%(data-webconsole-context-panel="Request"))
+        expect(html).to include(%(<div class="ctx-panel" data-webconsole-context-panel="Pending">))
+        expect(html).not_to include("<thead>")
+      end
+
+      it "shows a table with more columns across the full width, with its headings" do
+        dataset = {title: "Routes", columns: ["Method", "Path", "Endpoint"], rows: [["GET", "/books", "books.index"]]}
+        html = described_class.render_html(error_page(diagnostic: diagnostic(dataset:)), nonce: "n0nce")
+
+        expect(html).to include(%(<div class="ctx-panel is-wide" data-webconsole-context-panel="Routes">))
+        expect(html).to include(%(<th scope="col">Endpoint</th>))
+        expect(html).to include(%(<td class="k-val" data-webconsole-cell>books.index</td>))
+        expect(html).to include("#i-route")
+      end
     end
 
     it "renders a context panel per request section" do
@@ -354,13 +497,32 @@ RSpec.describe Hanami::Webconsole::Renderer do
       expect(json).to include(
         "error" => "NoMethodError",
         "status" => 500,
-        "severity" => "crash",
+        "actionable" => false,
+        "diagnostic" => nil,
         "causes" => ["ArgumentError"]
       )
       expect(json["backtrace"].first).to eq(
         "/app/lib/bookshelf/repositories/book_repo.rb:11:in 'Bookshelf::Repositories::BookRepo#find'"
       )
       expect(json["request"]).to include("method" => "GET", "path" => "/books/247")
+    end
+
+    it "includes the diagnostic, saying whether the fix can run, but not how" do
+      page = error_page(
+        diagnostic: diagnostic(
+          title: "Title", fix: {name: "Generate action", text: "Generate it."}, run_fix: "done",
+          dataset: {title: "Actions", rows: ["books.index"]}
+        )
+      )
+      json = JSON.parse(described_class.render_json(page))
+
+      expect(json["actionable"]).to be(true)
+      expect(json["diagnostic"]).to eq(
+        "title" => "Title",
+        "explanation" => nil,
+        "fix" => {"name" => "Generate action", "text" => "Generate it.", "runnable" => true},
+        "dataset" => {"title" => "Actions", "columns" => [], "rows" => [["books.index"]]}
+      )
     end
   end
 end

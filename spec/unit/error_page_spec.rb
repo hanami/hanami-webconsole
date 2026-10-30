@@ -229,22 +229,135 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
     end
   end
 
-  describe "#severity" do
-    it "is :crash for an unrecognised exception" do
-      expect(page.severity).to eq(:crash)
+  describe "diagnostics" do
+    # The registry is global. Save and restore it, including the diagnostics the gem ships.
+    around do |example|
+      registry = Hanami::Webconsole::Diagnostics.registry
+      saved = registry.dup
+
+      begin
+        example.run
+      ensure
+        registry.replace(saved)
+      end
     end
 
-    it "is :actionable when a presenter matches" do
-      Hanami::Webconsole::Presenters.register("RuntimeError", Hanami::Webconsole::Presenters::Base)
+    let(:diagnostic_class) {
+      Class.new do
+        def initialize(exception, context)
+          @exception = exception
+          @context = context
+        end
 
-      expect(page.severity).to eq(:actionable)
+        def fix = "Fix #{@exception.message} in #{@context.slice}"
+      end
+    }
+
+    let(:slice) { "Main::Slice" }
+
+    subject(:page) { described_class.new(exception:, env:, config:, slice:) }
+
+    describe "#diagnostic" do
+      it "is nil when no diagnostic is registered" do
+        expect(page.diagnostic).to be_nil
+      end
+
+      it "reads the registered diagnostic, built with the exception and the slice" do
+        Hanami::Webconsole::Diagnostics.register("RuntimeError", diagnostic_class)
+
+        expect(page.diagnostic.fix.text).to eq("Fix boom in Main::Slice")
+      end
+
+      it "is built once" do
+        Hanami::Webconsole::Diagnostics.register("RuntimeError", diagnostic_class)
+
+        expect(page.diagnostic).to be(page.diagnostic)
+      end
     end
 
-    it "is :not_found for a 404, even when a presenter matches" do
-      render_error_responses["RuntimeError"] = :not_found
-      Hanami::Webconsole::Presenters.register("RuntimeError", Hanami::Webconsole::Presenters::Base)
+    describe "#actionable?" do
+      it "is false with no diagnostic" do
+        expect(page.actionable?).to be(false)
+      end
 
-      expect(page.severity).to eq(:not_found)
+      it "is true when the diagnostic has a fix" do
+        Hanami::Webconsole::Diagnostics.register("RuntimeError", diagnostic_class)
+
+        expect(page.actionable?).to be(true)
+      end
+
+      it "is false when the diagnostic has no fix" do
+        Hanami::Webconsole::Diagnostics.register("RuntimeError", Class.new {
+          def initialize(*) = nil
+
+          def explanation = "Why."
+        })
+
+        expect(page.actionable?).to be(false)
+      end
+    end
+
+    describe "#to_text" do
+      it "adds the explanation after the message, and the fix and table after the metadata" do
+        Hanami::Webconsole::Diagnostics.register("RuntimeError", Class.new {
+          def initialize(*) = nil
+
+          def title = "A short name"
+
+          def explanation = "Why it happened."
+
+          def fix = {name: "Add a route", text: "Add it:\n\n```ruby\nget \"/x\"\n```"}
+
+          def dataset = {title: "Routes", columns: ["Method", "Path"], rows: [["GET", "/a|b"]]}
+        })
+
+        expect(page.to_text).to start_with(<<~TEXT)
+          ## RuntimeError
+
+          boom
+
+          Why it happened.
+
+          - Request: GET /books/247
+          - Status: 500
+
+          ### Fix: Add a route
+
+          Add it:
+
+          ```ruby
+          get "/x"
+          ```
+
+          ### Routes
+
+          | Method | Path |
+          | --- | --- |
+          | GET | /a\\|b |
+        TEXT
+      end
+
+      it "leaves out the title, since the class name and message already say what it says" do
+        Hanami::Webconsole::Diagnostics.register("RuntimeError", Class.new {
+          def initialize(*) = nil
+
+          def title = "A short name"
+        })
+
+        expect(page.to_text).not_to include("A short name")
+      end
+
+      it "heads an unnamed fix generically, and lists a table without headings" do
+        Hanami::Webconsole::Diagnostics.register("RuntimeError", Class.new {
+          def initialize(*) = nil
+
+          def fix = "Do this."
+
+          def dataset = {title: "Pending", rows: {"a.rb" => "1"}}
+        })
+
+        expect(page.to_text).to include("### Fix it\n\nDo this.\n\n### Pending\n\n- a.rb — 1\n")
+      end
     end
   end
 
@@ -271,19 +384,6 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
       page = described_class.new(exception: exception, env: env, config: config)
 
       expect(page.causes).to eq(["TypeError", "ArgumentError"])
-    end
-  end
-
-  describe "#presenter" do
-    it "is nil when nothing is registered" do
-      expect(page.presenter).to be_nil
-    end
-
-    it "is the registered presenter, guarded so that none of its parts can raise" do
-      Hanami::Webconsole::Presenters.register("RuntimeError", Hanami::Webconsole::Presenters::Base)
-
-      expect(page.presenter).to be_a(Hanami::Webconsole::Presenters::Guard)
-      expect(page.presenter.presenter).to be_a(Hanami::Webconsole::Presenters::Base)
     end
   end
 
@@ -329,10 +429,10 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
 
         undefined method 'titel' for an instance of Foo
 
+        Did you mean?  title
+
         - Request: GET /books/247
         - Status: 500
-
-        Did you mean?  title
 
         ### Backtrace (1 application frame of 2)
             app/actions/books/show.rb:16:in 'Show#handle'

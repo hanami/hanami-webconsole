@@ -15,7 +15,6 @@ module Hanami
     # @api private
     module Renderer
       TEMPLATE_DIR = File.expand_path("templates", __dir__)
-
       TEMPLATE_PATH = File.join(TEMPLATE_DIR, "error.html.erb")
 
       # Static assets inlined into the page. They live in their own files so the markup stays
@@ -40,9 +39,7 @@ module Hanami
         #
         # @return [String]
         def render_html(page, nonce:, csrf_token: nil)
-          template.result(
-            Scope.new(page: page, nonce: nonce, csrf_token: csrf_token).template_binding
-          )
+          template.result(Scope.new(page:, nonce:, csrf_token:).template_binding)
         end
 
         # @return [String]
@@ -58,7 +55,8 @@ module Hanami
             "error" => page.exception_class,
             "message" => page.message,
             "status" => page.status,
-            "severity" => page.severity.to_s,
+            "actionable" => page.actionable?,
+            "diagnostic" => diagnostic_json(page.diagnostic),
             "causes" => page.causes,
             "backtrace" => page.frames.map { |frame|
               "#{frame.path}:#{frame.lineno}:in '#{frame.label}'"
@@ -87,6 +85,20 @@ module Hanami
         def template
           @template ||= ERB.new(File.read(TEMPLATE_PATH), trim_mode: "-")
         end
+
+        def diagnostic_json(diagnostic)
+          return nil unless diagnostic
+
+          fix = diagnostic.fix
+          dataset = diagnostic.dataset
+
+          {
+            "title" => diagnostic.title,
+            "explanation" => diagnostic.explanation,
+            "fix" => fix && {"name" => fix.name, "text" => fix.text, "runnable" => diagnostic.runnable_fix?},
+            "dataset" => dataset && {"title" => dataset.title, "columns" => dataset.columns, "rows" => dataset.rows}
+          }
+        end
       end
 
       # The binding the template renders against.
@@ -94,17 +106,10 @@ module Hanami
       # Everything the template interpolates arrives already escaped from here: the template calls
       # `h` (never `to_s`) on any value that originates outside the framework.
       class Scope
-        SEVERITIES = {crash: "crash", actionable: "actionable", not_found: "notfound"}.freeze
-
-        SEVERITY_ICONS = {
-          "crash" => "triangle-alert", "actionable" => "wrench", "notfound" => "signpost"
-        }.freeze
-
-        # Icons for panel titles a presenter may supply. Unknown titles fall back to a list icon.
+        # Icons for panel titles. Unknown titles fall back to a list icon.
         PANEL_ICONS = {
           "Request" => "globe", "Params" => "braces", "Session" => "key", "Cookies" => "lock",
-          "Headers" => "list", "Database" => "database", "Routes" => "route",
-          "Nearest registered keys" => "package"
+          "Headers" => "list", "Routes" => "route"
         }.freeze
 
         # Panels longer than this get a search box. The request summary never does: it is short and
@@ -113,10 +118,24 @@ module Hanami
 
         UNSEARCHABLE_PANELS = ["Request"].freeze
 
+        # A table with more columns than this spans the full width of the context grid.
+        NARROW_COLUMNS = 2
+
         FILTERED = "[FILTERED]"
 
-        # A `'quoted'` or `` `backticked` `` run in escaped text. See {#text_with_code_spans}.
-        CODE_SPAN = /(?<![[:alnum:]])&#39;([^&<>\s]+)&#39;(?![[:alnum:]])|`([^`&<>]*)`/
+        # Request methods for which reloading the page repeats the original request.
+        RETRYABLE_METHODS = %w[GET HEAD].freeze
+
+        # A `'quoted'`, `` `quoted' `` or `` `backticked` `` run in escaped text. See
+        # {#inline_html}.
+        CODE_SPAN = /
+          (?<![[:alnum:]])&\#39;([^&<>\s]+)&\#39;(?![[:alnum:]])
+          |`([^`&<>\s]+)&\#39;(?![[:alnum:]])
+          |`([^`&<>]*)`
+        /x
+
+        # One row of a context panel. `filtered` marks a value the logger's filters replaced.
+        Row = Struct.new(:cells, :filtered, keyword_init: true)
 
         attr_reader :page, :nonce, :csrf_token
 
@@ -150,19 +169,21 @@ module Hanami
 
         # @return [String]
         def h(value)
-          # Rack::Utils rather than CGI: the cgi library is removed in Ruby 4.0, and rack is
-          # already a dependency. Escapes the same five characters.
-          Rack::Utils.escape_html(value.to_s)
+          # Use ERB::Util rather than Rack::Utils.
+          #
+          # Rack v2 escapes `'` as `&#x27;` and `/` as `&#x2F;`, while Rack v3 gives `&#39;` and
+          # leaves `/` alone. ERB gives the same output on both, which {CODE_SPAN} relies on.
+          ERB::Util.html_escape(value.to_s)
+        end
+
+        # @return [Boolean]
+        def actionable?
+          page.actionable?
         end
 
         # @return [String]
-        def severity
-          SEVERITIES.fetch(page.severity, "crash")
-        end
-
-        # @return [String]
-        def severity_icon
-          SEVERITY_ICONS.fetch(severity)
+        def status_icon
+          actionable? ? "wrench" : "triangle-alert"
         end
 
         # @return [String]
@@ -204,50 +225,72 @@ module Hanami
           @initial_frame_index ||= frames.index(&:app?) || 0
         end
 
-        # Only a crash leads with the backtrace. When we can say something more useful, the
-        # backtrace starts collapsed behind a disclosure.
+        # Only a crash leads with the backtrace. When the page offers a fix, the backtrace starts
+        # collapsed behind a disclosure.
         #
         # @return [Boolean]
         def collapsed?
-          severity != "crash"
+          actionable?
         end
 
-        # @return [Object, nil]
-        def presenter
-          page.presenter
+        # @return [Diagnostics::Wrapper, nil]
+        def diagnostic
+          page.diagnostic
         end
 
-        # @return [String]
+        # A diagnostic's short name for the situation.
         #
-        # An error that offers resolutions has written a sentence worth leading with, so its
-        # message becomes the headline. The class name is still in the topbar, so nothing is lost
-        # by not repeating it here.
+        # @return [String, nil]
+        def title
+          diagnostic&.title
+        end
+
+        # A diagnostic's title names the situation in place of the class name. The class name is
+        # always in the topbar, so nothing is lost. The message is always shown under the headline.
         #
         # @return [String]
         def headline
-          return page.message if resolutions.any? && !page.message.empty?
+          title || page.exception_class
+        end
 
-          presenter&.headline || page.exception_class
+        # @return [Boolean]
+        def message?
+          !page.message.empty?
         end
 
         # @return [String]
         def message_html
-          text_with_code_spans(lede)
+          text_html(page.message)
         end
 
-        # Empty when a resolvable error has no detail to add: its message is already the
-        # headline, and repeating it underneath reads as a stutter.
-        #
-        # @return [String]
-        def lede
-          return page.detail.to_s if resolutions.any?
+        # @return [String, nil]
+        def explanation
+          diagnostic&.explanation
+        end
 
-          presenter&.lede || page.message
+        # @return [Diagnostics::Wrapper::Fix, nil]
+        def fix
+          diagnostic&.fix
         end
 
         # @return [Boolean]
-        def lede?
-          !lede.empty?
+        def runnable_fix?
+          !!diagnostic&.runnable_fix?
+        end
+
+        # When a named fix can run, its name goes on the button only, so the card doesn't show it
+        # twice.
+        #
+        # @return [String, nil]
+        def fix_heading
+          return nil if runnable_fix? && fix.name
+
+          fix.name || "Fix it"
+        end
+
+        # @return [String]
+        def run_label
+          fix.name || "Run this fix"
         end
 
         # @return [Array<String>]
@@ -270,54 +313,8 @@ module Hanami
         end
 
         # @return [Array<String>]
-        def suggestions
-          @suggestions ||= Array(presenter&.suggestions)
-        end
-
-        # @return [Array<String>]
         def causes
           @causes ||= Array(page.causes)
-        end
-
-        # @return [Boolean]
-        #
-        # The presenter's own card, for errors we cannot modify. Resolutions render their own.
-        #
-        # @return [Boolean]
-        def fix?
-          !!presenter && (fix_command || fix_snippet || fix_items.any? || fix_note)
-        end
-
-        # Resolutions the error published for itself.
-        #
-        # @return [Array<Resolution>]
-        def resolutions
-          @resolutions ||= page.resolutions
-        end
-
-        # @return [String]
-        def fix_title
-          "Suggested fix"
-        end
-
-        # @return [String, nil]
-        def fix_command
-          presenter&.command
-        end
-
-        # @return [String, nil]
-        def fix_snippet
-          presenter&.snippet
-        end
-
-        # @return [Array<String>]
-        def fix_items
-          @fix_items ||= Array(presenter&.items)
-        end
-
-        # @return [String, nil]
-        def fix_note
-          presenter&.note
         end
 
         # The topbar summary. Built here, from escaped parts, so the template interpolates it whole.
@@ -331,9 +328,11 @@ module Hanami
           parts.join(" &middot; ")
         end
 
+        # The diagnostic's dataset, if any, then the request.
+        #
         # @return [Array<Hash>]
         def context_panels
-          @context_panels ||= (presenter_panels + request_panels)
+          @context_panels ||= (diagnostic_panels + request_panels)
         end
 
         # @return [String]
@@ -352,33 +351,74 @@ module Hanami
         #
         # @return [String]
         def payload_json
-          JSON.generate(payload).gsub(/[<>&\u2028\u2029]/) { |char| format('\u%04x', char.ord) }
+          JSON.generate(payload).gsub(/[<>&  ]/) { |char| format('\u%04x', char.ord) }
+        end
+
+        # Renders text in the format messages and diagnostics share (see {Text}): paragraphs,
+        # lists and code blocks. A shell block shows as a command with a prompt, and any code block
+        # gets a copy button.
+        #
+        # @return [String]
+        def text_html(text)
+          Text.blocks(text).map { |block| block_html(block) }.join("\n")
         end
 
         # Wraps quoted or backticked runs in `<code>`, the way the design shows identifiers in the
         # lede. Runs after escaping, on escaped text, so it can only ever add `<code>` tags.
         #
         # Single quotes are for Ruby's own messages, which quote names that way (`undefined method
-        # 'titel' for an instance of Book`). Only quotes that work as quotes count: the opening
-        # quote must not follow a letter or digit, the closing quote must not come before one,
-        # and there is no whitespace between them. An apostrophe in ordinary English (`slice's`,
-        # `can't`, `users'`) therefore stays as text, and writers need no rule other than to use
-        # backticks for code.
+        # 'titel' for an instance of Book`), and a backtick closed by a single quote is the older
+        # Ruby style some messages still use (`` `index' ``). Only quotes that work as quotes count:
+        # the opening quote must not follow a letter or digit, the closing quote must not come
+        # before one, and there is no whitespace between them. An apostrophe in ordinary English
+        # (`slice's`, `can't`, `users'`) therefore stays as text, and writers need no rule other
+        # than to use backticks for code.
         #
         # @return [String]
-        def text_with_code_spans(text)
+        def inline_html(text)
           h(text).gsub(CODE_SPAN) {
-            "<code>#{Regexp.last_match(1) || Regexp.last_match(2)}</code>"
+            match = Regexp.last_match
+            "<code>#{match[1] || match[2] || match[3]}</code>"
           }
         end
 
         private
 
+        def block_html(block)
+          case block.type
+          when :paragraph
+            "<p>#{block.lines.map { |line| inline_html(line) }.join("<br>\n")}</p>"
+          when :list
+            "<ul>#{block.lines.map { |item| "<li>#{inline_html(item)}</li>" }.join}</ul>"
+          else
+            code_html(block)
+          end
+        end
+
+        def code_html(block)
+          code = h(block.lines.join("\n"))
+
+          if Text.shell?(block)
+            %(<div class="cmd"><span class="prompt">$</span><code data-webconsole-command>#{code}</code>) +
+              copy_button("command") + "</div>"
+          else
+            highlight = block.language == "ruby" ? " data-webconsole-highlight" : ""
+            %(<div class="snippet-wrap"><pre class="snippet" data-webconsole-snippet#{highlight}>#{code}</pre>) +
+              copy_button("snippet") + "</div>"
+          end
+        end
+
+        def copy_button(kind)
+          %(<button type="button" class="copy-btn" data-webconsole-copy="#{kind}">) +
+            %(<svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy</span></button>)
+        end
+
         def payload
           {
             "pageId" => page.id,
             "evalPath" => "#{MOUNT_PATH}/#{page.id}/eval",
-            "resolvePath" => "#{MOUNT_PATH}/#{page.id}/resolve",
+            "runPath" => "#{MOUNT_PATH}/#{page.id}/run",
+            "retryable" => RETRYABLE_METHODS.include?(page.request.method_name.to_s.upcase),
             "csrfToken" => csrf_token,
             "csrfCookie" => CSRF_COOKIE_NAME,
             "bindingsAvailable" => Webconsole.bindings_available?,
@@ -423,10 +463,12 @@ module Hanami
           Array(variables).map { |variable| [variable.name, variable.class_name, variable.value] }
         end
 
-        def presenter_panels
-          Array(presenter&.context_panels).map { |title, rows|
-            panel(title.to_s, Array(rows).map { |row| Array(row) })
-          }
+        def diagnostic_panels
+          dataset = diagnostic&.dataset
+          return [] unless dataset
+
+          rows = dataset.rows.map { |cells| Row.new(cells: cells, filtered: false) }
+          [panel(dataset.title, rows, columns: dataset.columns)]
         rescue StandardError
           []
         end
@@ -453,19 +495,23 @@ module Hanami
             ["slice", request.slice_name],
             ["ip", request.ip]
           ].reject { |(_, value)| value.nil? || value.to_s.empty? }
-            .map { |(name, value)| [name, value.to_s, value.to_s == FILTERED, false] }
+            .map { |(name, value)| Row.new(cells: [name, value.to_s], filtered: value.to_s == FILTERED) }
         end
 
         def hash_rows(hash)
-          hash.map { |name, value| [name.to_s, value.to_s, value.to_s == FILTERED, false] }
+          hash.map { |name, value| Row.new(cells: [name.to_s, value.to_s], filtered: value.to_s == FILTERED) }
         end
 
-        def panel(title, rows)
+        def panel(title, rows, columns: [])
+          width = rows.map { |row| row.cells.length }.max || columns.length
+
           {
             title: title,
-            icon: PANEL_ICONS.fetch(title) { PANEL_ICONS.fetch(title.split(/[\s(]/).first, "list") },
-            search: searchable?(title, rows) ? "Filter #{panel_label(title)}" : nil,
+            icon: PANEL_ICONS.fetch(title, "list"),
+            search: searchable?(title, rows) ? "Filter #{title.downcase}" : nil,
             noun: panel_noun(title),
+            columns: columns,
+            wide: [width, columns.length].max > NARROW_COLUMNS,
             rows: rows
           }
         end
@@ -474,13 +520,8 @@ module Hanami
           !UNSEARCHABLE_PANELS.include?(title) && rows.length >= SEARCHABLE_FROM
         end
 
-        # "Routes (12)" filters routes, not "routes (12)".
-        def panel_label(title)
-          title.downcase.sub(/\s*\(.*\)\z/, "")
-        end
-
         def panel_noun(title)
-          label = panel_label(title)
+          label = title.downcase
           label.match?(/\A\w+s\z/) ? label : "rows"
         end
       end

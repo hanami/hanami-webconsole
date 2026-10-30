@@ -12,7 +12,7 @@
 <!-- Lucide icons (ISC). Inlined as a sprite: the page CSP blocks external assets. -->
 <%= icon_sprite %>
 
-<div data-webconsole-shell data-severity="<%= severity %>">
+<div data-webconsole-shell<%= actionable? ? " data-actionable" : "" %>>
   <header class="topbar">
     <svg class="logo" viewBox="0 0 201 194" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hanami">
       <path fill="#FF6C89" fill-rule="evenodd" clip-rule="evenodd" d="M48.1827 120.394C43.5166 120.84 38.6883 120.362 33.9539 118.828L24.3571 115.723C5.86366 109.736 -4.2754 89.9154 1.7354 71.4882C7.74194 53.0631 27.6357 42.9638 46.1334 48.9512L55.7302 52.0564C60.4645 53.5899 64.6525 56.0303 68.1617 59.1227C66.2961 54.843 65.2588 50.1194 65.2588 45.1579V35.1053C65.2588 15.7308 81.05 0.000991821 100.495 0.000991821C119.941 0.000991821 135.728 15.7308 135.728 35.1053V45.1579C135.728 50.1194 134.695 54.843 132.825 59.1227C136.334 56.0303 140.522 53.5899 145.261 52.0564L154.857 48.9512C173.351 42.9638 193.245 53.0631 199.255 71.4882C205.266 89.9154 195.127 109.736 176.634 115.723L167.037 118.828C162.298 120.362 157.47 120.84 152.808 120.394C156.843 122.764 160.467 125.978 163.395 129.994L169.325 138.126C180.758 153.801 177.265 175.771 161.53 187.16C145.798 198.548 123.749 195.069 112.316 179.395L106.387 171.26C103.458 167.246 101.511 162.819 100.495 158.261C99.4794 162.819 97.5326 167.246 94.6041 171.26L88.6745 179.395C77.242 195.069 55.1882 198.548 39.4568 187.16C23.7254 175.771 20.2332 153.801 31.6614 138.126L37.5953 129.994C40.5196 125.978 44.1441 122.764 48.1827 120.394Z" />
@@ -29,94 +29,38 @@
       <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy as text</span>
     </button>
     <span class="status-pill" data-webconsole-status>
-      <svg class="icon" aria-hidden="true"><use href="#i-<%= severity_icon %>"/></svg><span class="status-code"><%= h(status_code) %></span><span class="status-reason"><%= h(status_reason) %></span>
+      <svg class="icon" aria-hidden="true"><use href="#i-<%= status_icon %>"/></svg><span class="status-code"><%= h(status_code) %></span><span class="status-reason"><%= h(status_reason) %></span>
     </span>
   </header>
 
   <section class="hero" data-webconsole-hero>
     <h1 data-webconsole-headline><%= h(headline) %></h1>
-<% if lede? -%>
-    <p class="lede" data-webconsole-message><%= message_html %></p>
-<% end -%>
-<%# One card per resolution: a button and its manual equivalent are one fix offered two ways. -%>
-<% resolutions.each_with_index do |resolution, index| -%>
-    <div class="fix" data-webconsole-fix data-webconsole-resolution-card="<%= index %>">
-      <div class="fix-title"><h2><%= h(resolution.name) %></h2></div>
-<% if resolution.executable? -%>
-      <div class="run-actions">
-        <button type="button" class="btn-primary" data-webconsole-resolution="<%= index %>"
-                data-webconsole-resolution-destructive="<%= resolution.destructive? ? "true" : "false" %>">
-          <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span class="label"><%= h(resolution.name) %></span>
-        </button>
-<% if resolution.command -%>
-        <span class="fix-note">or run it yourself &darr;</span>
-<% end -%>
-      </div>
-      <div data-webconsole-resolution-output="<%= index %>"></div>
-<% end -%>
-<% if resolution.command -%>
-      <div class="cmd">
-        <span class="prompt">$</span><code data-webconsole-command><%= h(resolution.command) %></code>
-        <button type="button" class="copy-btn" data-webconsole-copy="command">
-          <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy</span>
-        </button>
-      </div>
-<% end -%>
-<% if resolution.snippet -%>
-      <div class="snippet-wrap">
-        <pre class="snippet" data-webconsole-snippet><%= h(resolution.snippet) %></pre>
-        <button type="button" class="copy-btn" data-webconsole-copy="snippet">
-          <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy</span>
-        </button>
-      </div>
-<% end -%>
-<% if resolution.items.any? -%>
-      <ul class="fix-list">
-<% resolution.items.each do |item| -%>
-        <li><%= h(item) %></li>
-<% end -%>
-      </ul>
-<% end -%>
-<% if resolution.note -%>
-      <p class="fix-note"><%= text_with_code_spans(resolution.note) %></p>
-<% end -%>
-    </div>
-<% end -%>
-<% if fix? -%>
-    <div class="fix" data-webconsole-fix>
-      <div class="fix-title"><h2><%= h(fix_title) %></h2></div>
-<% if fix_command -%>
-      <div class="cmd">
-        <span class="prompt">$</span><code data-webconsole-command><%= h(fix_command) %></code>
-        <button type="button" class="copy-btn" data-webconsole-copy="command">
-          <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy</span>
-        </button>
-      </div>
-<% elsif fix_snippet -%>
-      <div class="snippet-wrap">
-        <pre class="snippet" data-webconsole-snippet><%= h(fix_snippet) %></pre>
-        <button type="button" class="copy-btn" data-webconsole-copy="snippet">
-          <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy</span>
-        </button>
-      </div>
-<% end -%>
-<% if fix_items.any? -%>
-      <ul class="fix-list" data-webconsole-fix-items>
-<% fix_items.each do |item| -%>
-        <li><%= h(item) %></li>
-<% end -%>
-      </ul>
-<% end -%>
-<% if fix_note -%>
-      <p class="fix-note" data-webconsole-fix-note><%= text_with_code_spans(fix_note) %></p>
-<% end -%>
-    </div>
+<% if message? -%>
+    <div class="lede prose" data-webconsole-message><%= message_html %></div>
 <% end -%>
 <% if extras.any? -%>
     <div class="caret-box" data-webconsole-extras><%= extras_html %></div>
 <% end -%>
-<% if suggestions.any? -%>
-    <p class="chips" data-webconsole-suggestions><span class="eyebrow">Did you mean</span><% suggestions.each do |suggestion| %><code><%= h(suggestion) %></code><% end %></p>
+<% if explanation -%>
+    <div class="lede prose" data-webconsole-explanation><%= text_html(explanation) %></div>
+<% end -%>
+<%# A button and its manual equivalent are one fix offered two ways. -%>
+<% if fix -%>
+    <div class="fix" data-webconsole-fix>
+<% if fix_heading -%>
+      <div class="fix-title"><h2><%= h(fix_heading) %></h2></div>
+<% end -%>
+<% if runnable_fix? -%>
+      <div class="run-actions">
+        <button type="button" class="btn-primary" data-webconsole-run>
+          <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span class="label"><%= h(run_label) %></span>
+        </button>
+        <span class="fix-note">or do it yourself &darr;</span>
+      </div>
+      <div data-webconsole-run-output></div>
+<% end -%>
+      <div class="prose fix-text" data-webconsole-fix-text><%= text_html(fix.text) %></div>
+    </div>
 <% end -%>
 <% if causes.any? -%>
     <p class="chips" data-webconsole-causes><span class="eyebrow">Caused by</span><% causes.each do |cause| %><code><%= h(cause) %></code><% end %></p>
@@ -179,7 +123,7 @@
 
   <section class="context" data-webconsole-context>
 <% context_panels.each do |panel| -%>
-    <div class="ctx-panel" data-webconsole-context-panel="<%= h(panel[:title]) %>">
+    <div class="ctx-panel<%= panel[:wide] ? " is-wide" : "" %>" data-webconsole-context-panel="<%= h(panel[:title]) %>">
       <div class="ctx-head">
         <svg class="icon" aria-hidden="true"><use href="#i-<%= panel[:icon] %>"/></svg>
         <span class="eyebrow"><%= h(panel[:title]) %></span>
@@ -197,11 +141,22 @@
       </div>
       <div class="kv-wrap">
         <table class="kv">
+<% if panel[:columns].any? -%>
+          <thead>
+            <tr>
+<% panel[:columns].each do |column| -%>
+              <th scope="col"><%= h(column) %></th>
+<% end -%>
+            </tr>
+          </thead>
+<% end -%>
           <tbody data-webconsole-rows>
-<% panel[:rows].each do |name, value, filtered, highlight| -%>
-            <tr data-webconsole-row<%= highlight ? " class=\"is-near\" data-webconsole-near" : "" %>>
-              <td class="k-name" data-webconsole-row-key><%= h(name) %></td>
-              <td class="k-val<%= filtered ? " filtered" : "" %>" data-webconsole-row-value><%= h(value) %></td>
+<% panel[:rows].each do |row| -%>
+            <tr data-webconsole-row>
+<% row.cells.each_with_index do |cell, index| -%>
+<% value = index == row.cells.length - 1 && index.positive? -%>
+              <td class="<%= index.zero? ? "k-name" : "k-val" %><%= value && row.filtered ? " filtered" : "" %>" data-webconsole-cell><%= h(cell) %></td>
+<% end -%>
             </tr>
 <% end -%>
           </tbody>
