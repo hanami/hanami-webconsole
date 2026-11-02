@@ -95,42 +95,21 @@ RSpec.describe Hanami::Webconsole::Diagnostics::NotFound do
         expect(fix_text(path: "/admin/user", router: scoped)).to start_with("Did you mean `/admin/users`?")
       end
 
-      it "offers the route to add, in case a new one was meant" do
-        expect(fix_text(path: "/boks")).to include(<<~TEXT.chomp)
-          Otherwise, add a route to `config/routes.rb`, or to a slice's routes (without its `at:` prefix):
-
-          ```ruby
-          get "/boks", to: "..."
-          ```
-        TEXT
-      end
-
-      it "is unnamed, since it offers two actions" do
-        expect(diagnostic_for(path: "/boks").fix.name).to be_nil
+      it "only suggests the route, without saying where to add one" do
+        expect(diagnostic_for(path: "/boks").fix).to have_attributes(name: nil, text: "Did you mean `/books`?")
       end
     end
 
     describe "with nothing close" do
-      it "offers the route to add" do
-        expect(diagnostic.fix).to have_attributes(name: "Add a route", text: <<~TEXT.chomp)
-          Add a route to `config/routes.rb`, or to a slice's routes (without its `at:` prefix):
-
-          ```ruby
-          get "/nope", to: "..."
-          ```
-        TEXT
+      it "says where to add a route" do
+        expect(diagnostic.fix).to have_attributes(
+          name: "Add a route",
+          text: "Add a route to `config/routes.rb`, or to a slice's routes."
+        )
       end
 
-      it "uses the DSL method for the request's own verb" do
-        expect(fix_text(path: "/nope", method: "DELETE")).to include(%(delete "/nope", to: "..."))
-      end
-
-      it "defines a GET for a HEAD request, since the router adds HEAD itself" do
-        expect(fix_text(path: "/nope", method: "HEAD")).to include(%(get "/nope", to: "..."))
-      end
-
-      it "quotes the path as a Ruby string, whatever it contains" do
-        expect(fix_text(path: %(/a"b/\#{c}))).to include(%(get "/a\\"b/\\\#{c}", to: "..."))
+      it "says where to add a route for a HEAD request, since the router adds HEAD itself" do
+        expect(diagnostic_for(path: "/nope", method: "HEAD").fix.name).to eq("Add a route")
       end
 
       it "is nil for a method with no router DSL of its own" do

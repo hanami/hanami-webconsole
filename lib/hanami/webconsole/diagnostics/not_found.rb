@@ -16,19 +16,16 @@ module Hanami
       # Diagnostic for `Hanami::Router::NotFoundError`.
       #
       # In development, a 404 usually means a typo, or a route that hasn't been added yet. To help
-      # with both, the fix suggests the closest matching route (if there is one), and shows how to
+      # with both, the fix suggests the closest matching route (if there is one), or says where to
       # add a new route. The dataset lists all the app's routes.
       #
       # @api private
       class NotFound
-        # The HTTP methods that have their own method in the router DSL, mapped to those methods.
-        # These are used to write the snippet for adding a new route.
+        # The HTTP methods that have their own method in the router DSL, so a route can be added
+        # for them.
         #
-        # HEAD maps to `get`, since the router defines a HEAD route alongside every GET route.
-        SNIPPET_VERBS = {
-          "GET" => "get", "HEAD" => "get", "POST" => "post", "PATCH" => "patch",
-          "PUT" => "put", "DELETE" => "delete", "OPTIONS" => "options", "TRACE" => "trace"
-        }.freeze
+        # HEAD is here since the router defines a HEAD route alongside every GET route.
+        ROUTABLE_METHODS = %w[GET HEAD POST PATCH PUT DELETE OPTIONS TRACE].freeze
 
         # Returns the exception.
         #
@@ -49,17 +46,25 @@ module Hanami
 
         # Returns the fix.
         #
-        # This suggests the closest matching route (if there is one), followed by how to add a new
-        # route.
+        # This suggests the closest matching route, if there is one. Otherwise, it says where to add
+        # a new route.
         #
-        # The fix is only given a name when adding a new route is the one clear thing to do. When
-        # there's also a suggestion, the fix offers two options, so we leave it unnamed, and the
-        # page gives it a generic name instead.
+        # We don't suggest the route itself. We'd have to guess at too much: whether it belongs in
+        # `resources`, which slice it's for, and which action it goes to. The routes list shows how
+        # the app already writes its routes.
+        #
+        # Slice routes are loaded into the app's router, and a route doesn't record the slice that
+        # defined it, so we can't tell whether the requested path belongs to a slice. Instead of
+        # (possibly wrongly) pointing only to the app's routes file, we mention slices too.
+        #
+        # @return [String, Hash, nil] nil if there's no close route, and the request's HTTP method
+        #   has no method of its own in the router DSL
         def fix
-          text = [suggested_route_fix, new_route_fix].compact.join("\n\n")
-          return if text.empty?
-
-          {name: ("Add a route" unless suggested_route?), text:}
+          if suggested_route?
+            suggested_route_fix
+          elsif ROUTABLE_METHODS.include?(verb)
+            {name: "Add a route", text: "Add a route to `config/routes.rb`, or to a slice's routes."}
+          end
         end
 
         # Returns a sentence suggesting the closest matching route, for the fix.
@@ -68,10 +73,9 @@ module Hanami
         # shape, but failed one of its constraints (see {#nearest_match}). In this case, the
         # sentence says which constraints the route has.
         #
-        # @return [String, nil] nil if no route is close enough to suggest
+        # @return [String]
         private def suggested_route_fix
           pattern, distance = nearest_match
-          return unless pattern
 
           if distance.zero?
             constrained_route = reachable_routes.find { _1.path == pattern && _1.constraints? }
@@ -87,33 +91,6 @@ module Hanami
         # @return [Boolean]
         private def suggested_route?
           !nearest_match.nil?
-        end
-
-        # Returns a paragraph explaining how to add a new route for the request, for the fix. This
-        # includes a snippet of the route definition to paste into the routes file.
-        #
-        # When the fix also suggests an existing route, this paragraph is worded as the alternative.
-        #
-        # Slice routes are loaded into the app's router, and a route doesn't record the slice that
-        # defined it, so we can't tell whether the requested path belongs to a slice. Instead of
-        # (possibly wrongly) pointing only to the app's routes file, we mention slices too.
-        #
-        # The snippet is Ruby code, so we use `#inspect` to turn the path into a string literal.
-        # This escapes any characters that are special inside double quotes (`"`, `\` or `#{`), so
-        # the pasted route matches the requested path exactly.
-        #
-        # @return [String, nil] nil if the request's HTTP method has no method of its own in the
-        #   router DSL
-        private def new_route_fix
-          return unless SNIPPET_VERBS.key?(verb)
-
-          <<~TEXT.chomp
-            #{suggested_route? ? "Otherwise, add" : "Add"} a route to `config/routes.rb`, or to a slice's routes (without its `at:` prefix):
-
-            ```ruby
-            #{SNIPPET_VERBS.fetch(verb)} #{request_path.inspect}, to: "..."
-            ```
-          TEXT
         end
 
         # Returns the app's routes as a dataset, with the same columns as `hanami routes`.
