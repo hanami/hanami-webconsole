@@ -2,9 +2,9 @@
 
 module Hanami
   module Diagnostics
-    # The text format for diagnostics, and a parser for it.
+    # A parser for the diagnostics text format.
     #
-    # Diagnostics use this format for their title, explanation and fix. It's a subset of Markdown
+    # Diagnostics use this format for their explanation and fix. It's a subset of Markdown
     # that looks natural as plain text, since diagnostics are also read as text (such as in the
     # error's Markdown output).
     #
@@ -12,19 +12,22 @@ module Hanami
     # terminal, since most aren't written for any format, and their layout (such as the carets
     # under a syntax error) only makes sense as it is.
     #
-    # Parses the following:
+    # The text is read one line at a time:
     #
-    # - a blank line between paragraphs (a single line break is kept as a line break);
-    # - lines starting with `- ` for lists;
-    # - fenced code blocks, with an optional language (`sh` for a shell command);
-    # - a paragraph whose lines are all indented by four spaces (or a tab), as a code block.
+    # - a blank line ends the current block;
+    # - a line starting with `- ` starts a list, or adds an item to the list before it;
+    # - any other line after a list item continues that item, after a line break, so a list ends
+    #   only at a blank line;
+    # - any other line starts a paragraph, or adds to the paragraph before it, after a line break;
+    # - a fence starts a code block, with an optional language (`sh` for a shell command), but only
+    #   if a closing fence comes after it.
     #
     # Backticks mark inline code. These are part of the format, but each consumer handles them as it
     # renders, since that depends on how the text is escaped (see
     # {Webconsole::Rendering::HTML#inline_html}).
     #
-    # There is no emphasis, links, headings or tables, so a `*` or `_` (as in a name interpolated
-    # into a diagnostic) never turns into formatting by mistake.
+    # There is no emphasis, links, headings, tables or indented code, so a `*` or `_` (as in a name
+    # interpolated into a diagnostic) never turns into formatting by mistake. Use a fence for code.
     #
     # A fence with no closing fence is text, so a stray fence can't hide the rest of the text. The
     # parser never removes text, except for list markers and the fences around code blocks.
@@ -55,50 +58,49 @@ module Hanami
       # Matches a list item, capturing its text.
       LIST_ITEM = /\A\s*- (.*)\z/
 
-      # Matches a line indented enough to be part of a code block.
-      INDENTED = /\A(?: {4}|\t)/
-
       # The languages that mark a code block as shell commands.
       SHELL_LANGUAGES = %w[sh shell bash console].freeze
 
       class << self
         # Parses the given text into blocks.
         #
-        # Fenced code blocks are read first, so their contents are kept exactly as written. Outside
-        # of these, the text is split into chunks at each blank line, and each chunk becomes one or
-        # more paragraphs, lists or code blocks.
+        # Each branch of the loop is one of the rules above. These are kept together, so the whole
+        # format can be read in one place. Fences come first, so a fence after a list item or a
+        # paragraph line still starts a code block.
         #
         # @param text [String, nil]
         #
         # @return [Array<Block>] the blocks, in order
-        def blocks(text)
+        def blocks(text) # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity
           lines = text.to_s.gsub(/\r\n?/, "\n").split("\n")
           blocks = []
-          chunk = []
           index = 0
 
           while index < lines.length
             line = lines[index]
-            fence = FENCE_OPEN.match(line)
-            close = fence && closing_fence(lines, index, fence[1])
+            last = blocks.last
 
-            if close
-              add_chunk(blocks, chunk)
-              chunk = []
+            if (fence = FENCE_OPEN.match(line)) && (close = closing_fence(lines, index, fence[1]))
               blocks << fenced_block(fence[2], lines[(index + 1)...close])
               index = close
-            elsif line.strip.empty? && !code_continues?(chunk, lines, index)
-              add_chunk(blocks, chunk)
-              chunk = []
+            elsif line.strip.empty?
+              # A nil ends the last block, so the next line starts a new one.
+              blocks << nil
+            elsif (item = LIST_ITEM.match(line))
+              blocks << (last = Block.new(type: :list, lines: [])) unless last&.type == :list
+              last.lines << item[1]
+            elsif last&.type == :list
+              last.lines[-1] = "#{last.lines[-1]}\n#{line.strip}"
+            elsif last&.type == :paragraph
+              last.lines << line
             else
-              chunk << line
+              blocks << Block.new(type: :paragraph, lines: [line])
             end
 
             index += 1
           end
 
-          add_chunk(blocks, chunk)
-          blocks
+          blocks.compact
         end
 
         # Returns the fence needed to close the code block left open at the end of the given text,
@@ -161,74 +163,11 @@ module Hanami
           Block.new(type: :code, lines: dedent(lines), language: language.empty? ? nil : language)
         end
 
-        # Returns true if the blank line at the given index is inside an indented code block, which
-        # is when the chunk so far is all indented, and so is the next line that isn't blank.
-        #
-        # @param chunk [Array<String>]
-        # @param lines [Array<String>]
-        # @param index [Integer]
-        #
-        # @return [Boolean]
-        def code_continues?(chunk, lines, index)
-          return false unless code_chunk?(chunk)
-
-          following = lines[(index + 1)..].find { |line| !line.strip.empty? }
-          !following.nil? && INDENTED.match?(following)
-        end
-
-        # Returns true if the given chunk is an indented code block: it has lines, and every line is
-        # either indented or blank.
-        #
-        # @param chunk [Array<String>]
-        #
-        # @return [Boolean]
-        def code_chunk?(chunk)
-          chunk.any? && chunk.all? { |line| line.strip.empty? || INDENTED.match?(line) }
-        end
-
-        # Adds the blocks for a chunk of text, which is a run of lines with no blank line between.
-        #
-        # If every line is indented, the whole chunk is a code block. Otherwise, it's split into
-        # paragraphs and lists. A list doesn't need a blank line before it, so a line like "Paths:"
-        # can be followed directly by a list.
-        #
-        # @param blocks [Array<Block>] the blocks so far, which this modifies
-        # @param chunk [Array<String>]
-        #
-        # @return [void]
-        def add_chunk(blocks, chunk)
-          return if chunk.empty?
-          return blocks << Block.new(type: :code, lines: dedent(chunk), language: nil) if code_chunk?(chunk)
-
-          blocks.concat(chunk.each_with_object([]) { |line, chunk_blocks| add_line(chunk_blocks, line) })
-        end
-
-        # Adds a line to the given blocks, either starting a new block, or adding to the last one.
-        #
-        # A list item starts a new list, or adds to the list before it. Any other line starts a new
-        # paragraph, or adds to the paragraph before it. The exception is an indented line after a
-        # list item, which continues that item after a line break.
-        #
-        # @param blocks [Array<Block>] the blocks so far, which this modifies
-        # @param line [String]
-        #
-        # @return [void]
-        def add_line(blocks, line)
-          last = blocks.last
-          item = LIST_ITEM.match(line)
-
-          if !item && last&.type == :list && line.start_with?(" ", "\t")
-            last.lines[-1] = "#{last.lines[-1]}\n#{line.strip}"
-            return
-          end
-
-          type = item ? :list : :paragraph
-          blocks << (last = Block.new(type:, lines: [])) unless last&.type == type
-          last.lines << (item ? item[1] : line)
-        end
-
         # Removes the indentation shared by all the given lines, keeping any extra indentation on
         # individual lines. Blank lines become empty.
+        #
+        # This lets a fence be indented (such as under a list item) without its code being indented
+        # too.
         #
         # @param lines [Array<String>]
         #

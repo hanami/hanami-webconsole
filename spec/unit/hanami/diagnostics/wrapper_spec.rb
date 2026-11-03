@@ -29,6 +29,12 @@ RSpec.describe Hanami::Diagnostics::Wrapper do
     expect(wrapper.explanation).to be_nil
   end
 
+  it "reads the title as a single line of plain text" do
+    expect(wrapper_for(title: " A short\nname ").title).to eq("A short name")
+    expect(wrapper_for(title: "```ruby").title).to eq("```ruby")
+    expect(wrapper_for(title: "\n").title).to be_nil
+  end
+
   it "reads a part that raises as missing, and keeps the other parts" do
     runaway = -> { runaway.call }
     wrapper = wrapper_for(

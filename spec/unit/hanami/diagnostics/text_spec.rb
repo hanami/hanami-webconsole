@@ -37,8 +37,17 @@ RSpec.describe Hanami::Diagnostics::Text do
     )
   end
 
-  it "keeps an indented line as part of the list item before it, with its line break" do
-    expect(blocks("- a long\n  item\n- b")).to eq([[:list, ["a long\nitem", "b"], nil]])
+  it "keeps a line as part of the list item before it, with its line break" do
+    expect(blocks("- a long\n  item\n- b\nmore")).to eq([[:list, ["a long\nitem", "b\nmore"], nil]])
+  end
+
+  it "ends a list at a blank line" do
+    expect(blocks("- a\n\nAfter.")).to eq(
+      [
+        [:list, ["a"], nil],
+        [:paragraph, ["After."], nil]
+      ]
+    )
   end
 
   it "reads a fenced code block, with its language" do
@@ -81,18 +90,21 @@ RSpec.describe Hanami::Diagnostics::Text do
     )
   end
 
-  it "reads an indented paragraph as code, without its indent" do
+  it "reads indented lines as text, not code" do
     expect(blocks("Query:\n\n    SELECT *\n      FROM books")).to eq(
       [
         [:paragraph, ["Query:"], nil],
-        [:code, ["SELECT *", "  FROM books"], nil]
+        [:paragraph, ["    SELECT *", "      FROM books"], nil]
       ]
     )
   end
 
-  it "keeps blank and whitespace-only lines inside indented code" do
-    expect(blocks("    def call\n      \n      foo\n\n    end")).to eq(
-      [[:code, ["def call", "", "  foo", "", "end"], nil]]
+  it "removes the shared indent from an indented fence's code" do
+    expect(blocks("- Add:\n  ```ruby\n  def call\n    foo\n  end\n  ```")).to eq(
+      [
+        [:list, ["Add:"], nil],
+        [:code, ["def call", "  foo", "end"], "ruby"]
+      ]
     )
   end
 
@@ -163,7 +175,7 @@ RSpec.describe Hanami::Diagnostics::Text do
 
     it "is false for other code blocks" do
       expect(described_class.shell?(described_class.blocks("```ruby\na\n```").first)).to be(false)
-      expect(described_class.shell?(described_class.blocks("    a").first)).to be(false)
+      expect(described_class.shell?(described_class.blocks("```\na\n```").first)).to be(false)
     end
   end
 end

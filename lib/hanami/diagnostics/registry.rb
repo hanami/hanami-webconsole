@@ -11,8 +11,9 @@ module Hanami
     #   exceptions of its registered class (or a subclass), so this can check the details on the
     #   exception instance itself. If false, the diagnostic is skipped and the next matching one is
     #   tried. Defaults to true.
-    # - `title`: a short name for the situation, shown in place of the exception class name. The
-    #   exception message is always shown below it, so don't restate the message.
+    # - `title`: a short name for the situation, shown in place of the exception class name. This is
+    #   plain text on a single line. The exception message is always shown below it, so don't
+    #   restate the message.
     # - `explanation`: text explaining why the exception was raised, shown after the exception
     #   message. Use it only for what the message doesn't already say, such as a cause the
     #   diagnostic found by checking the app.
@@ -23,7 +24,7 @@ module Hanami
     #   the error.
     # - `dataset`: evidence from app state, as `{title:, columns:, rows:}`.
     #
-    # Text uses a small subset of Markdown (see {Text}). The exception message is shown exactly as
+    # The explanation and fix use a small subset of Markdown (see {Text}). The exception message is shown exactly as
     # written, the same as in a terminal. If you control the exception class, write a good message
     # there first. Use a diagnostic only for the things an exception message can't provide on its
     # own: details from the running app, or a runnable fix.

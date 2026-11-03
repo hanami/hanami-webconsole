@@ -139,11 +139,6 @@ RSpec.describe Hanami::Webconsole::Rendering::Markdown do
       TEXT
     end
 
-    it "joins a title over more than one line into a single heading" do
-      expect(markdown_for(page_with_diagnostic(title: "A short\nname")))
-        .to start_with("## A short name (RuntimeError)\n\n```\nboom\n```\n")
-    end
-
     it "heads an unnamed fix generically, and lists a dataset without column headings" do
       page = page_with_diagnostic(fix: "Do this.", dataset: {title: "Pending", rows: {"a.rb" => "1"}})
 

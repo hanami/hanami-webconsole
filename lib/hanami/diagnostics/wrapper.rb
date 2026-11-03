@@ -52,11 +52,11 @@ module Hanami
         def ok? = !!ok
       end
 
-      # The maximum length of a diagnostic's title, explanation or fix text.
+      # The maximum length of a diagnostic's explanation or fix text.
       MAX_TEXT = 10_000
 
-      # The maximum length of a shorter piece of text, such as a fix's name, a dataset's title, or
-      # a cell in a dataset.
+      # The maximum length of a shorter piece of text, such as a diagnostic's title, a fix's name, a
+      # dataset's title, or a cell in a dataset.
       MAX_CELL = 1_000
 
       # The maximum number of columns in a dataset.
@@ -107,9 +107,15 @@ module Hanami
       # This is a short name for the situation, shown on the page in place of the exception's
       # class name.
       #
+      # A title is plain text on a single line. It's not parsed as text (see {Text}), and any line
+      # breaks become spaces.
+      #
       # @return [String, nil] nil if the diagnostic has no title
       def title
-        read(:title) { |value| text(value) }
+        read(:title) do |value|
+          title = value.to_s.split.join(" ")[0, MAX_CELL]
+          title unless title.empty?
+        end
       end
 
       # Returns the diagnostic's explanation of why the exception was raised.

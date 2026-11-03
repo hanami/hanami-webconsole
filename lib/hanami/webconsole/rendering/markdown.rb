@@ -68,12 +68,11 @@ module Hanami
         # Returns the heading, which matches the page's headline.
         #
         # This is the diagnostic's title, if there is one, followed by the exception's class name.
-        # On the page, the class name is in the top bar, so here it goes in the heading instead. A
-        # title over more than one line is joined into one, since a heading can't break.
+        # On the page, the class name is in the top bar, so here it goes in the heading instead.
         #
         # @return [String]
         def heading
-          title = diagnostic_text { |diagnostic| diagnostic.title&.split&.join(" ") }
+          title = diagnostic_text(&:title)
           title ? "## #{title} (#{page.exception_class})" : "## #{page.exception_class}"
         end
 
