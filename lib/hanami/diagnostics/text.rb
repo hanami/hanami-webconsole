@@ -103,6 +103,27 @@ module Hanami
           blocks.compact
         end
 
+        # Joins the given parts into text, with a blank line between each part.
+        #
+        # This lets a diagnostic give its text as plain Ruby data, without writing the format by
+        # hand. Each part is one of:
+        #
+        # - a string, for a paragraph (or any text in this format);
+        # - an array of strings, for a list;
+        # - a hash of `{language => code}`, for a code block, such as `{sh: "..."}` or
+        #   `{ruby: "..."}`. Use `code` as the language for a code block with no language.
+        #
+        # Blank parts (nil, blank strings, empty arrays and blank code) are skipped, so a part can
+        # be left out with a condition. Each part ends at its last line, so a trailing line break
+        # doesn't add space.
+        #
+        # @param parts [Array]
+        #
+        # @return [String]
+        def join(parts)
+          parts.flat_map { |part| part_texts(part) }.join("\n\n")
+        end
+
         # Returns the fence needed to close the code block left open at the end of the given text,
         # or nil if every code block is closed.
         #
@@ -134,6 +155,44 @@ module Hanami
         end
 
         private
+
+        # Returns the given part as text, for {#join}.
+        #
+        # @param part [String, Array, Hash, nil]
+        #
+        # @return [Array<String>] the part's text, or empty if the part is blank. A hash can give
+        #   more than one code block.
+        def part_texts(part)
+          case part
+          when Array
+            items = part.map { |item| item.to_s.strip }.reject(&:empty?)
+            items.empty? ? [] : [items.map { |item| "- #{item}" }.join("\n")]
+          when Hash
+            part.filter_map { |language, code| fenced_text(language, code) }
+          else
+            text = part.to_s.strip
+            text.empty? ? [] : [text]
+          end
+        end
+
+        # Returns the given code inside a fence, or nil if the code is blank.
+        #
+        # The fence is longer than any run of backticks in the code, so the code can't close it.
+        #
+        # @param language [Symbol, String] the code's language, or `code` for none
+        # @param code [String, nil]
+        #
+        # @return [String, nil]
+        def fenced_text(language, code)
+          code = code.to_s.sub(/\A\n+/, "").rstrip
+          return nil if code.empty?
+
+          language = language.to_s[/\A[^`\s]*/]
+          language = "" if language == "code"
+          backticks = "`" * [3, (code.scan(/`+/).map(&:length).max || 0) + 1].max
+
+          "#{backticks}#{language}\n#{code}\n#{backticks}"
+        end
 
         # Returns the index of the line that closes the fence opened at the given index, or nil if
         # there is none.

@@ -128,6 +128,54 @@ RSpec.describe Hanami::Diagnostics::Text do
     )
   end
 
+  describe ".join" do
+    def join(*parts)
+      described_class.join(parts)
+    end
+
+    it "puts a blank line between parts" do
+      expect(join("One.", "Two.")).to eq("One.\n\nTwo.")
+    end
+
+    it "skips blank parts, so they never add space" do
+      expect(join("One.", nil, "", " \n", [], [nil, ""], {sh: nil}, {ruby: " \n"}, "Two.")).to eq("One.\n\nTwo.")
+    end
+
+    it "keeps a string's own line breaks, but not a trailing one" do
+      expect(join("First line\nSecond line\n", "Next.")).to eq("First line\nSecond line\n\nNext.")
+    end
+
+    it "reads an array as a list" do
+      expect(join("Paths:", ["app/templates", nil, "slices/main/templates"]))
+        .to eq("Paths:\n\n- app/templates\n- slices/main/templates")
+    end
+
+    it "reads a hash as a fenced code block, with its key as the language" do
+      expect(join({sh: "hanami db migrate\n"}, {ruby: "a\n\nb"})).to eq("```sh\nhanami db migrate\n```\n\n```ruby\na\n\nb\n```")
+    end
+
+    it "gives no language to a code block with `code` as its key" do
+      expect(join({code: "SELECT 1"})).to eq("```\nSELECT 1\n```")
+    end
+
+    it "uses a fence longer than any backticks in the code" do
+      expect(blocks(join({md: "```ruby\na\n```"}))).to eq([[:code, ["```ruby", "a", "```"], "md"]])
+    end
+
+    it "gives text that parses back into the parts" do
+      text = join("Run:", {sh: "bundle exec hanami db migrate"}, ["a", "b"], "Done.")
+
+      expect(blocks(text)).to eq(
+        [
+          [:paragraph, ["Run:"], nil],
+          [:code, ["bundle exec hanami db migrate"], "sh"],
+          [:list, ["a", "b"], nil],
+          [:paragraph, ["Done."], nil]
+        ]
+      )
+    end
+  end
+
   describe ".unclosed_fence" do
     it "returns the fence that would close the text's open code block" do
       expect(described_class.unclosed_fence("Run:\n````sh\nls")).to eq("````")

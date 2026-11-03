@@ -15,17 +15,20 @@ module Hanami
     #   plain text on a single line. The exception message is always shown below it, so don't
     #   restate the message.
     # - `explanation`: text explaining why the exception was raised, shown after the exception
-    #   message. Use it only for what the message doesn't already say, such as a cause the
-    #   diagnostic found by checking the app.
-    # - `fix`: instructions on how to fix it, as text or `{name:, text:, destructive:}`.
+    #   message, as text or an array of parts. Use it only for what the message doesn't already say,
+    #   such as a cause the diagnostic found by checking the app.
+    # - `fix`: instructions on how to fix it, as text, an array of parts, or
+    #   `{name:, text:, destructive:}`.
     # - `run_fix`: performs a runnable fix when the developer clicks its button on the page. The
     #   button only appears when `fix` returns a fix with some text. If `run_fix` returns a string,
     #   the page shows it as the fix's output. If it raises, the page shows the fix as failed, with
     #   the error.
     # - `dataset`: evidence from app state, as `{title:, columns:, rows:}`.
     #
-    # The explanation and fix use a small subset of Markdown (see {Text}). The exception message is shown exactly as
-    # written, the same as in a terminal. If you control the exception class, write a good message
+    # The explanation and fix use a small subset of Markdown (see {Text}). They can also be given as
+    # an array of parts: strings for paragraphs, arrays for lists, and hashes such as `{sh: "..."}`
+    # for code (see {Text.join}). The exception message is shown exactly as written, the same as in
+    # a terminal. If you control the exception class, write a good message
     # there first. Use a diagnostic only for the things an exception message can't provide on its
     # own: details from the running app, or a runnable fix.
     #

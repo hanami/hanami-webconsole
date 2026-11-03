@@ -29,6 +29,10 @@ RSpec.describe Hanami::Diagnostics::Wrapper do
     expect(wrapper.explanation).to be_nil
   end
 
+  it "reads an explanation given as an array of parts" do
+    expect(wrapper_for(explanation: ["One.", nil, "Two."]).explanation).to eq("One.\n\nTwo.")
+  end
+
   it "reads the title as a single line of plain text" do
     expect(wrapper_for(title: " A short\nname ").title).to eq("A short name")
     expect(wrapper_for(title: "```ruby").title).to eq("```ruby")
@@ -67,6 +71,20 @@ RSpec.describe Hanami::Diagnostics::Wrapper do
     it "reads a name and text" do
       expect(wrapper_for(fix: {name: "Add a route", text: "Add it."}).fix)
         .to have_attributes(name: "Add a route", text: "Add it.")
+    end
+
+    it "reads the name as a single line of plain text" do
+      expect(wrapper_for(fix: {name: "Add a\nroute", text: "Add it."}).fix.name).to eq("Add a route")
+    end
+
+    it "reads text given as an array of parts" do
+      fix = wrapper_for(fix: {name: "Generate action", text: ["Generate it:", {sh: "hanami generate action"}]}).fix
+
+      expect(fix).to have_attributes(name: "Generate action", text: "Generate it:\n\n```sh\nhanami generate action\n```")
+    end
+
+    it "ignores a fix whose parts are all blank" do
+      expect(wrapper_for(fix: [nil, "", []]).fix).to be_nil
     end
 
     it "ignores a fix with a name but no text" do
@@ -141,6 +159,10 @@ RSpec.describe Hanami::Diagnostics::Wrapper do
 
     it "gives a table with no title a generic one" do
       expect(dataset_for({rows: ["a"]}).title).to eq("Details")
+    end
+
+    it "reads the title as a single line of plain text" do
+      expect(dataset_for({title: "All\nroutes", rows: ["a"]}).title).to eq("All routes")
     end
 
     it "ignores a table with no rows, or that isn't a Hash" do

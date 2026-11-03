@@ -107,15 +107,11 @@ module Hanami
       # This is a short name for the situation, shown on the page in place of the exception's
       # class name.
       #
-      # A title is plain text on a single line. It's not parsed as text (see {Text}), and any line
-      # breaks become spaces.
+      # A title is a single line of plain text (see {#line}).
       #
       # @return [String, nil] nil if the diagnostic has no title
       def title
-        read(:title) do |value|
-          title = value.to_s.split.join(" ")[0, MAX_CELL]
-          title unless title.empty?
-        end
+        read(:title) { |value| line(value) }
       end
 
       # Returns the diagnostic's explanation of why the exception was raised.
@@ -135,7 +131,7 @@ module Hanami
         read(:fix) do |value|
           name, body, destructive = value.is_a?(Hash) ? value.values_at(:name, :text, :destructive) : [nil, value]
           body = text(body)
-          Fix.new(name: text(name, max: MAX_CELL), text: body, destructive: destructive == true) if body
+          Fix.new(name: line(name), text: body, destructive: destructive == true) if body
         end
       end
 
@@ -159,7 +155,7 @@ module Hanami
           width = [columns.length, *rows.map(&:length)].max
 
           Dataset.new(
-            title: text(value[:title], max: MAX_CELL) || DEFAULT_DATASET_TITLE,
+            title: line(value[:title]) || DEFAULT_DATASET_TITLE,
             columns: columns.empty? ? [] : pad(columns, width),
             rows: rows.map { |row| pad(row, width) }
           )
@@ -222,17 +218,30 @@ module Hanami
           end
       end
 
-      # Converts the given value to a string, truncated to the given length (see {#truncate}).
+      # Converts the given value to text, truncated to {MAX_TEXT} (see {#truncate}).
+      #
+      # This is for the parts written in the text format (see {Text}). An array of parts is joined
+      # into text (see {Text.join}). Any other value is converted to a string.
       #
       # @param value [Object, nil]
-      # @param max [Integer] the maximum length
       #
       # @return [String, nil] nil if the value is nil, or blank
-      def text(value, max: MAX_TEXT)
-        return nil if value.nil?
+      def text(value)
+        string = value.is_a?(Array) ? Text.join(value) : value.to_s
+        string.strip.empty? ? nil : truncate(string, MAX_TEXT)
+      end
 
-        string = value.to_s
-        string.strip.empty? ? nil : truncate(string, max)
+      # Converts the given value to a single line of plain text, truncated to {MAX_CELL}.
+      #
+      # This is for short labels, such as a title or a name. These are not parsed as text (see
+      # {Text}), and any line breaks become spaces.
+      #
+      # @param value [Object, nil]
+      #
+      # @return [String, nil] nil if the value is nil, or blank
+      def line(value)
+        line = value.to_s.split.join(" ")[0, MAX_CELL]
+        line unless line.empty?
       end
 
       # Truncates the given text to the given length.
