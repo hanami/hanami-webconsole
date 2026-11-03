@@ -3,7 +3,7 @@
 require "hanami/webconsole/request_context"
 
 RSpec.describe Hanami::Webconsole::RequestContext do
-  subject(:context) { described_class.new(env: env, filters: filters) }
+  subject(:context) { described_class.new(env:, filters:) }
 
   let(:filters) { Hanami::Webconsole::Filters.new(["password", "cookie"]) }
   let(:env) { Rack::MockRequest.env_for("/books/247", env_overrides) }
@@ -32,7 +32,7 @@ RSpec.describe Hanami::Webconsole::RequestContext do
         "/", "HTTP_ACCEPT" => "*/*", "CONTENT_TYPE" => "application/json; charset=utf-8"
       )
 
-      expect(described_class.new(env: env, filters: filters).format).to eq("application/json")
+      expect(described_class.new(env:, filters:).format).to eq("application/json")
     end
 
     it "is empty when nothing says" do
@@ -40,7 +40,7 @@ RSpec.describe Hanami::Webconsole::RequestContext do
       env.delete("HTTP_ACCEPT")
       env.delete("CONTENT_TYPE")
 
-      expect(described_class.new(env: env, filters: filters).format).to eq("")
+      expect(described_class.new(env:, filters:).format).to eq("")
     end
   end
 
@@ -121,7 +121,7 @@ RSpec.describe Hanami::Webconsole::RequestContext do
 
     it "filters cookies by name" do
       filters = Hanami::Webconsole::Filters.new(["_session"])
-      cookies = described_class.new(env: env, filters: filters).cookies
+      cookies = described_class.new(env:, filters:).cookies
 
       expect(cookies).to eq({"theme" => "dark", "_session" => "[FILTERED]"})
     end
@@ -167,7 +167,7 @@ RSpec.describe Hanami::Webconsole::RequestContext do
     end
 
     it "does not filter headers when the key is not configured" do
-      plain = described_class.new(env: env, filters: Hanami::Webconsole::Filters.new)
+      plain = described_class.new(env:, filters: Hanami::Webconsole::Filters.new)
 
       expect(plain.headers["Cookie"]).to eq("_session=abc123")
     end
@@ -313,7 +313,7 @@ RSpec.describe Hanami::Webconsole::RequestContext do
 
   describe "degrading" do
     it "works against an empty env" do
-      context = described_class.new(env: {}, filters: filters)
+      context = described_class.new(env: {}, filters:)
 
       expect(context.method_name).to eq("")
       expect(context.path).to eq("")

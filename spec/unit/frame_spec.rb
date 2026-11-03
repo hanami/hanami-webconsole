@@ -5,8 +5,8 @@ require "fileutils"
 require "tmpdir"
 
 RSpec.describe Hanami::Webconsole::Frame do
-  # `Inspector` is built in a separate workstream. Frame's contract is that it routes every value
-  # through it, so a deterministic stand-in is substituted here — and only here, never in `lib`.
+  # Frame routes every value through `Inspector`. This stand-in marks what it returns, so these specs
+  # can check that routing, without depending on how `Inspector` formats values.
   let(:inspector) {
     Module.new do
       def self.call(object, limit: 2_000)
@@ -52,16 +52,16 @@ RSpec.describe Hanami::Webconsole::Frame do
 
   def frame(path:, lineno: 3, label: "Bookshelf::Actions::Show#handle", binding: nil)
     described_class.new(
-      location: location(path: path, lineno: lineno, label: label),
-      root: root,
-      binding: binding
+      location: location(path:, lineno:, label:),
+      root:,
+      binding:
     )
   end
 
   describe "attributes" do
     it "exposes path, lineno and label" do
       path = write(File.join(root, "app/actions/show.rb"))
-      subject = frame(path: path, lineno: 42, label: "Show#handle")
+      subject = frame(path:, lineno: 42, label: "Show#handle")
 
       expect(subject.path).to eq(path)
       expect(subject.lineno).to eq(42)
@@ -74,7 +74,7 @@ RSpec.describe Hanami::Webconsole::Frame do
       location = Struct.new(:path, :absolute_path, :lineno, :label)
         .new("app/actions/show.rb", path, 1, "x")
 
-      subject = described_class.new(location: location, root: root)
+      subject = described_class.new(location:, root:)
 
       expect(subject.path).to eq(path)
     end
@@ -83,7 +83,7 @@ RSpec.describe Hanami::Webconsole::Frame do
       location = Struct.new(:path, :absolute_path, :lineno, :label)
         .new("(eval)", nil, 1, "x")
 
-      expect(described_class.new(location: location, root: root).path).to eq("(eval)")
+      expect(described_class.new(location:, root:).path).to eq("(eval)")
     end
 
     it "degrades rather than raising when the location misbehaves" do
@@ -93,7 +93,7 @@ RSpec.describe Hanami::Webconsole::Frame do
         def label = raise("boom")
       end
 
-      subject = described_class.new(location: broken.new, root: root)
+      subject = described_class.new(location: broken.new, root:)
 
       expect(subject.path).to eq("")
       expect(subject.lineno).to eq(0)
@@ -113,7 +113,7 @@ RSpec.describe Hanami::Webconsole::Frame do
     it "is :gem for a vendored dependency under root/vendor" do
       path = write(File.join(root, "vendor/bundle/ruby/3.3.0/gems/rack-3.1.8/lib/rack.rb"))
 
-      subject = frame(path: path)
+      subject = frame(path:)
 
       expect(subject.kind).to eq(:gem)
       expect(subject).not_to be_app
@@ -122,14 +122,14 @@ RSpec.describe Hanami::Webconsole::Frame do
     it "is :gem for a file inside an installed gem" do
       path = write(File.join(gem_home, "gems/rack-3.1.8/lib/rack/method_override.rb"))
 
-      expect(frame(path: path).kind).to eq(:gem)
+      expect(frame(path:).kind).to eq(:gem)
     end
 
     it "is :gem for a file under a Gem.path entry without a gems/ segment" do
       path = write(File.join(gem_home, "extensions/arm64/nokogiri.rb"))
       allow(described_class).to receive(:gem_paths).and_return([gem_home])
 
-      expect(frame(path: path).kind).to eq(:gem)
+      expect(frame(path:).kind).to eq(:gem)
     end
 
     it "is :core for internal Ruby frames" do
@@ -152,7 +152,7 @@ RSpec.describe Hanami::Webconsole::Frame do
     it "does not treat a sibling directory sharing the root's prefix as app code" do
       path = write("#{root}-other/app/actions/show.rb")
 
-      expect(frame(path: path).kind).to eq(:core)
+      expect(frame(path:).kind).to eq(:core)
     end
   end
 
@@ -160,20 +160,20 @@ RSpec.describe Hanami::Webconsole::Frame do
     it "is relative to the root for app frames" do
       path = write(File.join(root, "app/actions/books/show.rb"))
 
-      expect(frame(path: path).display_path).to eq("app/actions/books/show.rb")
+      expect(frame(path:).display_path).to eq("app/actions/books/show.rb")
     end
 
     it "strips everything up to the gems directory for gem frames" do
       path = write(File.join(gem_home, "gems/rack-3.1.8/lib/rack/method_override.rb"))
 
-      expect(frame(path: path).display_path).to eq("rack-3.1.8/lib/rack/method_override.rb")
+      expect(frame(path:).display_path).to eq("rack-3.1.8/lib/rack/method_override.rb")
     end
 
     it "strips the gem home when there is no gems/ segment" do
       path = write(File.join(gem_home, "extensions/arm64/nokogiri.rb"))
       allow(described_class).to receive(:gem_paths).and_return([gem_home])
 
-      expect(frame(path: path).display_path).to eq("extensions/arm64/nokogiri.rb")
+      expect(frame(path:).display_path).to eq("extensions/arm64/nokogiri.rb")
     end
 
     it "is the raw path for core frames" do
@@ -185,7 +185,7 @@ RSpec.describe Hanami::Webconsole::Frame do
     it "returns an excerpt around the frame's line" do
       path = write(File.join(root, "app/actions/show.rb"))
 
-      excerpt = frame(path: path, lineno: 3).source
+      excerpt = frame(path:, lineno: 3).source
 
       expect(excerpt.highlight_lineno).to eq(3)
       expect(excerpt.lines).to eq(%w[one two three four five])

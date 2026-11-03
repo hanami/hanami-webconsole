@@ -3,6 +3,9 @@ name:
   constant: Hanami::Webconsole
   title: Hanami Webconsole
 github_org: hanami
+ci:
+  matrix:
+    rack: ["~> 2.0", "~> 3.0"]
 gemspec:
   authors: ["Hanakai team"]
   email: ["info@hanakai.org"]

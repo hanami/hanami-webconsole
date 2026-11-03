@@ -12,7 +12,7 @@ RSpec.describe Hanami::Webconsole::Repl::Session do
     binding
   end
 
-  # Owned by another workstream; stubbed so this spec stands alone. See CONTRACTS.md.
+  # A plain stand-in for `Inspector`, so these results don't depend on how it formats values.
   before do
     inspector = Module.new do
       def self.call(object, limit: 2_000)

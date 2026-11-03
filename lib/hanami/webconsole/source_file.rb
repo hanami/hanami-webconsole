@@ -56,7 +56,7 @@ module Hanami
           return nil if first > last
 
           Excerpt.new(
-            path: path,
+            path:,
             first_lineno: first,
             lines: lines[(first - 1)..(last - 1)],
             highlight_lineno: around

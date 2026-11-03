@@ -2,11 +2,13 @@
 
 require "json"
 
-# The middleware collaborates with objects owned by other workstreams (see CONTRACTS.md). They are
-# stubbed here so this spec runs standalone, and so a change in their internals cannot quietly
-# change what the middleware is asserted to do.
+# The middleware runs with its real collaborators (the registry, the renderers and the console),
+# except for the page itself. A double stands in for the page, so each spec controls exactly what
+# the page holds, without building one from a real exception.
 RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
-  subject(:middleware) { described_class.new(inner_app, config) }
+  include ErrorPageDoubles
+
+  subject(:middleware) { described_class.new(inner_app, slice) }
 
   let(:app) { middleware }
 
@@ -28,105 +30,30 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
 
   let(:error_responses) { Hash.new(:internal_server_error) }
   let(:config) { double("Config", render_error_responses: error_responses, root: "/app") }
+  let(:slice) { double("Slice", config:, app: nil) }
 
-  # --- collaborators ---------------------------------------------------------------------------
+  # --- the page --------------------------------------------------------------------------------
 
-  let(:variable_struct) { Struct.new(:name, :class_name, :value, keyword_init: true) }
-
-  let(:frame) do
-    double(
-      "Frame",
-      display_path: "app/actions/books/show.rb",
-      lineno: 12,
-      label: "Books::Show#handle",
-      kind: :app,
-      binding: Object.new,
-      receiver_inspect: "#<Books::Show>",
-      locals: [variable_struct.new(name: "id", class_name: "String", value: '"247"')],
-      instance_vars: [variable_struct.new(name: "@repo", class_name: "BookRepo", value: "#<BookRepo>")]
-    )
-  end
-
-  let(:page_id) { "0-abcdef0123456789" }
-
-  let(:error_page) do
-    double(
-      "ErrorPage",
-      id: page_id,
+  let(:page) {
+    error_page(
       exception_class: "RuntimeError",
       message: "boom",
-      detailed_extras: [],
-      causes: [],
-      frames: [frame],
-      to_text: "# RuntimeError\n\nboom\n"
+      frames: [
+        frame(
+          locals: [variable("id", "String", '"247"')],
+          instance_vars: [variable("@repo", "BookRepo", "#<BookRepo>")],
+          # A real binding, so the console can evaluate source in it.
+          frame_binding: binding
+        )
+      ]
     )
-  end
+  }
 
-  # Records the keyword arguments the middleware builds a page with.
-  let(:page_args) { [] }
-
-  let(:error_page_class) do
-    page = error_page
-    args = page_args
-
-    Class.new do
-      define_singleton_method(:new) do |**kwargs|
-        args << kwargs
-        page
-      end
-    end
-  end
-
-  # Shared with the spec so console endpoints can be exercised without first rendering a page.
-  let(:registry_store) { {} }
-
-  let(:registry_class) do
-    store = registry_store
-
-    Class.new do
-      define_method(:initialize) { |max: 16| @max = max }
-      define_method(:put) do |page|
-        store[page.id] = page
-        page.id
-      end
-      define_method(:fetch) { |id| store[id] }
-    end
-  end
-
-  let(:renderer_module) do
-    Module.new do
-      def self.render_html(page, nonce:, csrf_token:)
-        "<html><body data-webconsole-nonce=\"#{nonce}\" data-webconsole-csrf=\"#{csrf_token}\">" \
-          "#{page.exception_class}</body></html>"
-      end
-
-      def self.render_text(page)
-        page.to_text
-      end
-
-      def self.render_json(page)
-        JSON.generate("error" => page.exception_class, "message" => page.message)
-      end
-    end
-  end
-
-  let(:session_class) do
-    Class.new do
-      def initialize(frame_binding)
-        @frame_binding = frame_binding
-      end
-
-      def eval(source)
-        ["=> #{source}", false]
-      end
-    end
-  end
+  let(:registry) { Hanami::Webconsole::Registry.new }
 
   before do
-    stub_const("Hanami::Webconsole::ErrorPage", error_page_class)
-    stub_const("Hanami::Webconsole::Registry", registry_class)
-    stub_const("Hanami::Webconsole::Renderer", renderer_module)
-    stub_const("Hanami::Webconsole::Repl::Session", session_class)
+    allow(Hanami::Webconsole::ErrorPage).to receive(:new).and_return(page)
+    allow(Hanami::Webconsole::Registry).to receive(:new).and_return(registry)
   end
 
   # --- helpers ---------------------------------------------------------------------------------
@@ -198,17 +125,17 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
         it "does not render an error page" do
           expect { get "/", {}, remote }.to raise_error(RuntimeError, "boom")
 
-          expect(page_args).to be_empty
-          expect(registry_store).to be_empty
+          expect(Hanami::Webconsole::ErrorPage).not_to have_received(:new)
+          expect(registry.size).to eq(0)
         end
       end
 
       it "does not serve the console endpoints" do
-        registry_store[page_id] = error_page
+        registry.put(page)
         set_cookie "Hanami-Webconsole-CSRF-Token=#{csrf_token}"
 
         console_post(
-          "/_hanami/webconsole/#{page_id}/eval",
+          "/_hanami/webconsole/#{page.id}/eval",
           {"csrfToken" => csrf_token, "index" => 0, "source" => "1 + 1"},
           remote
         )
@@ -230,17 +157,18 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
       expect(last_response.body).to include("RuntimeError")
     end
 
-    it "builds the page with a generation-stamped id and stores it in the registry" do
+    it "builds the page and stores it in the registry" do
       get "/", {}, "HTTP_ACCEPT" => "text/html"
 
-      args = page_args.fetch(0)
-      expect(args[:exception]).to be(raised)
-      expect(args[:config]).to be(config)
-      expect(args[:env]).to include("PATH_INFO" => "/")
-      expect(args[:generation]).to eq(Hanami::Webconsole.generation)
-      expect(args[:id]).to match(/\A#{Hanami::Webconsole.generation}-[0-9a-f]+\z/)
-
-      expect(registry_store).to eq(page_id => error_page)
+      # No id or generation: the page makes its own generation-stamped id (see the ErrorPage specs).
+      expect(Hanami::Webconsole::ErrorPage).to have_received(:new).with(
+        exception: raised,
+        env: hash_including("PATH_INFO" => "/"),
+        config:,
+        slice:,
+        bindings: anything
+      )
+      expect(registry.fetch(page.id)).to be(page)
     end
 
     it "maps Hanami::Router::NotFoundError to 404, not 500" do
@@ -268,11 +196,11 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
       get "/", {}, "HTTP_ACCEPT" => "text/html"
 
       expect(last_response.status).to eq(500)
-      expect(page_args.size).to eq(1)
+      expect(Hanami::Webconsole::ErrorPage).to have_received(:new).once
     end
 
     it "falls back to plain text when the page itself cannot be rendered" do
-      allow(error_page_class).to receive(:new).and_raise(ArgumentError.new("bad contract"))
+      allow(Hanami::Webconsole::ErrorPage).to receive(:new).and_raise(ArgumentError.new("bad contract"))
 
       get "/", {}, "HTTP_ACCEPT" => "text/html"
 
@@ -308,6 +236,14 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
 
         expect(last_response.headers["content-security-policy"]).not_to eq(first)
       end
+
+      it "puts the nonce on the page" do
+        get "/", {}, "HTTP_ACCEPT" => "text/html"
+
+        nonce = last_response.headers["content-security-policy"][/'nonce-([^']+)'/, 1]
+
+        expect(last_response.body).to include(%(<script nonce="#{nonce}">))
+      end
     end
 
     describe "the CSRF cookie" do
@@ -322,13 +258,13 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
         expect(cookie).to match(%r{path=/})
       end
 
-      it "is not reset when the browser already has one" do
+      it "is not reset when the browser already has one, and its token goes on the page" do
         set_cookie "Hanami-Webconsole-CSRF-Token=#{csrf_token}"
 
         get "/", {}, "HTTP_ACCEPT" => "text/html"
 
         expect(set_cookies).to be_empty
-        expect(last_response.body).to include(%(data-webconsole-csrf="#{csrf_token}"))
+        expect(last_response.body).to include(%("csrfToken":"#{csrf_token}"))
       end
     end
 
@@ -345,14 +281,14 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
         get "/", {}, "HTTP_ACCEPT" => "text/plain"
 
         expect(last_response.headers["content-type"]).to eq("text/plain; charset=utf-8")
-        expect(last_response.body).to eq(error_page.to_text)
+        expect(last_response.body).to start_with("## RuntimeError\n\n```\nboom\n```\n")
       end
 
       it "renders text for an XHR that would otherwise accept HTML" do
         get "/", {}, "HTTP_ACCEPT" => "text/html", "HTTP_X_REQUESTED_WITH" => "XMLHttpRequest"
 
         expect(last_response.headers["content-type"]).to eq("text/plain; charset=utf-8")
-        expect(last_response.body).to eq(error_page.to_text)
+        expect(last_response.body).to start_with("## RuntimeError\n\n```\nboom\n```\n")
       end
 
       it "renders HTML for a browser Accept header" do
@@ -364,12 +300,12 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
   end
 
   describe "console endpoints" do
-    let(:eval_path) { "/_hanami/webconsole/#{page_id}/eval" }
-    let(:variables_path) { "/_hanami/webconsole/#{page_id}/variables" }
+    let(:eval_path) { "/_hanami/webconsole/#{page.id}/eval" }
+    let(:variables_path) { "/_hanami/webconsole/#{page.id}/variables" }
 
     before do
       allow(Hanami::Webconsole).to receive(:bindings_available?).and_return(true)
-      registry_store[page_id] = error_page
+      registry.put(page)
     end
 
     context "with a valid CSRF token" do
@@ -381,10 +317,10 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
         expect(last_response.status).to eq(200)
         expect(last_response.headers["content-type"]).to eq("application/json; charset=utf-8")
         expect(json_body).to eq(
-          "id" => page_id,
+          "id" => page.id,
           "index" => 0,
           "source" => "1 + 1",
-          "output" => "=> 1 + 1",
+          "output" => "2",
           "error" => false
         )
       end
@@ -394,10 +330,10 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
 
         expect(last_response.status).to eq(200)
         expect(json_body).to eq(
-          "id" => page_id,
+          "id" => page.id,
           "index" => 0,
           "replAvailable" => true,
-          "receiver" => "#<Books::Show>",
+          "receiver" => "#<Bookshelf::Repositories::BookRepo>",
           "locals" => [{"name" => "id", "className" => "String", "value" => '"247"'}],
           "instanceVariables" => [
             {"name" => "@repo", "className" => "BookRepo", "value" => "#<BookRepo>"}
@@ -440,6 +376,81 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
 
         expect(last_response.status).to eq(400)
       end
+
+      describe "running the fix" do
+        let(:run_path) { "/_hanami/webconsole/#{page.id}/run" }
+
+        let(:runs) { [] }
+
+        # Gives the page a diagnostic with a fix that calls the action when it runs.
+        def stub_runnable_fix(action)
+          diagnostic = Class.new {
+            define_method(:fix) { {name: "Generate action", text: "Generate it."} }
+            define_method(:run_fix) { action.call }
+          }.new
+
+          allow(page).to receive(:diagnostic).and_return(Hanami::Diagnostics::Wrapper.new(diagnostic))
+        end
+
+        before do
+          stub_runnable_fix(-> {
+            runs << :ran
+            "Created app/actions/books/show.rb"
+          })
+        end
+
+        it "runs the fix and returns its output" do
+          console_post(run_path, {"csrfToken" => csrf_token})
+
+          expect(last_response.status).to eq(200)
+          expect(json_body).to eq(
+            "id" => page.id,
+            "name" => "Generate action",
+            "ok" => true,
+            "output" => "Created app/actions/books/show.rb"
+          )
+          expect(runs).to eq([:ran])
+        end
+
+        it "reports a fix that raises as failed" do
+          stub_runnable_fix(-> { raise "permission denied" })
+
+          console_post(run_path, {"csrfToken" => csrf_token})
+
+          expect(last_response.status).to eq(200)
+          expect(json_body).to include("ok" => false, "output" => "RuntimeError: permission denied")
+        end
+
+        it "reports 404 when the page has no fix that can run" do
+          allow(page).to receive(:diagnostic).and_return(nil)
+
+          console_post(run_path, {"csrfToken" => csrf_token})
+
+          expect(last_response.status).to eq(404)
+          expect(json_body["error"]).to eq("No fix to run")
+        end
+
+        it "reports 409 at once when another fix is running" do
+          described_class::RUN_LOCK.lock
+
+          begin
+            console_post(run_path, {"csrfToken" => csrf_token})
+          ensure
+            described_class::RUN_LOCK.unlock
+          end
+
+          expect(last_response.status).to eq(409)
+          expect(json_body["explanation"]).to match(/another fix is still running/i)
+          expect(runs).to be_empty
+        end
+
+        it "requires a valid CSRF token" do
+          console_post(run_path, {"csrfToken" => "some-other-token"})
+
+          expect(last_response.status).to eq(403)
+          expect(runs).to be_empty
+        end
+      end
     end
 
     describe "CSRF" do
@@ -474,7 +485,7 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
     end
 
     it "leaves unrecognised console paths to the app" do
-      get "/_hanami/webconsole/#{page_id}/something-else"
+      get "/_hanami/webconsole/#{page.id}/something-else"
 
       expect(last_response.body).to eq("from the app")
     end
@@ -487,7 +498,7 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
       expect(last_response.status).to eq(200)
       expect(last_response.body).to eq("from the app")
       expect(last_response.headers["content-security-policy"]).to be_nil
-      expect(page_args).to be_empty
+      expect(Hanami::Webconsole::ErrorPage).not_to have_received(:new)
     end
   end
 end

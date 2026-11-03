@@ -5,7 +5,7 @@ require "hanami/webconsole/error_page"
 
 RSpec.describe Hanami::Webconsole::ErrorPage do
   subject(:page) do
-    described_class.new(exception: exception, env: env, config: config, id: "1-abc", generation: 1)
+    described_class.new(exception:, env:, config:, id: "1-abc", generation: 1)
   end
 
   let(:exception) { RuntimeError.new("boom") }
@@ -16,68 +16,10 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
   let(:config) do
     double(
       "config",
-      render_error_responses: render_error_responses,
+      render_error_responses:,
       root: "/app",
       logger: logger_config
     )
-  end
-
-  # Owned by other workstreams; stubbed so this spec stands alone. See CONTRACTS.md.
-  let(:excerpt_class) do
-    Struct.new(:path, :first_lineno, :lines, :highlight_lineno, keyword_init: true)
-  end
-
-  let(:app_frame) do
-    frame_double(
-      display_path: "app/actions/books/show.rb",
-      lineno: 16,
-      label: "Show#handle",
-      app: true,
-      source: excerpt_class.new(
-        path: "/app/app/actions/books/show.rb",
-        first_lineno: 14,
-        lines: ["  def handle(request, response)", "    book_repo = deps[:book_repo]", "    result = book_repo.find_with_reviews(...)"],
-        highlight_lineno: 16
-      )
-    )
-  end
-
-  let(:gem_frame) do
-    frame_double(
-      display_path: "rack-3.1.8/lib/rack/method_override.rb",
-      lineno: 24,
-      label: "Rack::MethodOverride#call",
-      app: false
-    )
-  end
-
-  let(:frames) { [app_frame, gem_frame] }
-  let(:app_frames) { [app_frame] }
-
-  def frame_double(display_path:, lineno:, label:, app:, source: nil)
-    double(
-      "Frame",
-      display_path: display_path,
-      lineno: lineno,
-      label: label,
-      app?: app,
-      source: source
-    )
-  end
-
-  before do
-    stub_const("Hanami::Webconsole::Filters", class_double_returning(double("Filters")))
-    stub_const("Hanami::Webconsole::RequestContext", class_double_returning(request_context))
-    stub_const("Hanami::Webconsole::Backtrace", class_double_returning(backtrace))
-  end
-
-  let(:request_context) { double("RequestContext", method_name: "GET", path: "/books/247") }
-  let(:backtrace) { double("Backtrace", frames: frames, app_frames: app_frames) }
-
-  def class_double_returning(instance)
-    klass = double("class")
-    allow(klass).to receive(:new).and_return(instance)
-    klass
   end
 
   describe "#id" do
@@ -86,7 +28,7 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
     end
 
     it "defaults to a generation-stamped random id" do
-      page = described_class.new(exception: exception, env: env, config: config, generation: 7)
+      page = described_class.new(exception:, env:, config:, generation: 7)
 
       expect(page.id).to match(/\A7-[0-9a-f]{16}\z/)
       expect(page.generation).to eq(7)
@@ -95,7 +37,7 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
     it "defaults the generation to the current one" do
       allow(Hanami::Webconsole).to receive(:generation).and_return(42)
 
-      page = described_class.new(exception: exception, env: env, config: config)
+      page = described_class.new(exception:, env:, config:)
 
       expect(page.generation).to eq(42)
       expect(page.id).to start_with("42-")
@@ -109,7 +51,7 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
 
     it "falls back to the class' string form for anonymous classes" do
       anonymous = Class.new(StandardError).new("boom")
-      page = described_class.new(exception: anonymous, env: env, config: config)
+      page = described_class.new(exception: anonymous, env:, config:)
 
       expect(page.exception_class).to start_with("#<Class:")
     end
@@ -124,7 +66,7 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
       broken = RuntimeError.new("boom")
       allow(broken).to receive(:message).and_raise(NotImplementedError)
 
-      page = described_class.new(exception: broken, env: env, config: config)
+      page = described_class.new(exception: broken, env:, config:)
 
       expect(page.message).to eq("")
     end
@@ -140,7 +82,7 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
         exception
       end
 
-      page = described_class.new(exception: exception, env: env, config: config)
+      page = described_class.new(exception:, env:, config:)
 
       expect(page.message).to include("titel")
       expect(page.detailed_extras).to include(a_string_matching(/Did you mean\?\s+title/))
@@ -153,7 +95,7 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
         "undefined method 'foo' for nil (RuntimeError)\n\n  x.foo.bar\n   ^^^^"
       )
 
-      page = described_class.new(exception: exception, env: env, config: config)
+      page = described_class.new(exception:, env:, config:)
 
       expect(page.detailed_extras).to eq(["  x.foo.bar", "   ^^^^"])
     end
@@ -169,7 +111,7 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
         end
       }.new
 
-      page = described_class.new(exception: exception, env: env, config: config)
+      page = described_class.new(exception:, env:, config:)
 
       expect(page.detailed_extras).to eq([])
     end
@@ -178,7 +120,7 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
       exception = RuntimeError.new("boom")
       allow(exception).to receive(:detailed_message).and_raise(SystemStackError)
 
-      page = described_class.new(exception: exception, env: env, config: config)
+      page = described_class.new(exception:, env:, config:)
 
       expect(page.detailed_extras).to eq([])
     end
@@ -190,7 +132,7 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
         end
       end
 
-      page = described_class.new(exception: klass.new("boom"), env: env, config: config)
+      page = described_class.new(exception: klass.new("boom"), env:, config:)
 
       expect(page.detailed_extras).to eq([])
     end
@@ -199,7 +141,7 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
       exception = RuntimeError.new("boom")
       allow(exception).to receive(:detailed_message).with(highlight: false).and_return(nil)
 
-      page = described_class.new(exception: exception, env: env, config: config)
+      page = described_class.new(exception:, env:, config:)
 
       expect(page.detailed_extras).to eq([])
     end
@@ -217,7 +159,7 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
     end
 
     it "defaults to 500 when the config knows nothing of render_error_responses" do
-      page = described_class.new(exception: exception, env: env, config: double("config"))
+      page = described_class.new(exception:, env:, config: double("config"))
 
       expect(page.status).to eq(500)
     end
@@ -229,22 +171,56 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
     end
   end
 
-  describe "#severity" do
-    it "is :crash for an unrecognised exception" do
-      expect(page.severity).to eq(:crash)
+  describe "diagnostics", :isolate_diagnostics do
+    let(:diagnostic_class) {
+      Class.new do
+        def initialize(exception, context)
+          @exception = exception
+          @context = context
+        end
+
+        def fix = "Fix #{@exception.message} in #{@context.slice}"
+      end
+    }
+
+    let(:slice) { "Main::Slice" }
+
+    subject(:page) { described_class.new(exception:, env:, config:, slice:) }
+
+    describe "#diagnostic" do
+      it "is nil when no diagnostic is registered" do
+        expect(page.diagnostic).to be_nil
+      end
+
+      it "reads the registered diagnostic, built with the exception and the slice" do
+        Hanami::Diagnostics::Registry.register("RuntimeError", diagnostic_class)
+
+        expect(page.diagnostic.fix.text).to eq("Fix boom in Main::Slice")
+      end
+
+      it "is built once" do
+        Hanami::Diagnostics::Registry.register("RuntimeError", diagnostic_class)
+
+        expect(page.diagnostic).to be(page.diagnostic)
+      end
     end
 
-    it "is :actionable when a presenter matches" do
-      Hanami::Webconsole::Presenters.register("RuntimeError", Hanami::Webconsole::Presenters::Base)
+    describe "#actionable?" do
+      it "is true when the diagnostic has a fix" do
+        Hanami::Diagnostics::Registry.register("RuntimeError", diagnostic_class)
 
-      expect(page.severity).to eq(:actionable)
-    end
+        expect(page.actionable?).to be(true)
+      end
 
-    it "is :not_found for a 404, even when a presenter matches" do
-      render_error_responses["RuntimeError"] = :not_found
-      Hanami::Webconsole::Presenters.register("RuntimeError", Hanami::Webconsole::Presenters::Base)
+      it "is false when the diagnostic has no fix" do
+        Hanami::Diagnostics::Registry.register("RuntimeError", Class.new {
+          def initialize(*) = nil
 
-      expect(page.severity).to eq(:not_found)
+          def explanation = "Why."
+        })
+
+        expect(page.actionable?).to be(false)
+      end
     end
   end
 
@@ -268,29 +244,21 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
         exception
       end
 
-      page = described_class.new(exception: exception, env: env, config: config)
+      page = described_class.new(exception:, env:, config:)
 
       expect(page.causes).to eq(["TypeError", "ArgumentError"])
     end
   end
 
-  describe "#presenter" do
-    it "is nil when nothing is registered" do
-      expect(page.presenter).to be_nil
-    end
-
-    it "is the registered presenter, guarded so that none of its parts can raise" do
-      Hanami::Webconsole::Presenters.register("RuntimeError", Hanami::Webconsole::Presenters::Base)
-
-      expect(page.presenter).to be_a(Hanami::Webconsole::Presenters::Guard)
-      expect(page.presenter.presenter).to be_a(Hanami::Webconsole::Presenters::Base)
-    end
-  end
-
   describe "#frames" do
     it "delegates to the backtrace" do
-      expect(page.frames).to eq(frames)
-      expect(page.app_frames).to eq(app_frames)
+      app_frame = instance_double(Hanami::Webconsole::Frame)
+      gem_frame = instance_double(Hanami::Webconsole::Frame)
+      backtrace = instance_double(Hanami::Webconsole::Backtrace, frames: [app_frame, gem_frame], app_frames: [app_frame])
+      allow(Hanami::Webconsole::Backtrace).to receive(:new).and_return(backtrace)
+
+      expect(page.frames).to eq([app_frame, gem_frame])
+      expect(page.app_frames).to eq([app_frame])
     end
 
     it "degrades to an empty list when the backtrace raises" do
@@ -300,89 +268,25 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
     end
   end
 
+  describe "#request" do
+    it "reads the request from the env, filtering the params the logger filters" do
+      env = Rack::MockRequest.env_for("/books/247?id=247&password=secret")
+      page = described_class.new(exception:, env:, config:)
+
+      expect(page.request).to have_attributes(method_name: "GET", path: "/books/247")
+      expect(page.request.params).to eq("id" => '"247"', "password" => "[FILTERED]")
+    end
+  end
+
   describe "#root" do
     it "comes from the config" do
       expect(page.root).to eq("/app")
     end
 
     it "falls back to the working directory" do
-      page = described_class.new(exception: exception, env: env, config: double("config"))
+      page = described_class.new(exception:, env:, config: double("config"))
 
       expect(page.root).to eq(Dir.pwd)
-    end
-  end
-
-  describe "#to_text" do
-    let(:exception) do
-      exception = NoMethodError.new("undefined method 'titel' for an instance of Foo")
-
-      allow(exception).to receive(:detailed_message).with(highlight: false).and_return(
-        "undefined method 'titel' for an instance of Foo (NoMethodError)\nDid you mean?  title"
-      )
-
-      exception
-    end
-
-    it "renders the error as Markdown" do
-      expect(page.to_text).to eq(<<~TEXT)
-        ## NoMethodError
-
-        undefined method 'titel' for an instance of Foo
-
-        - Request: GET /books/247
-        - Status: 500
-
-        Did you mean?  title
-
-        ### Backtrace (1 application frame of 2)
-            app/actions/books/show.rb:16:in 'Show#handle'
-          # rack-3.1.8/lib/rack/method_override.rb:24:in 'Rack::MethodOverride#call'
-
-        ### Source: app/actions/books/show.rb:16
-        ```ruby
-          14 |   def handle(request, response)
-          15 |     book_repo = deps[:book_repo]
-        > 16 |     result = book_repo.find_with_reviews(...)
-        ```
-      TEXT
-    end
-
-    it "lists the cause chain" do
-      allow(exception).to receive(:cause).and_return(ArgumentError.new("root cause"))
-
-      expect(page.to_text).to include("- Caused by: ArgumentError")
-    end
-
-    it "omits the source section when no source is available" do
-      allow(app_frame).to receive(:source).and_return(nil)
-
-      expect(page.to_text).not_to include("### Source")
-    end
-
-    it "omits the backtrace section when there are no frames" do
-      allow(backtrace).to receive_messages(frames: [], app_frames: [])
-
-      text = page.to_text
-
-      expect(text).not_to include("### Backtrace")
-      expect(text).to include("- Status: 500")
-    end
-
-    it "truncates long backtraces" do
-      many = Array.new(30) { gem_frame }
-      allow(backtrace).to receive_messages(frames: many, app_frames: [])
-
-      text = page.to_text
-
-      expect(text).to include("### Backtrace (0 application frames of 30)")
-      expect(text).to include("  # … 5 more frames")
-    end
-
-    it "never raises, even when everything is broken" do
-      allow(Hanami::Webconsole::Backtrace).to receive(:new).and_raise(NoMethodError)
-      allow(Hanami::Webconsole::RequestContext).to receive(:new).and_raise(NoMethodError)
-
-      expect(page.to_text).to include("## NoMethodError")
     end
   end
 end

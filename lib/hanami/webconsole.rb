@@ -71,28 +71,34 @@ module Hanami
 
     require_relative "webconsole/version"
 
-    # Required in dependency order. This gem is loaded lazily by `Hanami::Slice`, only in
-    # development, so there is nothing to gain from autoloading.
     # Must come first: it hooks `Exception#set_backtrace`, and only exceptions raised after it
     # is installed carry bindings.
     require_relative "webconsole/exception_extension"
 
-    require_relative "webconsole/inspector"
-    require_relative "webconsole/filters"
-    require_relative "webconsole/source_file"
-    require_relative "webconsole/frame"
+    # Each file requires what it needs at load time, so these are in alphabetical order.
+    require_relative "diagnostics"
     require_relative "webconsole/backtrace"
-    require_relative "webconsole/request_context"
-    require_relative "webconsole/resolution"
-    require_relative "webconsole/presenters/base"
-    require_relative "webconsole/presenters/guard"
-    require_relative "webconsole/presenters"
-    require_relative "webconsole/presenters/not_found"
-    require_relative "webconsole/repl/session"
-    require_relative "webconsole/error_page"
-    require_relative "webconsole/registry"
     require_relative "webconsole/editor"
-    require_relative "webconsole/renderer"
+    require_relative "webconsole/error_page"
+    require_relative "webconsole/filters"
+    require_relative "webconsole/frame"
+    require_relative "webconsole/inspector"
     require_relative "webconsole/middleware"
+    require_relative "webconsole/registry"
+    require_relative "webconsole/rendering"
+    require_relative "webconsole/repl/session"
+    require_relative "webconsole/request_context"
+    require_relative "webconsole/safety"
+    require_relative "webconsole/source_file"
+
+    # Register our own diagnostics.
+    require_relative "webconsole/diagnostics/not_found"
+
+    # Load diagnostics from gems. We do this once only at load time, since gems aren't part of
+    # Hanami reloads.
+    #
+    # Do this after our own diagnostics, so that if a gem registers a diagnostic for the same error,
+    # the gem's diagnostic is tried first.
+    Hanami::Diagnostics::Registry.load_gem_files
   end
 end
