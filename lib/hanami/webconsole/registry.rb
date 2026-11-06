@@ -66,14 +66,6 @@ module Hanami
         end
       end
 
-      # Drops every page from a previous generation.
-      #
-      # @return [self]
-      def sweep!
-        @mutex.synchronize { drop_stale }
-        self
-      end
-
       # Number of pages currently held.
       #
       # @return [Integer]

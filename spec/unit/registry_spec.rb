@@ -75,6 +75,17 @@ RSpec.describe Hanami::Webconsole::Registry do
       expect(registry.fetch("1-a")).to be(replacement)
       expect(registry.size).to eq(1)
     end
+
+    it "drops every page from previous generations" do
+      registry.put(page("1-a"))
+      registry.put(page("1-b"))
+
+      Hanami::Webconsole.reloaded!
+      registry.put(page("2-c"))
+
+      expect(registry.size).to eq(1)
+      expect(registry.fetch("2-c")).not_to be_nil
+    end
   end
 
   describe "#fetch" do
@@ -114,25 +125,6 @@ RSpec.describe Hanami::Webconsole::Registry do
 
       expect(registry.fetch("2-b")).to be(fresh)
       expect(registry.fetch("1-a")).to be_nil
-    end
-  end
-
-  describe "#sweep!" do
-    it "drops pages from previous generations" do
-      registry.put(page("1-a"))
-      registry.put(page("1-b"))
-
-      Hanami::Webconsole.reloaded!
-      registry.put(page("2-c"))
-
-      registry.sweep!
-
-      expect(registry.size).to eq(1)
-      expect(registry.fetch("2-c")).not_to be_nil
-    end
-
-    it "returns itself" do
-      expect(registry.sweep!).to be(registry)
     end
   end
 
