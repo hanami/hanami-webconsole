@@ -28,6 +28,9 @@ module Hanami
     # the frames the developer looks at, since a value's own `#inspect` can take any amount of
     # time.
     #
+    # Nothing here raises. Each value degrades instead (an empty path, no source, no variables), so
+    # the renderers can read a frame without guarding it.
+    #
     # NOTE: {Inspector} is referenced lazily, at call time, and only from {#locals} and
     # {#instance_vars}.
     #

@@ -66,6 +66,13 @@ RSpec.describe Hanami::Webconsole::Rendering::Markdown do
       .to include("- Caused by: TypeError → ArgumentError")
   end
 
+  it "leaves out the label of a frame that has none" do
+    markdown = markdown_for(error_page(frames: [frame(display_path: "(eval)", lineno: 1, label: "")]))
+
+    expect(markdown).to include("    (eval):1\n")
+    expect(markdown).not_to include("in ''")
+  end
+
   it "omits the source section when no source is available" do
     expect(markdown_for(error_page(frames: [frame(source: nil)]))).not_to include("### Source")
   end

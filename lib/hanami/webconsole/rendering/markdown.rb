@@ -196,26 +196,27 @@ module Hanami
 
         # App frames are indented, gem and core frames are commented out. Both prefixes are the
         # same width, so the paths line up and the app frames read as the signal they are.
+        #
+        # A frame's values can't raise (see {Frame}), so they aren't guarded here.
         def frame_text(frame)
-          prefix = safely(false) { frame.app? } ? "    " : "  # "
-          label = safely(nil) { frame.label }
-          location = "#{safely(nil) { frame.display_path }}:#{safely(nil) { frame.lineno }}"
+          prefix = frame.app? ? "    " : "  # "
+          location = "#{frame.display_path}:#{frame.lineno}"
 
-          label ? "#{prefix}#{location}:in '#{label}'" : "#{prefix}#{location}"
+          frame.label.empty? ? "#{prefix}#{location}" : "#{prefix}#{location}:in '#{frame.label}'"
         end
 
         def source_block
           frame = source_frame
           return nil unless frame
 
-          excerpt = safely(nil) { frame.source }
+          excerpt = frame.source
           return nil unless excerpt
 
-          lines = safely(nil) { excerpt.lines }
-          return nil if lines.nil? || lines.empty?
+          lines = excerpt.lines
+          return nil if lines.empty?
 
           [
-            "### Source: #{safely(nil) { frame.display_path }}:#{safely(nil) { frame.lineno }}",
+            "### Source: #{frame.display_path}:#{frame.lineno}",
             "```ruby",
             *excerpt_lines(excerpt, lines),
             "```"
@@ -231,8 +232,8 @@ module Hanami
         end
 
         def excerpt_lines(excerpt, lines)
-          first_lineno = safely(1) { excerpt.first_lineno.to_i }
-          highlight = safely(nil) { excerpt.highlight_lineno }
+          first_lineno = excerpt.first_lineno
+          highlight = excerpt.highlight_lineno
           width = (first_lineno + lines.length - 1).to_s.length
 
           lines.each_with_index.map { |line, index|
