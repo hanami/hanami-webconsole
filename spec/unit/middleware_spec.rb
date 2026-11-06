@@ -237,14 +237,16 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
     end
 
     describe "the CSRF cookie" do
-      it "is set, httponly and same-site strict, when not already present" do
+      # Lax, not strict: Safari sends no strict cookies when a page is opened by typing its URL, so
+      # the page would get a new cookie, breaking the console on every other open error page.
+      it "is set, httponly and same-site lax, when not already present" do
         get "/", {}, "HTTP_ACCEPT" => "text/html"
 
         cookie = set_cookies.find { |value| value.start_with?("Hanami-Webconsole-CSRF-Token=") }
 
         expect(cookie).not_to be_nil
         expect(cookie).to match(/httponly/i)
-        expect(cookie).to match(/samesite=strict/i)
+        expect(cookie).to match(/samesite=lax/i)
         expect(cookie).to match(%r{path=/})
       end
 

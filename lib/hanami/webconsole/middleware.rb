@@ -17,7 +17,7 @@ module Hanami
     # 1. An IP allowlist, checked before anything else. A request from a non-allowed address is
     #    passed straight to the app: no error page, no internal endpoints, no way to tell from
     #    the outside that this middleware is even installed.
-    # 2. A CSRF token in an `httponly`, `same_site: :strict` cookie, which every request to the
+    # 2. A CSRF token in an `httponly`, `same_site: :lax` cookie, which every request to the
     #    console endpoints must echo back in its JSON body.
     # 3. A strict `Content-Security-Policy` with a per-response nonce, so the inline script and
     #    style in the page are the only ones the browser will run.
@@ -140,10 +140,17 @@ module Hanami
         }
 
         response = Rack::Response.new(body, status, headers)
+
+        # A request without the cookie gets a new token, and the new cookie replaces the one that
+        # any other open error pages were rendered with, so their consoles fail the CSRF check. The
+        # cookie is `same_site: :lax` rather than `:strict` so this doesn't happen just because the
+        # page was opened by typing its URL: Safari treats that as a cross-site navigation, and
+        # sends no `:strict` cookies with it. `:lax` still keeps the cookie off cross-site POSTs,
+        # which are the only requests the console endpoints accept.
         unless request.cookies[CSRF_COOKIE_NAME]
           response.set_cookie(
             CSRF_COOKIE_NAME,
-            value: csrf_token, path: "/", httponly: true, same_site: :strict
+            value: csrf_token, path: "/", httponly: true, same_site: :lax
           )
         end
 
@@ -256,8 +263,8 @@ module Hanami
         nil
       end
 
-      # The cookie is `httponly` and `same_site: :strict`, so a cross-site page can neither read
-      # the token nor cause the browser to send the cookie. Compared in constant time.
+      # The cookie is `httponly` and `same_site: :lax`, so a cross-site page can neither read the
+      # token nor cause the browser to send the cookie with a POST. Compared in constant time.
       def valid_csrf?(request, body)
         cookie = request.cookies[CSRF_COOKIE_NAME]
         token = body["csrfToken"]
