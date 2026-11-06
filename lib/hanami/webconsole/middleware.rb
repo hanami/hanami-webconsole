@@ -45,11 +45,14 @@ module Hanami
         nil
       end
 
-      # Name of the CSRF cookie.
+      # Name of the CSRF cookie set alongside the error page.
+      #
+      # The cookie is `httponly`, so the page's script cannot read it back. The same token is
+      # embedded in the page instead, for the double-submit check.
       #
       # Unlike better_errors, this carries no gem version: the version served only to invalidate
       # the cookie across upgrades, and generation-scoped page ids already handle staleness.
-      CSRF_TOKEN_COOKIE_NAME = Webconsole::CSRF_COOKIE_NAME
+      CSRF_COOKIE_NAME = "Hanami-Webconsole-CSRF-Token"
 
       # Path of the console's internal endpoints.
       #
@@ -125,7 +128,7 @@ module Hanami
         @registry.put(page)
 
         status = status_for(exception)
-        csrf_token = request.cookies[CSRF_TOKEN_COOKIE_NAME] || SecureRandom.uuid
+        csrf_token = request.cookies[CSRF_COOKIE_NAME] || SecureRandom.uuid
         csp_nonce = SecureRandom.base64(12)
 
         content_type, body = negotiate(request, page, csrf_token, csp_nonce)
@@ -136,9 +139,9 @@ module Hanami
         }
 
         response = Rack::Response.new(body, status, headers)
-        unless request.cookies[CSRF_TOKEN_COOKIE_NAME]
+        unless request.cookies[CSRF_COOKIE_NAME]
           response.set_cookie(
-            CSRF_TOKEN_COOKIE_NAME,
+            CSRF_COOKIE_NAME,
             value: csrf_token, path: "/", httponly: true, same_site: :strict
           )
         end
@@ -268,7 +271,7 @@ module Hanami
       # The cookie is `httponly` and `same_site: :strict`, so a cross-site page can neither read
       # the token nor cause the browser to send the cookie. Compared in constant time.
       def valid_csrf?(request, body)
-        cookie = request.cookies[CSRF_TOKEN_COOKIE_NAME]
+        cookie = request.cookies[CSRF_COOKIE_NAME]
         token = body["csrfToken"]
 
         return false unless cookie.is_a?(String) && !cookie.empty?

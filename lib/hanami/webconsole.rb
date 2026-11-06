@@ -37,16 +37,6 @@ module Hanami
 
     @bindings_available = probe_bindings
 
-    # Name of the CSRF cookie set alongside the error page.
-    #
-    # Defined here because both the middleware (which sets the cookie and validates the token)
-    # and the renderer (which embeds the token in the page) need it, and they must never
-    # disagree. The cookie is `httponly`, so JavaScript cannot read it back — the same token is
-    # embedded in the page for the double-submit check.
-    #
-    # @api private
-    CSRF_COOKIE_NAME = "Hanami-Webconsole-CSRF-Token"
-
     # Path the console's internal endpoints are mounted at.
     #
     # @api private
