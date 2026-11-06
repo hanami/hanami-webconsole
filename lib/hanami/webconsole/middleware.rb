@@ -248,11 +248,11 @@ module Hanami
         page = @registry.fetch(id)
         return expired_response unless page
 
+        # {INTERNAL_PATH} only matches these actions. Any other path goes to the app.
         case action
         when "variables" then variables_response(page, body)
         when "eval" then eval_response(page, body)
         when "run" then run_response(page)
-        else json_response(404, error: "Not found", explanation: "Not a recognized console call.")
         end
       end
 
