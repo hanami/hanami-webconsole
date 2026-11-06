@@ -2,13 +2,20 @@
 
 require "json"
 
+require_relative "../safety"
+
 module Hanami
   module Webconsole
     module Rendering
       # Renders an {ErrorPage} as JSON, for the `application/json` response.
       #
+      # Like the other renderings, this must never raise. If the error can't be read, it falls back
+      # to just the exception's class name, so a client that asked for JSON still gets JSON.
+      #
       # @api private
       class JSON
+        include Safety
+
         # @return [ErrorPage]
         attr_reader :page
 
@@ -21,6 +28,12 @@ module Hanami
         #
         # @return [String]
         def to_s
+          safely(fallback) { document }
+        end
+
+        private
+
+        def document
           ::JSON.generate(
             "error" => page.exception_class,
             "message" => page.message,
@@ -33,7 +46,10 @@ module Hanami
           )
         end
 
-        private
+        # The output when nothing else can be rendered: just the exception's class name.
+        def fallback
+          ::JSON.generate("error" => safely("Exception") { page.exception_class })
+        end
 
         def diagnostic_json
           diagnostic = page.diagnostic

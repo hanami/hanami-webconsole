@@ -44,4 +44,11 @@ RSpec.describe Hanami::Webconsole::Rendering::JSON do
       "dataset" => {"title" => "Actions", "columns" => [], "rows" => [["books.index"]]}
     )
   end
+
+  it "never raises, and falls back to the class name, when the page can't be read" do
+    page = error_page
+    allow(page).to receive(:frames).and_raise(NoMethodError)
+
+    expect(json_for(page)).to eq("error" => "NoMethodError")
+  end
 end
