@@ -336,10 +336,7 @@ module Hanami
         # @return [String]
         def request_summary_html
           request = page.request
-          parts = ["<b>#{h(request.method_name)}</b> #{h(request.path)}"]
-          parts << "slice <b>#{h(request.slice_name)}</b>" if request.slice_name
-          parts << "route <b>#{h(request.route)}</b>" if request.route
-          parts.join(" &middot; ")
+          "<b>#{h(request.method_name)}</b> #{h(request.path)}"
         end
 
         # Returns the panels to show below the backtrace.
@@ -550,9 +547,6 @@ module Hanami
             ["method", request.method_name],
             ["path", request.path],
             ["format", request.format],
-            ["route", request.route],
-            ["action", request.action_name],
-            ["slice", request.slice_name],
             ["ip", request.ip]
           ].reject { |(_, value)| value.nil? || value.to_s.empty? }
             .map { |(name, value)| row(name, value) }

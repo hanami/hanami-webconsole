@@ -62,10 +62,7 @@ module ErrorPageDoubles
       params:,
       session:,
       cookies:,
-      headers:,
-      slice_name: "Bookshelf",
-      route: "GET /books/:id → books.show",
-      action_name: "Bookshelf::Actions::Books::Show"
+      headers:
     )
   end
 

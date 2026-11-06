@@ -189,128 +189,6 @@ RSpec.describe Hanami::Webconsole::RequestContext do
     end
   end
 
-  describe "Hanami-specific values" do
-    it "are nil for a bare Rack env" do
-      expect(context.slice_name).to be(nil)
-      expect(context.route).to be(nil)
-      expect(context.action_name).to be(nil)
-    end
-
-    describe "#slice_name" do
-      it "reads a slice object" do
-        slice = Class.new do
-          def self.slice_name
-            :main
-          end
-        end
-        env["hanami.slice"] = slice
-
-        expect(context.slice_name).to eq("main")
-      end
-
-      it "reads a plain name" do
-        env["hanami.slice"] = "admin"
-        expect(context.slice_name).to eq("admin")
-      end
-
-      it "reads a symbol name" do
-        env["hanami.slice"] = :admin
-        expect(context.slice_name).to eq("admin")
-      end
-
-      it "is nil when the slice raises" do
-        slice = Class.new do
-          def self.slice_name
-            raise "not booted"
-          end
-        end
-        env["hanami.slice"] = slice
-
-        expect(context.slice_name).to be(nil)
-      end
-
-      it "is nil when the value is empty" do
-        env["hanami.slice"] = ""
-        expect(context.slice_name).to be(nil)
-      end
-    end
-
-    describe "#action_name" do
-      it "names an action instance by its class" do
-        stub_const("Bookshelf::Actions::Books::Show", Class.new)
-        env["hanami.action_instance"] = Bookshelf::Actions::Books::Show.new
-
-        expect(context.action_name).to eq("Bookshelf::Actions::Books::Show")
-      end
-
-      it "names an action class" do
-        stub_const("Bookshelf::Actions::Books::Show", Class.new)
-        env["hanami.action"] = Bookshelf::Actions::Books::Show
-
-        expect(context.action_name).to eq("Bookshelf::Actions::Books::Show")
-      end
-
-      it "accepts a plain string" do
-        env["hanami.action"] = "books.show"
-
-        expect(context.action_name).to eq("books.show")
-      end
-    end
-
-    describe "#route" do
-      it "formats a route object" do
-        route = Struct.new(:http_method, :path, :to, :as, keyword_init: true)
-        env["hanami.route"] = route.new(
-          http_method: "GET", path: "/books/:id", to: "books.show", as: nil
-        )
-
-        expect(context.route).to eq("GET /books/:id → books.show")
-      end
-
-      it "prefers the route name over the endpoint" do
-        route = Struct.new(:http_method, :path, :to, :as, keyword_init: true)
-        env["hanami.route"] = route.new(
-          http_method: "GET", path: "/books/:id", to: proc {}, as: :book
-        )
-
-        expect(context.route).to eq("GET /books/:id → book")
-      end
-
-      it "names a class endpoint" do
-        stub_const("Bookshelf::Actions::Books::Show", Class.new)
-        route = Struct.new(:http_method, :path, :to, :as, keyword_init: true)
-        env["hanami.route"] = route.new(
-          http_method: "GET", path: "/books/:id", to: Bookshelf::Actions::Books::Show, as: nil
-        )
-
-        expect(context.route).to eq("GET /books/:id → Bookshelf::Actions::Books::Show")
-      end
-
-      it "accepts a plain string" do
-        env["router.route"] = "GET /books/:id"
-
-        expect(context.route).to eq("GET /books/:id")
-      end
-
-      it "is nil for an unrecognised object" do
-        env["hanami.route"] = Object.new
-
-        expect(context.route).to be(nil)
-      end
-
-      it "is nil when the route object raises" do
-        route = Class.new do
-          def path
-            raise "no"
-          end
-        end.new
-        env["hanami.route"] = route
-
-        expect(context.route).to be(nil)
-      end
-    end
-  end
-
   describe "degrading" do
     it "works against an empty env" do
       context = described_class.new(env: {}, filters:)
@@ -323,9 +201,6 @@ RSpec.describe Hanami::Webconsole::RequestContext do
       expect(context.session).to eq({})
       expect(context.cookies).to eq({})
       expect(context.headers).to eq({})
-      expect(context.slice_name).to be(nil)
-      expect(context.route).to be(nil)
-      expect(context.action_name).to be(nil)
     end
 
     it "works when the env is not a hash at all" do
@@ -338,9 +213,8 @@ RSpec.describe Hanami::Webconsole::RequestContext do
 
     it "returns strings everywhere" do
       env["rack.session"] = {"a" => Object.new}
-      env["hanami.slice"] = :main
 
-      [context.method_name, context.path, context.format, context.ip, context.slice_name]
+      [context.method_name, context.path, context.format, context.ip]
         .each { |value| expect(value).to be_a(String) }
 
       [context.params, context.session, context.cookies, context.headers].each do |hash|
