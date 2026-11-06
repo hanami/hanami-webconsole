@@ -15,14 +15,14 @@ module Hanami
 
     # One entry in a backtrace, together with everything the page shows for it: where it points,
     # whether it belongs to the app, the surrounding source, and (when a binding was captured)
-    # the local variables and receiver at that point.
+    # the local and instance variables at that point.
     #
     # Frames are built for every backtrace entry but most are never rendered, so all the expensive
     # work — reading source, inspecting variables, stat-ing the path — is deferred until asked
     # for, and memoized once done.
     #
-    # NOTE: {Inspector} is referenced lazily, at call time, and only from {#locals},
-    # {#instance_vars} and {#receiver_inspect}.
+    # NOTE: {Inspector} is referenced lazily, at call time, and only from {#locals} and
+    # {#instance_vars}.
     #
     # @api private
     class Frame
@@ -123,13 +123,6 @@ module Hanami
       # @return [Array<Variable>] empty when no binding was captured for this frame
       def instance_vars
         @instance_vars ||= build_instance_vars
-      end
-
-      # @return [String, nil] safe-inspected `self`, nil when no binding was captured
-      def receiver_inspect
-        return @receiver_inspect if defined?(@receiver_inspect)
-
-        @receiver_inspect = build_receiver_inspect
       end
 
       private
@@ -233,14 +226,6 @@ module Hanami
         }
       rescue *Safety::ERRORS
         EMPTY_VARIABLES
-      end
-
-      def build_receiver_inspect
-        return nil unless binding
-
-        Inspector.call(binding.receiver).to_s
-      rescue *Safety::ERRORS
-        nil
       end
 
       # A single unreadable value must not take the whole panel down with it, so failures here

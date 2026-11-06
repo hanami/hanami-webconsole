@@ -289,7 +289,6 @@ module Hanami
           id: page.id,
           index: frame_index(body),
           replAvailable: Webconsole.bindings_available? && !frame.binding.nil?,
-          receiver: frame.receiver_inspect,
           locals: frame.locals.map { |variable| variable_payload(variable) },
           instanceVariables: frame.instance_vars.map { |variable| variable_payload(variable) }
         )

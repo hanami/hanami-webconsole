@@ -333,7 +333,6 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
           "id" => page.id,
           "index" => 0,
           "replAvailable" => true,
-          "receiver" => "#<Bookshelf::Repositories::BookRepo>",
           "locals" => [{"name" => "id", "className" => "String", "value" => '"247"'}],
           "instanceVariables" => [
             {"name" => "@repo", "className" => "BookRepo", "value" => "#<BookRepo>"}

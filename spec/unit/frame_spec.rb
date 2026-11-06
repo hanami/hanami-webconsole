@@ -217,10 +217,6 @@ RSpec.describe Hanami::Webconsole::Frame do
       expect(subject.instance_vars).to eq([])
     end
 
-    it "has no receiver" do
-      expect(subject.receiver_inspect).to be_nil
-    end
-
     it "exposes a nil binding" do
       expect(subject.binding).to be_nil
     end
@@ -271,10 +267,6 @@ RSpec.describe Hanami::Webconsole::Frame do
 
       expect(title.value).to eq(%(inspected:"Hanami"))
       expect(title.class_name).to eq("class:String")
-    end
-
-    it "inspects the receiver" do
-      expect(subject.receiver_inspect).to start_with("inspected:")
     end
 
     it "memoizes locals" do

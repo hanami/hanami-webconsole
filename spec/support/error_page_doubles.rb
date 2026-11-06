@@ -42,8 +42,7 @@ module ErrorPageDoubles
       source:,
       locals:,
       instance_vars:,
-      binding: frame_binding,
-      receiver_inspect: "#<Bookshelf::Repositories::BookRepo>"
+      binding: frame_binding
     )
   end
 

@@ -463,7 +463,6 @@ module Hanami
 
         def payload
           {
-            "pageId" => page.id,
             "evalPath" => "#{MOUNT_PATH}/#{page.id}/eval",
             "runPath" => "#{MOUNT_PATH}/#{page.id}/run",
             "retryable" => RETRYABLE_METHODS.include?(page.request.method_name.to_s.upcase),
@@ -486,7 +485,6 @@ module Hanami
             "line" => frame.lineno,
             "label" => frame.label,
             "binding" => !frame.binding.nil?,
-            "receiver" => frame.receiver_inspect,
             "editorUrl" => frame.path ? editor.url(frame.path, frame.lineno) : nil,
             "start" => excerpt&.first_lineno,
             "src" => excerpt&.lines,
