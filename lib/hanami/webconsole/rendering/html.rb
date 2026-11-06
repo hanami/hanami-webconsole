@@ -105,8 +105,8 @@ module Hanami
         attr_reader :page
 
         # The CSRF token is optional: a page rendered without one still shows everything except a
-        # working console, and the console falls back to the cookie when the middleware sets a
-        # readable one.
+        # working console. The page can't read the token from the cookie instead, since the cookie
+        # is `httponly`.
         #
         # @param page [ErrorPage]
         # @param nonce [String] the CSP nonce for the page's `<style>` and `<script>`
@@ -468,7 +468,6 @@ module Hanami
             "runPath" => "#{MOUNT_PATH}/#{page.id}/run",
             "retryable" => RETRYABLE_METHODS.include?(page.request.method_name.to_s.upcase),
             "csrfToken" => csrf_token,
-            "csrfCookie" => CSRF_COOKIE_NAME,
             "bindingsAvailable" => Webconsole.bindings_available?,
             "initialFrame" => initial_frame_index,
             "text" => Markdown.new(page).to_s,

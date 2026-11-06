@@ -121,7 +121,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     expect(html).not_to match(/\sstyle\s*=/)
   end
 
-  it "embeds the frames, the eval endpoint and the CSRF cookie name" do
+  it "embeds the frames and the eval endpoint" do
     html = html_for(error_page)
     data = page_data(html)
 
@@ -134,7 +134,6 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       "binding" => false
     )
     expect(data["evalPath"]).to eq("/_hanami/webconsole/0-a1b2c3/eval")
-    expect(data["csrfCookie"]).to eq(Hanami::Webconsole::CSRF_COOKIE_NAME)
     expect(data["initialFrame"]).to eq(0)
   end
 
