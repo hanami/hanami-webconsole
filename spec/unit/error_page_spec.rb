@@ -5,7 +5,7 @@ require "hanami/webconsole/error_page"
 
 RSpec.describe Hanami::Webconsole::ErrorPage do
   subject(:page) do
-    described_class.new(exception:, env:, config:, id: "1-abc", generation: 1)
+    described_class.new(exception:, env:, config:)
   end
 
   let(:exception) { RuntimeError.new("boom") }
@@ -23,24 +23,11 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
   end
 
   describe "#id" do
-    it "is the given id" do
-      expect(page.id).to eq("1-abc")
-    end
+    it "is random" do
+      other = described_class.new(exception:, env:, config:)
 
-    it "defaults to a generation-stamped random id" do
-      page = described_class.new(exception:, env:, config:, generation: 7)
-
-      expect(page.id).to match(/\A7-[0-9a-f]{16}\z/)
-      expect(page.generation).to eq(7)
-    end
-
-    it "defaults the generation to the current one" do
-      allow(Hanami::Webconsole).to receive(:generation).and_return(42)
-
-      page = described_class.new(exception:, env:, config:)
-
-      expect(page.generation).to eq(42)
-      expect(page.id).to start_with("42-")
+      expect(page.id).to match(/\A[0-9a-f]{16}\z/)
+      expect(page.id).not_to eq(other.id)
     end
   end
 

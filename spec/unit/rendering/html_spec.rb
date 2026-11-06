@@ -133,7 +133,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       "start" => 10,
       "binding" => false
     )
-    expect(data["evalPath"]).to eq("/_hanami/webconsole/0-a1b2c3/eval")
+    expect(data["evalPath"]).to eq("/_hanami/webconsole/a1b2c3/eval")
     expect(data["initialFrame"]).to eq(0)
   end
 
@@ -147,7 +147,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     expect(data["frames"][0].keys).not_to include("locals", "ivars")
     expect(gem_frame).not_to have_received(:locals)
     expect(gem_frame).not_to have_received(:instance_vars)
-    expect(data["variablesPath"]).to eq("/_hanami/webconsole/0-a1b2c3/variables")
+    expect(data["variablesPath"]).to eq("/_hanami/webconsole/a1b2c3/variables")
   end
 
   it "embeds the CSRF token for the console's double submit" do
@@ -353,7 +353,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       it "tells the page where to run it, and whether reloading retries the request" do
         data = page_data(html_for(page_with_runnable_fix("Do it.")))
 
-        expect(data).to include("runPath" => "/_hanami/webconsole/0-a1b2c3/run", "retryable" => true)
+        expect(data).to include("runPath" => "/_hanami/webconsole/a1b2c3/run", "retryable" => true)
       end
 
       it "doesn't retry a request that wasn't a GET" do

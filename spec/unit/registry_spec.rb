@@ -5,19 +5,12 @@ require "hanami/webconsole/registry"
 RSpec.describe Hanami::Webconsole::Registry do
   subject(:registry) { described_class.new }
 
-  # The generation is process-global, so restore it rather than leaking a bump into other specs.
-  around do |example|
-    original = Hanami::Webconsole.instance_variable_get(:@generation)
-    example.run
-    Hanami::Webconsole.instance_variable_set(:@generation, original)
-  end
+  # A plain object rather than a double: these are handed between threads below, and only #id is
+  # ever asked for.
+  let(:page_class) { Struct.new(:id) }
 
-  # A plain object rather than a double: these are handed between threads below, and only #id and
-  # #generation are ever asked for.
-  let(:page_class) { Struct.new(:id, :generation) }
-
-  def page(id, generation = Hanami::Webconsole.generation)
-    page_class.new(id, generation)
+  def page(id)
+    page_class.new(id)
   end
 
   describe "#put" do
@@ -75,56 +68,12 @@ RSpec.describe Hanami::Webconsole::Registry do
       expect(registry.fetch("1-a")).to be(replacement)
       expect(registry.size).to eq(1)
     end
-
-    it "drops every page from previous generations" do
-      registry.put(page("1-a"))
-      registry.put(page("1-b"))
-
-      Hanami::Webconsole.reloaded!
-      registry.put(page("2-c"))
-
-      expect(registry.size).to eq(1)
-      expect(registry.fetch("2-c")).not_to be_nil
-    end
   end
 
   describe "#fetch" do
     it "returns nil for an unknown id" do
       expect(registry.fetch("nope")).to be_nil
       expect(registry.fetch(nil)).to be_nil
-    end
-
-    it "returns nil after a reload, for a page from the previous generation" do
-      stored = page("#{Hanami::Webconsole.generation}-a")
-      registry.put(stored)
-
-      expect(registry.fetch(stored.id)).to be(stored)
-
-      Hanami::Webconsole.reloaded!
-
-      expect(registry.fetch(stored.id)).to be_nil
-    end
-
-    it "drops the stale page rather than holding its bindings" do
-      stored = page("1-a")
-      registry.put(stored)
-
-      Hanami::Webconsole.reloaded!
-      registry.fetch("1-a")
-
-      expect(registry.size).to eq(0)
-    end
-
-    it "still returns pages created after the reload" do
-      registry.put(page("1-a"))
-
-      Hanami::Webconsole.reloaded!
-
-      fresh = page("2-b")
-      registry.put(fresh)
-
-      expect(registry.fetch("2-b")).to be(fresh)
-      expect(registry.fetch("1-a")).to be_nil
     end
   end
 

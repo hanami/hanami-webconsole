@@ -160,7 +160,7 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
     it "builds the page and stores it in the registry" do
       get "/", {}, "HTTP_ACCEPT" => "text/html"
 
-      # No id or generation: the page makes its own generation-stamped id (see the ErrorPage specs).
+      # No id: the page makes its own random id (see the ErrorPage specs).
       expect(Hanami::Webconsole::ErrorPage).to have_received(:new).with(
         exception: raised,
         env: hash_including("PATH_INFO" => "/"),
@@ -334,15 +334,15 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
         expect(json_body["error"]).to eq("Unknown frame")
       end
 
-      it "reports 410 for an unknown or generation-expired id" do
+      it "reports 410 for an unknown id, such as one from before a reload" do
         console_post(
-          "/_hanami/webconsole/999-deadbeef/eval",
+          "/_hanami/webconsole/deadbeef/eval",
           {"csrfToken" => csrf_token, "index" => 0, "source" => "1 + 1"}
         )
 
         expect(last_response.status).to eq(410)
         expect(json_body).to include("error" => "Session expired", "action" => "refresh")
-        expect(json_body["explanation"]).to match(/code reload/i)
+        expect(json_body["explanation"]).to match(/reloaded/i)
       end
 
       it "rejects a GET" do
@@ -464,7 +464,7 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
       end
 
       it "checks CSRF before looking the id up, so ids cannot be probed" do
-        console_post("/_hanami/webconsole/999-deadbeef/eval", {"index" => 0, "source" => "1"})
+        console_post("/_hanami/webconsole/deadbeef/eval", {"index" => 0, "source" => "1"})
 
         expect(last_response.status).to eq(403)
       end

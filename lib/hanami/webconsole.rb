@@ -42,23 +42,6 @@ module Hanami
     # @api private
     MOUNT_PATH = "/_hanami/webconsole"
 
-    # Generation counter, bumped whenever application code is reloaded.
-    #
-    # Error page IDs are stamped with the generation that created them. After a reload, the
-    # bindings a page holds refer to constants that have since been unloaded, so evaluating
-    # against them would silently use stale classes. Pages from an older generation are dropped
-    # instead, and the console reports that the session has expired.
-    #
-    # @api private
-    def self.generation
-      @generation ||= 0
-    end
-
-    # @api private
-    def self.reloaded!
-      @generation = generation + 1
-    end
-
     require_relative "webconsole/version"
 
     # Must come first: it hooks `Exception#set_backtrace`, and only exceptions raised after it

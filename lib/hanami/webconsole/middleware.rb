@@ -51,7 +51,8 @@ module Hanami
       # embedded in the page instead, for the double-submit check.
       #
       # Unlike better_errors, this carries no gem version: the version served only to invalidate
-      # the cookie across upgrades, and generation-scoped page ids already handle staleness.
+      # the cookie across upgrades, and a page from before a reload or restart is already reported
+      # as expired.
       CSRF_COOKIE_NAME = "Hanami-Webconsole-CSRF-Token"
 
       # Path of the console's internal endpoints.
@@ -186,8 +187,6 @@ module Hanami
         ].join("; ")
       end
 
-      # The page stamps itself with the current generation, and makes its id from it (see
-      # {ErrorPage.generate_id}).
       def build_page(env, exception)
         ErrorPage.new(
           exception:,
@@ -384,15 +383,17 @@ module Hanami
         )
       end
 
-      # A page from an earlier generation is gone for good: its bindings refer to constants the
-      # reloader has since unloaded. 410 rather than 404 says so precisely, and the page uses it
-      # to show its "refresh to continue" state.
+      # An unknown page id almost always means the page is from before a code reload or a server
+      # restart, both of which leave this middleware with a new, empty registry (see {Registry}).
+      # Either way, the page is gone for good. 410 rather than 404 says so precisely, and the page
+      # uses it to show its "refresh to continue" state.
       def expired_response
         json_response(
           410,
           error: "Session expired",
-          explanation: "This error page was captured before the last code reload, so its " \
-                       "console session no longer exists. Refresh the page to start a new one.",
+          explanation: "This error page is from before the application reloaded or the server " \
+                       "restarted, so its console session no longer exists. Refresh the page to " \
+                       "start a new one.",
           action: "refresh"
         )
       end

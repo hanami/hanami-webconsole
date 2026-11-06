@@ -19,7 +19,7 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 - Replace better_errors with a Hanami-native error page, styled to match `Hanami::Web::Welcome`. The console and its security model carry over unchanged: loopback only, a double-submit CSRF token in an httponly cookie, and a strict Content-Security-Policy with a per-response nonce. (@afomera in #15)
 - Status codes now come from `config.render_error_responses` directly, so `Hanami::Router::NotFoundError` renders a 404 without patching `BetterErrors::Middleware#show_error_page`. (@afomera in #15)
-- Error pages are held in a bounded registry stamped with a generation counter. More than one error page is interactive at a time, and a page from before a code reload reports an expired session rather than evaluating against unloaded constants. (@afomera in #15)
+- Error pages are held in a bounded registry, so more than one error page is interactive at a time. A page from before a code reload reports an expired session rather than evaluating against unloaded constants. (@afomera in #15)
 
 ### Deprecated
 

@@ -29,37 +29,21 @@ module Hanami
 
       attr_reader :config
 
-      # The id under which this page is stored in the {Registry}.
-      #
-      # Stamped with the generation that created it, so that a page outliving a code reload can be
-      # recognised and dropped rather than evaluated against unloaded constants.
+      # The random id under which this page is stored in the {Registry}.
       #
       # @return [String]
       attr_reader :id
 
-      # @return [Integer]
-      attr_reader :generation
-
-      # Builds a page id for the given generation.
-      #
-      # @return [String]
-      def self.generate_id(generation = Webconsole.generation)
-        "#{generation}-#{SecureRandom.hex(8)}"
-      end
-
       # @param exception [Exception]
       # @param env [Hash] the Rack env
       # @param config [Hanami::Config] the app config
-      # @param id [String, nil]
-      # @param generation [Integer]
       # @param bindings [Array<Binding>, nil] bindings aligned to the exception's backtrace
       # @param slice [Hanami::Slice, nil] the slice the middleware belongs to, for diagnostics
-      def initialize(exception:, env:, config:, id: nil, generation: Webconsole.generation, bindings: nil, slice: nil)
+      def initialize(exception:, env:, config:, bindings: nil, slice: nil)
         @exception = exception
         @env = env || {}
         @config = config
-        @generation = generation
-        @id = id || self.class.generate_id(generation)
+        @id = SecureRandom.hex(8)
         @bindings = bindings
         @slice = slice
       end

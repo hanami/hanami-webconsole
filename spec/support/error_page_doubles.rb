@@ -81,9 +81,7 @@ module ErrorPageDoubles
   )
     instance_double(
       Hanami::Webconsole::ErrorPage,
-      id: "0-a1b2c3",
-      # The current generation, so a real Registry keeps the page.
-      generation: Hanami::Webconsole.generation,
+      id: "a1b2c3",
       exception_class:,
       message:,
       detailed_extras:,
