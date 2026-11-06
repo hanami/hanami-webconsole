@@ -393,7 +393,10 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
 
   it "renders a context panel per request section" do
     page = error_page(
-      request: request_context(session: {"user_id" => "12"}, cookies: {"_session" => "[FILTERED]"})
+      request: request_context(
+        session: {"user_id" => "12"},
+        cookies: {"_session" => Hanami::Webconsole::Filters::FILTERED}
+      )
     )
     html = html_for(page)
 
@@ -403,6 +406,14 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     expect(html).to include(%(data-webconsole-context-panel="Cookies"))
     expect(html).to include(%(data-webconsole-context-panel="Headers"))
     expect(html).to include(%(class="k-val filtered"))
+  end
+
+  # Filters replace a value with one particular String, so a value the app set to the same text
+  # isn't mistaken for one that was filtered.
+  it "marks only values the filters replaced, not values that merely read [FILTERED]" do
+    page = error_page(request: request_context(cookies: {"_session" => "[FILTERED]"}))
+
+    expect(html_for(page)).not_to include(%(class="k-val filtered"))
   end
 
   # Without a UTF-8 locale (`LANG` unset, as in many Docker images), Ruby reads files as US-ASCII.

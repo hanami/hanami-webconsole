@@ -56,7 +56,8 @@ RSpec.describe Hanami::Webconsole::RequestContext do
     it "filters and inspects" do
       expect(context.params["q"]).to eq('"ruby"')
       expect(context.params["title"]).to eq('"Hanami"')
-      expect(context.params["password"]).to eq("[FILTERED]")
+      # The exact object, which is how the page tells a filtered value apart (see Rendering::HTML).
+      expect(context.params["password"]).to equal(Hanami::Webconsole::Filters::FILTERED)
     end
 
     it "filters nested params" do

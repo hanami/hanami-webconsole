@@ -4,6 +4,8 @@ require "erb"
 require "json"
 require "rack/utils"
 
+require_relative "../filters"
+
 module Hanami
   module Webconsole
     module Rendering
@@ -55,9 +57,6 @@ module Hanami
         # The most columns a panel can have and still fit alongside other panels. A panel with more
         # columns than this spans the full width of the page.
         NARROW_COLUMNS = 2
-
-        # The value shown in place of anything the logger's filters have hidden.
-        FILTERED = "[FILTERED]"
 
         # The request methods we can safely retry after running a fix, by reloading the page.
         #
@@ -558,13 +557,15 @@ module Hanami
 
         # Returns a name and value as a row, marked if the logger's filters replaced the value.
         #
+        # The filters replace a value with {Filters::FILTERED} itself, so this checks for that exact
+        # object. A value that merely reads `"[FILTERED]"` isn't marked.
+        #
         # @param name [#to_s]
         # @param value [#to_s]
         #
         # @return [Row]
         def row(name, value)
-          value = value.to_s
-          Row.new(cells: [name.to_s, value], filtered: value == FILTERED)
+          Row.new(cells: [name.to_s, value.to_s], filtered: value.equal?(Filters::FILTERED))
         end
 
         # Returns a context panel, ready for the template.
