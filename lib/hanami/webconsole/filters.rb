@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "safety"
+
 module Hanami
   module Webconsole
     # Redacts sensitive values before they reach the error page.
@@ -63,7 +65,7 @@ module Hanami
         return false if name.empty?
 
         keys.any? { |filtered_key| name.include?(filtered_key) }
-      rescue ::Exception # rubocop:disable Lint/RescueException
+      rescue *Safety::ERRORS
         # A key we cannot even read the name of is redacted rather than shown: over-redacting is
         # recoverable, leaking a password is not.
         true
@@ -103,7 +105,7 @@ module Hanami
 
       def safe_downcased(key)
         downcased(key)
-      rescue ::Exception # rubocop:disable Lint/RescueException
+      rescue *Safety::ERRORS
         ""
       end
 
@@ -129,7 +131,7 @@ module Hanami
         klass = OBJECT_CLASS.bind_call(object)
 
         MODULE_SUBSET.bind_call(klass, ancestor) ? true : false
-      rescue ::Exception # rubocop:disable Lint/RescueException
+      rescue *Safety::ERRORS
         false
       end
 

@@ -4,6 +4,7 @@ require "rack"
 
 require_relative "filters"
 require_relative "inspector"
+require_relative "safety"
 
 module Hanami
   module Webconsole
@@ -17,6 +18,8 @@ module Hanami
     #
     # @api private
     class RequestContext
+      include Safety
+
       # Env keys, other than the `HTTP_*` ones, that are request headers.
       HEADER_KEYS = {"CONTENT_TYPE" => "Content-Type", "CONTENT_LENGTH" => "Content-Length"}.freeze
 
@@ -42,12 +45,12 @@ module Hanami
 
       # @return [String] e.g. `"GET"`
       def method_name
-        @method_name ||= string(safely { request&.request_method })
+        @method_name ||= string(safely(nil) { request&.request_method })
       end
 
       # @return [String] e.g. `"/books/247"`
       def path
-        @path ||= string(safely { request&.path })
+        @path ||= string(safely(nil) { request&.path })
       end
 
       # The media type the response was being negotiated for, falling back to the media type of
@@ -60,12 +63,12 @@ module Hanami
 
       # @return [String] e.g. `"127.0.0.1"`
       def ip
-        @ip ||= string(safely { request&.ip })
+        @ip ||= string(safely(nil) { request&.ip })
       end
 
       # @return [Hash<String, String>] filtered, values inspected
       def params
-        @params ||= presentable(safely { request&.params } || {})
+        @params ||= presentable(safely(nil) { request&.params } || {})
       end
 
       # @return [Hash<String, String>] filtered, values inspected, `{}` when there is no session
@@ -75,7 +78,7 @@ module Hanami
 
       # @return [Hash<String, String>] filtered
       def cookies
-        @cookies ||= redacted(safely { request&.cookies } || {})
+        @cookies ||= redacted(safely(nil) { request&.cookies } || {})
       end
 
       # Request headers, `HTTP_` de-prefixed and title-cased: `HTTP_ACCEPT_LANGUAGE` becomes
@@ -93,7 +96,7 @@ module Hanami
 
       def build_request
         ::Rack::Request.new(env)
-      rescue ::Exception # rubocop:disable Lint/RescueException
+      rescue *ERRORS
         nil
       end
 
@@ -108,7 +111,7 @@ module Hanami
         end
 
         headers.sort.to_h
-      rescue ::Exception # rubocop:disable Lint/RescueException
+      rescue *ERRORS
         {}
       end
 
@@ -124,10 +127,10 @@ module Hanami
       end
 
       def session_hash
-        raw = safely { env[SESSION_KEY] }
+        raw = safely(nil) { env[SESSION_KEY] }
         return {} if raw.nil?
 
-        hash = safely { raw.to_hash if raw.respond_to?(:to_hash) }
+        hash = safely(nil) { raw.to_hash if raw.respond_to?(:to_hash) }
         hash.is_a?(::Hash) ? hash : {}
       end
 
@@ -152,7 +155,7 @@ module Hanami
         end
 
         result
-      rescue ::Exception # rubocop:disable Lint/RescueException
+      rescue *ERRORS
         {}
       end
 
@@ -161,14 +164,14 @@ module Hanami
         return nil if accepted.nil? || accepted == ANY_MEDIA_TYPE
 
         accepted
-      rescue ::Exception # rubocop:disable Lint/RescueException
+      rescue *ERRORS
         nil
       end
 
       def media_type(value)
         type = string(value).split(";").first.to_s.strip.downcase
         type.empty? ? nil : type
-      rescue ::Exception # rubocop:disable Lint/RescueException
+      rescue *ERRORS
         nil
       end
 
@@ -177,7 +180,7 @@ module Hanami
         return Inspector.call(value) unless value.is_a?(::String) || value.is_a?(::Symbol)
 
         utf8(value.to_s)
-      rescue ::Exception # rubocop:disable Lint/RescueException
+      rescue *ERRORS
         ""
       end
 
@@ -188,14 +191,8 @@ module Hanami
           value.encoding == ::Encoding::UTF_8
 
         value.valid_encoding? ? value : value.scrub("?")
-      rescue ::Exception # rubocop:disable Lint/RescueException
+      rescue *ERRORS
         ""
-      end
-
-      def safely
-        yield
-      rescue ::Exception # rubocop:disable Lint/RescueException
-        nil
       end
     end
   end

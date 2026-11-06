@@ -1,17 +1,21 @@
 # frozen_string_literal: true
 
+require_relative "safety"
+
 module Hanami
   module Webconsole
     # Safe replacement for `#inspect`.
     #
     # Every value rendered on the error page passes through here. The page runs in a development
     # server against whatever objects the application happens to have in scope, so this must be
-    # hostile-input safe: `#inspect` may raise anything (including non-`StandardError`), return a
-    # non-String, recurse forever, or take minutes to build a string nobody will read.
+    # hostile-input safe: `#inspect` may raise (including errors that aren't a `StandardError`),
+    # return a non-String, recurse forever, or take minutes to build a string nobody will read.
     #
     # The rules:
     #
-    # * Never raise. On total failure return {UNINSPECTABLE}.
+    # * Never raise for any of {Safety::ERRORS}. On total failure return {UNINSPECTABLE}. Other
+    #   exceptions, such as a timeout raised into the thread, are meant to stop the request, so
+    #   they're let through.
     # * Never trust a method defined on the object. Class lookup, and iteration over the built-in
     #   collections, go through unbound methods taken from the real core classes.
     # * Build the string incrementally for `Array`, `Hash` and `String`, stopping as soon as the
@@ -82,7 +86,7 @@ module Hanami
           limit = normalize_limit(limit)
 
           truncate(sanitize(build(object, limit, 0, [])), limit)
-        rescue ::Exception # rubocop:disable Lint/RescueException
+        rescue *Safety::ERRORS
           UNINSPECTABLE
         end
 
@@ -99,7 +103,7 @@ module Hanami
           name = sanitize(name.to_s)
 
           name.empty? ? UNKNOWN_CLASS : name
-        rescue ::Exception # rubocop:disable Lint/RescueException
+        rescue *Safety::ERRORS
           UNKNOWN_CLASS
         end
 
@@ -119,7 +123,7 @@ module Hanami
           else
             plain_inspect(object, limit)
           end
-        rescue ::Exception # rubocop:disable Lint/RescueException
+        rescue *Safety::ERRORS
           UNINSPECTABLE
         end
 
@@ -137,7 +141,7 @@ module Hanami
           end
 
           string_inspect_result(result, limit)
-        rescue ::Exception => exception # rubocop:disable Lint/RescueException
+        rescue *Safety::ERRORS => exception
           describe(object, "#inspect raised #{class_name(exception)}")
         end
 
@@ -151,7 +155,7 @@ module Hanami
           slice = STRING_BYTESLICE.bind_call(object, 0, (limit + 1) * 4)
 
           string_inspect_result(STRING_INSPECT.bind_call(sanitize(slice)), limit)
-        rescue ::Exception # rubocop:disable Lint/RescueException
+        rescue *Safety::ERRORS
           UNINSPECTABLE
         end
 
@@ -231,25 +235,25 @@ module Hanami
           return UNINSPECTABLE if name == UNKNOWN_CLASS
 
           "#<#{name} (#{reason})>"
-        rescue ::Exception # rubocop:disable Lint/RescueException
+        rescue *Safety::ERRORS
           UNINSPECTABLE
         end
 
         def real_class(object)
           OBJECT_CLASS.bind_call(object)
-        rescue ::Exception # rubocop:disable Lint/RescueException
+        rescue *Safety::ERRORS
           nil
         end
 
         def subclass_of?(klass, ancestor)
           MODULE_SUBSET.bind_call(klass, ancestor) ? true : false
-        rescue ::Exception # rubocop:disable Lint/RescueException
+        rescue *Safety::ERRORS
           false
         end
 
         def safe_object_id(object)
           OBJECT_ID.bind_call(object)
-        rescue ::Exception # rubocop:disable Lint/RescueException
+        rescue *Safety::ERRORS
           nil
         end
 
@@ -261,7 +265,7 @@ module Hanami
         def normalize_limit(limit)
           limit = ::Kernel.Integer(limit)
           limit < 1 ? 1 : limit
-        rescue ::Exception # rubocop:disable Lint/RescueException
+        rescue *Safety::ERRORS
           DEFAULT_LIMIT
         end
 
@@ -269,7 +273,7 @@ module Hanami
           return string if string.length <= limit
 
           "#{string[0, limit - 1]}#{ELLIPSIS}"
-        rescue ::Exception # rubocop:disable Lint/RescueException
+        rescue *Safety::ERRORS
           UNINSPECTABLE
         end
 
@@ -280,7 +284,7 @@ module Hanami
             string.encoding == ::Encoding::UTF_8
 
           string.valid_encoding? ? string : string.scrub("?")
-        rescue ::Exception # rubocop:disable Lint/RescueException
+        rescue *Safety::ERRORS
           UNINSPECTABLE
         end
       end

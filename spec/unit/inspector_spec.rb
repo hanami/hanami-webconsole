@@ -117,8 +117,16 @@ RSpec.describe Hanami::Webconsole::Inspector do
         expect(inspector.call(Raiser.new)).to eq("#<Raiser (#inspect raised RuntimeError)>")
       end
 
-      it "survives an #inspect that raises something other than StandardError" do
-        expect(inspector.call(FatalRaiser.new)).to eq("#<FatalRaiser (#inspect raised Exception)>")
+      it "survives an #inspect that raises a ScriptError" do
+        stub_const("Unfinished", Class.new { def inspect = raise(NotImplementedError, "later") })
+
+        expect(inspector.call(Unfinished.new)).to eq("#<Unfinished (#inspect raised NotImplementedError)>")
+      end
+
+      # Exceptions outside Safety::ERRORS, such as a timeout raised into the thread, are meant to
+      # stop the request.
+      it "lets through an exception that isn't one it rescues" do
+        expect { inspector.call(FatalRaiser.new) }.to raise_error(::Exception, "not a StandardError")
       end
 
       it "survives an #inspect that blows the stack" do
