@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "inspector"
 require_relative "safety"
 
 module Hanami
@@ -26,11 +27,8 @@ module Hanami
       MAX_DEPTH = 16
 
       # Unbound methods from the real core classes, so an object cannot escape filtering by
-      # redefining `#class`, `#is_a?` or `#each_pair`. See {Inspector} for the same reasoning.
-      OBJECT_CLASS = ::Object.instance_method(:class)
-
-      MODULE_SUBSET = ::Module.instance_method(:<=)
-
+      # redefining `#each_pair` or `#map`. Class checks go through {Inspector.real_kind_of?}, for
+      # the same reason.
       HASH_EACH_PAIR = ::Hash.instance_method(:each_pair)
 
       ARRAY_MAP = ::Array.instance_method(:map)
@@ -120,26 +118,18 @@ module Hanami
       # Uses the real class rather than `#is_a?`, which an object is free to lie about. Filtering
       # runs over session and param values, which are arbitrary application objects.
       def hash?(object)
-        kind_of_real?(object, ::Hash)
+        Inspector.real_kind_of?(object, ::Hash)
       end
 
       def array?(object)
-        kind_of_real?(object, ::Array)
-      end
-
-      def kind_of_real?(object, ancestor)
-        klass = OBJECT_CLASS.bind_call(object)
-
-        MODULE_SUBSET.bind_call(klass, ancestor) ? true : false
-      rescue *Safety::ERRORS
-        false
+        Inspector.real_kind_of?(object, ::Array)
       end
 
       def string_for(key)
-        return key if kind_of_real?(key, ::String)
+        return key if Inspector.real_kind_of?(key, ::String)
 
         name = key.to_s
-        kind_of_real?(name, ::String) ? name : ""
+        Inspector.real_kind_of?(name, ::String) ? name : ""
       end
     end
   end

@@ -175,22 +175,13 @@ module Hanami
         nil
       end
 
+      # Header, cookie and param strings come off the wire and can hold any bytes at all, so they're
+      # made valid UTF-8 (see {Inspector.sanitize}).
       def string(value)
         return "" if value.nil?
         return Inspector.call(value) unless value.is_a?(::String) || value.is_a?(::Symbol)
 
-        utf8(value.to_s)
-      rescue *ERRORS
-        ""
-      end
-
-      # Header, cookie and param strings come off the wire and can hold any bytes at all. They go
-      # straight into an HTML document, so they must be valid UTF-8 before they get there.
-      def utf8(value)
-        value = value.encode(::Encoding::UTF_8, invalid: :replace, undef: :replace) unless
-          value.encoding == ::Encoding::UTF_8
-
-        value.valid_encoding? ? value : value.scrub("?")
+        Inspector.sanitize(value.to_s)
       rescue *ERRORS
         ""
       end

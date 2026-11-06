@@ -107,6 +107,35 @@ module Hanami
           UNKNOWN_CLASS
         end
 
+        # Returns true if the object's real class is the given class or a subclass of it, ignoring
+        # any `#class` or `#is_a?` the object defines.
+        #
+        # @param object [Object]
+        # @param ancestor [Module]
+        #
+        # @return [Boolean]
+        def real_kind_of?(object, ancestor)
+          klass = real_class(object)
+          klass ? subclass_of?(klass, ancestor) : false
+        end
+
+        # Returns the string as valid UTF-8, replacing any bytes that aren't.
+        #
+        # Strings on the page go straight into an HTML document, and a stray invalid byte sequence
+        # blows up much later, in the template, where it is unrecoverable.
+        #
+        # @param string [String]
+        #
+        # @return [String] {UNINSPECTABLE} if the string can't be converted at all
+        def sanitize(string)
+          string = string.encode(::Encoding::UTF_8, invalid: :replace, undef: :replace) unless
+            string.encoding == ::Encoding::UTF_8
+
+          string.valid_encoding? ? string : string.scrub("?")
+        rescue *Safety::ERRORS
+          UNINSPECTABLE
+        end
+
         private
 
         def build(object, limit, depth, seen)
@@ -273,17 +302,6 @@ module Hanami
           return string if string.length <= limit
 
           "#{string[0, limit - 1]}#{ELLIPSIS}"
-        rescue *Safety::ERRORS
-          UNINSPECTABLE
-        end
-
-        # Guarantees valid UTF-8. The result goes straight into an HTML document, and a stray
-        # invalid byte sequence blows up much later, in the template, where it is unrecoverable.
-        def sanitize(string)
-          string = string.encode(::Encoding::UTF_8, invalid: :replace, undef: :replace) unless
-            string.encoding == ::Encoding::UTF_8
-
-          string.valid_encoding? ? string : string.scrub("?")
         rescue *Safety::ERRORS
           UNINSPECTABLE
         end

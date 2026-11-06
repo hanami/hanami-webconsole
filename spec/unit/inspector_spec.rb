@@ -397,4 +397,27 @@ RSpec.describe Hanami::Webconsole::Inspector do
       end
     end
   end
+
+  describe ".real_kind_of?" do
+    it "checks the object's real class, including subclasses" do
+      expect(inspector.real_kind_of?({}, Hash)).to be(true)
+      expect(inspector.real_kind_of?(Class.new(Hash).new, Hash)).to be(true)
+      expect(inspector.real_kind_of?([], Hash)).to be(false)
+    end
+
+    it "ignores an object lying about its class" do
+      expect(inspector.real_kind_of?(Liar.new, String)).to be(false)
+    end
+
+    it "handles a BasicObject" do
+      expect(inspector.real_kind_of?(BasicObject.new, Hash)).to be(false)
+    end
+  end
+
+  describe ".sanitize" do
+    it "returns valid UTF-8, replacing invalid bytes" do
+      expect(inspector.sanitize("bad \xff byte")).to eq("bad ? byte")
+      expect(inspector.sanitize("caf\xE9".dup.force_encoding("ISO-8859-1"))).to eq("café")
+    end
+  end
 end
