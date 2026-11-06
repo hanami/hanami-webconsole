@@ -11,9 +11,10 @@ module Hanami
     # `file://` URL passed as a query parameter (`txmt://open?url=...&line=...`). Both are
     # supported here; anything else is out of scope until someone asks for it.
     #
-    # The editor is chosen with `ENV["HANAMI_EDITOR"]`, falling back to `:vscode`. An unknown
-    # name falls back to the default rather than raising: a mistyped environment variable must
-    # never be the reason an error page fails to render.
+    # The editor is chosen with `ENV["HANAMI_EDITOR"]`. Without it, the editor is taken from the
+    # command in `ENV["VISUAL"]` or `ENV["EDITOR"]` (so `EDITOR="code -w"` gives VS Code), and
+    # otherwise it's `:vscode`. An unknown name falls back to the default rather than raising: a
+    # mistyped environment variable must never be the reason an error page fails to render.
     #
     # @api private
     class Editor
@@ -25,6 +26,8 @@ module Hanami
         vscode: "vscode://file/%{path}:%{line}",
         vscodium: "vscodium://file/%{path}:%{line}",
         cursor: "cursor://file/%{path}:%{line}",
+        # Zed takes everything after `zed://file` as the path, so there's no slash before it.
+        zed: "zed://file%{path}:%{line}",
         subl: "subl://open?url=file://%{escaped_path}&line=%{line}",
         txmt: "txmt://open?url=file://%{escaped_path}&line=%{line}"
       }.freeze
@@ -45,11 +48,38 @@ module Hanami
       # Environment variable naming the editor to link to.
       ENV_KEY = "HANAMI_EDITOR"
 
+      # Environment variables holding the developer's editor command, tried in order when
+      # {ENV_KEY} isn't set.
+      COMMAND_ENV_KEYS = ["VISUAL", "EDITOR"].freeze
+
       # Returns an editor configured from the environment.
       #
       # @return [Editor]
       def self.from_env(env = ENV)
-        new(env[ENV_KEY] || DEFAULT)
+        new(env[ENV_KEY] || command_name(env) || DEFAULT)
+      end
+
+      # Returns the name of the first editor command in `VISUAL` or `EDITOR` that we can link to,
+      # e.g. `"code"` for `"/usr/local/bin/code -w"`, or nil if there's none. An editor without a
+      # URL scheme, such as `vim`, is skipped.
+      #
+      # @return [String, nil]
+      def self.command_name(env)
+        COMMAND_ENV_KEYS
+          .filter_map { |key| env[key].to_s.split.first }
+          .map { |command| File.basename(command) }
+          .find { |name| canonical_name(name) }
+      end
+      private_class_method :command_name
+
+      # Returns the canonical name for an editor name or alias, e.g. `:vscode` for `"code"`.
+      #
+      # @return [Symbol, nil] nil if we don't know the editor
+      def self.canonical_name(name)
+        symbol = name.to_s.strip.downcase.to_sym
+        symbol = ALIASES.fetch(symbol, symbol)
+
+        symbol if TEMPLATES.key?(symbol)
       end
 
       # @return [Symbol] the canonical editor name
@@ -85,10 +115,7 @@ module Hanami
       end
 
       def canonical_name(name)
-        symbol = name.to_s.strip.downcase.to_sym
-        symbol = ALIASES.fetch(symbol, symbol)
-
-        TEMPLATES.key?(symbol) ? symbol : DEFAULT
+        self.class.canonical_name(name) || DEFAULT
       end
     end
   end

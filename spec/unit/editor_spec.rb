@@ -14,6 +14,12 @@ RSpec.describe Hanami::Webconsole::Editor do
         .to eq("cursor://file//app/lib/books.rb:12")
     end
 
+    # Zed takes everything after `zed://file` as the path, and reads a `:line` suffix from it.
+    it "builds a Zed link" do
+      expect(described_class.new(:zed).url("/app/my app/books.rb", 12))
+        .to eq("zed://file/app/my%20app/books.rb:12")
+    end
+
     it "builds a TextMate link" do
       expect(described_class.new(:txmt).url("/app/lib/books.rb", 12))
         .to eq("txmt://open?url=file://%2Fapp%2Flib%2Fbooks.rb&line=12")
@@ -65,8 +71,23 @@ RSpec.describe Hanami::Webconsole::Editor do
       expect(described_class.from_env("HANAMI_EDITOR" => "subl").name).to eq(:subl)
     end
 
-    it "defaults when HANAMI_EDITOR is unset" do
+    it "defaults when no editor is set" do
       expect(described_class.from_env({}).name).to eq(:vscode)
+    end
+
+    it "falls back to the command in VISUAL or EDITOR" do
+      expect(described_class.from_env("EDITOR" => "zed").name).to eq(:zed)
+      expect(described_class.from_env("EDITOR" => "/usr/local/bin/code -w").name).to eq(:vscode)
+      expect(described_class.from_env("VISUAL" => "subl -w", "EDITOR" => "zed").name).to eq(:subl)
+    end
+
+    it "prefers HANAMI_EDITOR over VISUAL and EDITOR" do
+      expect(described_class.from_env("HANAMI_EDITOR" => "cursor", "EDITOR" => "zed").name).to eq(:cursor)
+    end
+
+    it "skips an editor command it can't link to" do
+      expect(described_class.from_env("VISUAL" => "vim", "EDITOR" => "zed").name).to eq(:zed)
+      expect(described_class.from_env("EDITOR" => "vim").name).to eq(:vscode)
     end
   end
 end
