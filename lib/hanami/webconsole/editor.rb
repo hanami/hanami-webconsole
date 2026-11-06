@@ -75,13 +75,6 @@ module Hanami
         )
       end
 
-      # Returns the URL scheme, for use in a Content-Security-Policy.
-      #
-      # @return [String]
-      def scheme
-        "#{@name}://"
-      end
-
       private
 
       # Percent-encodes a path for use as a URL path segment, keeping its separators.

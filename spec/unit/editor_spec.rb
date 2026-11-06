@@ -69,11 +69,4 @@ RSpec.describe Hanami::Webconsole::Editor do
       expect(described_class.from_env({}).name).to eq(:vscode)
     end
   end
-
-  describe "#scheme" do
-    it "returns the URL scheme" do
-      expect(described_class.new(:txmt).scheme).to eq("txmt://")
-      expect(described_class.new.scheme).to eq("vscode://")
-    end
-  end
 end
