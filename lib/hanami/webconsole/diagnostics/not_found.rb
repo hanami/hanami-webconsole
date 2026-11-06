@@ -67,32 +67,6 @@ module Hanami
           end
         end
 
-        # Returns a sentence suggesting the closest matching route, for the fix.
-        #
-        # If the closest route has a distance of zero, then the requested path has the route's
-        # shape, but failed one of its constraints (see {#nearest_match}). In this case, the
-        # sentence says which constraints the route has.
-        #
-        # @return [String]
-        private def suggested_route_fix
-          pattern, distance = nearest_match
-
-          if distance.zero?
-            constrained_route = reachable_routes.find { _1.path == pattern && _1.constraints? }
-          end
-          return "Did you mean `#{pattern}`?" unless constrained_route
-
-          "`#{constrained_route.http_method} #{pattern}` matches this path, but not its constraints " \
-            "(`#{constrained_route.inspect_constraints}`)."
-        end
-
-        # Returns true if there is a route close enough to suggest.
-        #
-        # @return [Boolean]
-        private def suggested_route?
-          !nearest_match.nil?
-        end
-
         # Returns the app's routes as a dataset, with the same columns as `hanami routes`.
         #
         # This lists every route, no matter how many there are. The panel's filter box only searches
@@ -112,6 +86,32 @@ module Hanami
         end
 
         private
+
+        # Returns true if there is a route close enough to suggest.
+        #
+        # @return [Boolean]
+        def suggested_route?
+          !nearest_match.nil?
+        end
+
+        # Returns a sentence suggesting the closest matching route, for the fix.
+        #
+        # If the closest route has a distance of zero, then the requested path has the route's
+        # shape, but failed one of its constraints (see {#nearest_match}). In this case, the
+        # sentence says which constraints the route has.
+        #
+        # @return [String]
+        def suggested_route_fix
+          pattern, distance = nearest_match
+
+          if distance.zero?
+            constrained_route = reachable_routes.find { _1.path == pattern && _1.constraints? }
+          end
+          return "Did you mean `#{pattern}`?" unless constrained_route
+
+          "`#{constrained_route.http_method} #{pattern}` matches this path, but not its constraints " \
+            "(`#{constrained_route.inspect_constraints}`)."
+        end
 
         # Returns the routes to list in the dataset.
         #
