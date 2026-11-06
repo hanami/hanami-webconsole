@@ -28,8 +28,8 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
 
   # --- config ----------------------------------------------------------------------------------
 
-  let(:error_responses) { Hash.new(:internal_server_error) }
-  let(:config) { double("Config", render_error_responses: error_responses, root: "/app") }
+  # Only passed through to the page, which is stubbed below.
+  let(:config) { double("Config") }
   let(:slice) { double("Slice", config:, app: nil) }
 
   # --- the page --------------------------------------------------------------------------------
@@ -149,7 +149,7 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
   describe "rendering the error page" do
     let(:raised) { RuntimeError.new("boom") }
 
-    it "renders HTML with the configured status" do
+    it "renders HTML" do
       get "/", {}, "HTTP_ACCEPT" => "text/html"
 
       expect(last_response.status).to eq(500)
@@ -171,23 +171,13 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
       expect(registry.fetch(page.id)).to be(page)
     end
 
-    it "maps Hanami::Router::NotFoundError to 404, not 500" do
-      stub_const("Hanami::Router::NotFoundError", Class.new(StandardError))
-      error_responses["Hanami::Router::NotFoundError"] = :not_found
-
-      allow(inner_app).to receive(:call).and_raise(Hanami::Router::NotFoundError.new("nope"))
+    # The mapping from `config.render_error_responses` is in ErrorPage#status, and specced there.
+    it "responds with the page's status" do
+      allow(page).to receive(:status).and_return(404)
 
       get "/", {}, "HTTP_ACCEPT" => "text/html"
 
       expect(last_response.status).to eq(404)
-    end
-
-    it "falls back to 500 when the exception is not mapped to a status" do
-      allow(config).to receive(:render_error_responses).and_return({})
-
-      get "/", {}, "HTTP_ACCEPT" => "text/html"
-
-      expect(last_response.status).to eq(500)
     end
 
     it "rescues non-StandardError exceptions" do

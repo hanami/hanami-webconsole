@@ -127,7 +127,7 @@ module Hanami
         page = build_page(env, exception)
         @registry.put(page)
 
-        status = status_for(exception)
+        status = page.status
         csrf_token = request.cookies[CSRF_COOKIE_NAME] || SecureRandom.uuid
         csp_nonce = SecureRandom.base64(12)
 
@@ -207,17 +207,6 @@ module Hanami
         bindings.empty? ? nil : bindings
       rescue StandardError
         nil
-      end
-
-      # This is what the `BetterErrors::Middleware#show_error_page` monkey patch existed to do:
-      # better_errors hardcoded 500 outside Rails, so the status had to be corrected afterwards.
-      def status_for(exception)
-        response = @config.render_error_responses[exception.class.name]
-        return 500 unless response
-
-        Rack::Utils.status_code(response)
-      rescue StandardError
-        500
       end
 
       # Requests that reach here have already cleared the IP allowlist.
