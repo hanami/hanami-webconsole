@@ -176,6 +176,17 @@ RSpec.describe Hanami::Diagnostics::Text do
     end
   end
 
+  describe ".fence" do
+    it "fences code, with an optional language" do
+      expect(described_class.fence("puts 1")).to eq("```\nputs 1\n```")
+      expect(described_class.fence("puts 1", "ruby")).to eq("```ruby\nputs 1\n```")
+    end
+
+    it "uses more backticks than any run in the code, so the code can't close the fence" do
+      expect(described_class.fence("a ```` b")).to eq("`````\na ```` b\n`````")
+    end
+  end
+
   describe ".unclosed_fence" do
     it "returns the fence that would close the text's open code block" do
       expect(described_class.unclosed_fence("Run:\n````sh\nls")).to eq("````")

@@ -160,19 +160,15 @@ module Hanami
         end
 
         # Returns the exception's message and the lines `detailed_message` adds to it, in a fenced
-        # block, so they show exactly as written, the same as in a terminal.
-        #
-        # The fence has more backticks than any run of backticks in the text, so nothing in the text
-        # can close it.
+        # block, so they show exactly as written, the same as in a terminal. Nothing in the text can
+        # close the fence (see {Hanami::Diagnostics::Text.fence}).
         #
         # @return [String, nil] nil if there's no message and no extra lines
         def message_block
           lines = [page.message, *page.detailed_extras].reject(&:empty?)
           return nil if lines.empty?
 
-          text = lines.join("\n")
-          fence = "`" * [3, (text.scan(/`+/).map(&:length).max || 0) + 1].max
-          "#{fence}\n#{text}\n#{fence}"
+          Hanami::Diagnostics::Text.fence(lines.join("\n"))
         end
 
         def backtrace_block

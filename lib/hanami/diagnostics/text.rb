@@ -154,6 +154,21 @@ module Hanami
           block.type == :code && SHELL_LANGUAGES.include?(block.language)
         end
 
+        # Returns the given code in a fenced code block.
+        #
+        # The fence is longer than any run of backticks in the code, so nothing in the code can
+        # close it.
+        #
+        # @param code [String]
+        # @param language [String] the code's language, or empty for none
+        #
+        # @return [String]
+        def fence(code, language = "")
+          backticks = "`" * [3, (code.scan(/`+/).map(&:length).max || 0) + 1].max
+
+          "#{backticks}#{language}\n#{code}\n#{backticks}"
+        end
+
         private
 
         # Returns the given part as text, for {#join}.
@@ -175,9 +190,7 @@ module Hanami
           end
         end
 
-        # Returns the given code inside a fence, or nil if the code is blank.
-        #
-        # The fence is longer than any run of backticks in the code, so the code can't close it.
+        # Returns the given code inside a fence (see {.fence}), or nil if the code is blank.
         #
         # @param language [Symbol, String] the code's language, or `code` for none
         # @param code [String, nil]
@@ -188,10 +201,7 @@ module Hanami
           return nil if code.empty?
 
           language = language.to_s[/\A[^`\s]*/]
-          language = "" if language == "code"
-          backticks = "`" * [3, (code.scan(/`+/).map(&:length).max || 0) + 1].max
-
-          "#{backticks}#{language}\n#{code}\n#{backticks}"
+          fence(code, language == "code" ? "" : language)
         end
 
         # Returns the index of the line that closes the fence opened at the given index, or nil if
