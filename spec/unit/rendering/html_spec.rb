@@ -137,6 +137,19 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     expect(data["initialFrame"]).to eq(0)
   end
 
+  it "embeds variables only for the initial frame, leaving the rest to load when selected" do
+    gem_frame = frame(kind: :gem, locals: [variable("env", "Hash", "{}")])
+    app_frame = frame(kind: :app)
+    data = page_data(html_for(error_page(frames: [gem_frame, app_frame])))
+
+    expect(data["initialFrame"]).to eq(1)
+    expect(data["frames"][1]).to include("locals" => [["id", "Integer", "247"]], "ivars" => [])
+    expect(data["frames"][0].keys).not_to include("locals", "ivars")
+    expect(gem_frame).not_to have_received(:locals)
+    expect(gem_frame).not_to have_received(:instance_vars)
+    expect(data["variablesPath"]).to eq("/_hanami/webconsole/0-a1b2c3/variables")
+  end
+
   it "embeds the CSRF token for the console's double submit" do
     html = html_for(error_page, csrf_token: "t0ken")
 

@@ -463,6 +463,7 @@ module Hanami
 
         def payload
           {
+            "variablesPath" => "#{MOUNT_PATH}/#{page.id}/variables",
             "evalPath" => "#{MOUNT_PATH}/#{page.id}/eval",
             "runPath" => "#{MOUNT_PATH}/#{page.id}/run",
             "retryable" => RETRYABLE_METHODS.include?(page.request.method_name.to_s.upcase),
@@ -474,10 +475,19 @@ module Hanami
           }
         end
 
+        # Returns a frame's data for the page's script.
+        #
+        # Every frame gets its source, as on Rails' error page: reading it is cheap, and the source
+        # files are cached. Only the initial frame gets its variables, so the page opens with them
+        # already shown. The script loads any other frame's variables when it's selected (see
+        # {Middleware}). Inspecting a variable calls its own `#inspect`, which can take any amount
+        # of time, so we don't do it for frames that are never looked at.
+        #
+        # @return [Hash]
         def frame_payload(frame, index)
           excerpt = frame.source
 
-          {
+          payload = {
             "index" => index,
             "kind" => frame.kind.to_s,
             "path" => frame.path,
@@ -487,9 +497,17 @@ module Hanami
             "binding" => !frame.binding.nil?,
             "editorUrl" => frame.path ? editor.url(frame.path, frame.lineno) : nil,
             "start" => excerpt&.first_lineno,
-            "src" => excerpt&.lines,
-            "locals" => variables(frame.locals),
-            "ivars" => variables(frame.instance_vars)
+            "src" => excerpt&.lines
+          }
+
+          index == initial_frame_index ? payload.merge(variables_payload(frame)) : payload
+        end
+
+        # @return [Hash] the frame's variables, as rows for the page's variables table
+        def variables_payload(frame)
+          {
+            "locals" => frame.locals.map(&:to_row),
+            "ivars" => frame.instance_vars.map(&:to_row)
           }
         end
 
@@ -502,10 +520,6 @@ module Hanami
 
         def editor
           @editor ||= Editor.from_env
-        end
-
-        def variables(variables)
-          Array(variables).map { |variable| [variable.name, variable.class_name, variable.value] }
         end
 
         # Returns the panel for the diagnostic's dataset, if there is one.

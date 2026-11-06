@@ -11,15 +11,22 @@ module Hanami
     # render it without any further processing, and never touch the underlying object.
     #
     # @api private
-    Variable = Struct.new(:name, :class_name, :value, keyword_init: true)
+    Variable = Struct.new(:name, :class_name, :value, keyword_init: true) do
+      # Returns the variable as a row in the page's variables table, for the page's script.
+      #
+      # @return [Array(String, String, String)] the name, class name and value
+      def to_row = [name, class_name, value]
+    end
 
     # One entry in a backtrace, together with everything the page shows for it: where it points,
     # whether it belongs to the app, the surrounding source, and (when a binding was captured)
     # the local and instance variables at that point.
     #
-    # Frames are built for every backtrace entry but most are never rendered, so all the expensive
-    # work — reading source, inspecting variables, stat-ing the path — is deferred until asked
-    # for, and memoized once done.
+    # Frames are built for every backtrace entry, so all the work — reading source, inspecting
+    # variables, stat-ing the path — is deferred until asked for, and memoized once done. The HTML
+    # page reads every frame's source, which is cheap and cached, but inspects variables only for
+    # the frames the developer looks at, since a value's own `#inspect` can take any amount of
+    # time.
     #
     # NOTE: {Inspector} is referenced lazily, at call time, and only from {#locals} and
     # {#instance_vars}.

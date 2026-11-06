@@ -65,4 +65,26 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
     expect(last_response.status).to eq(200)
     expect(JSON.parse(last_response.body)).to include("output" => '"Ruby"', "error" => false)
   end
+
+  it "includes the initial frame's variables, and loads another frame's when asked" do
+    skip "needs binding_of_caller" unless Hanami::Webconsole.bindings_available?
+
+    get "/books/247", {}, "HTTP_ACCEPT" => "text/html"
+    data = page_data
+    initial = data["initialFrame"]
+    # The lambda in `inner_app`, which called `find_book`.
+    caller_index = initial + 1
+
+    expect(data["frames"][initial]["locals"]).to include(["title", "String", '"Ruby"'])
+    expect(data["frames"][caller_index].keys).not_to include("locals", "ivars")
+
+    post(
+      data["variablesPath"],
+      JSON.generate("csrfToken" => data["csrfToken"], "index" => caller_index),
+      "CONTENT_TYPE" => "application/json"
+    )
+
+    expect(last_response.status).to eq(200)
+    expect(JSON.parse(last_response.body)["locals"].map(&:first)).to include("spec")
+  end
 end

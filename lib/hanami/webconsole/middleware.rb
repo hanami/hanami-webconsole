@@ -269,6 +269,10 @@ module Hanami
         Rack::Utils.secure_compare(cookie, token)
       end
 
+      # Returns a frame's variables, which the page loads when the frame is selected.
+      #
+      # The rows have the same shape as the initial frame's variables in the page (see
+      # {Rendering::HTML#frame_payload}), so the page's script handles both the same way.
       def variables_response(page, body)
         frame = frame_for(page, body)
         return unknown_frame_response unless frame
@@ -277,9 +281,8 @@ module Hanami
           200,
           id: page.id,
           index: frame_index(body),
-          replAvailable: Webconsole.bindings_available? && !frame.binding.nil?,
-          locals: frame.locals.map { |variable| variable_payload(variable) },
-          instanceVariables: frame.instance_vars.map { |variable| variable_payload(variable) }
+          locals: frame.locals.map(&:to_row),
+          ivars: frame.instance_vars.map(&:to_row)
         )
       end
 
@@ -357,10 +360,6 @@ module Hanami
           id: page.id, index: frame_index(body), source:,
           output: output.to_s, error: !!error
         )
-      end
-
-      def variable_payload(variable)
-        {name: variable.name, className: variable.class_name, value: variable.value}
       end
 
       def frame_index(body)

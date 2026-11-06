@@ -322,11 +322,8 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
         expect(json_body).to eq(
           "id" => page.id,
           "index" => 0,
-          "replAvailable" => true,
-          "locals" => [{"name" => "id", "className" => "String", "value" => '"247"'}],
-          "instanceVariables" => [
-            {"name" => "@repo", "className" => "BookRepo", "value" => "#<BookRepo>"}
-          ]
+          "locals" => [["id", "String", '"247"']],
+          "ivars" => [["@repo", "BookRepo", "#<BookRepo>"]]
         )
       end
 
