@@ -492,7 +492,7 @@ module Hanami
             "line" => frame.lineno,
             "label" => frame.label,
             "binding" => !frame.binding.nil?,
-            "editorUrl" => frame.path ? editor.url(frame.path, frame.lineno) : nil,
+            "editorUrl" => frame.file? ? editor.url(frame.path, frame.lineno) : nil,
             "start" => excerpt&.first_lineno,
             "src" => excerpt&.lines
           }

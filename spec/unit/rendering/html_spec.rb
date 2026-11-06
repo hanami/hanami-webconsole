@@ -174,6 +174,12 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     )
   end
 
+  it "gives no editor link for a frame that isn't a file, such as eval'd code" do
+    html = html_for(error_page(frames: [frame(kind: :core, path: "(eval)", file: false)]))
+
+    expect(page_data(html)["frames"][0]["editorUrl"]).to be_nil
+  end
+
   it "reports a frame with no readable source" do
     page = error_page(frames: [frame(source: nil)])
     data = page_data(html_for(page))

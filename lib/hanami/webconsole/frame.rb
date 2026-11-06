@@ -106,6 +106,20 @@ module Hanami
         kind == :app
       end
 
+      # Returns true if the frame's path is a file on disk.
+      #
+      # It isn't for `eval`'d code, C frames, a backtrace line with no path, or a file deleted since
+      # the exception was raised.
+      #
+      # @return [Boolean]
+      def file?
+        return @file if defined?(@file)
+
+        @file = !path.empty? && !virtual_path? && File.file?(path)
+      rescue StandardError
+        @file = false
+      end
+
       # The path as shown on the page: relative to the app root for app frames, and relative to
       # the gem home for gem frames, so a frame reads `rack-3.1.8/lib/rack/method_override.rb`
       # rather than a hundred characters of installation prefix.
@@ -154,7 +168,6 @@ module Hanami
       end
 
       def detect_kind
-        return :core if path.empty? || virtual_path?
         return :core unless file?
         return :app if app_path?
         return :gem if gem_path?
@@ -164,12 +177,6 @@ module Hanami
 
       def virtual_path?
         VIRTUAL_PREFIXES.any? { |prefix| path.start_with?(prefix) }
-      end
-
-      def file?
-        File.file?(path)
-      rescue StandardError
-        false
       end
 
       # Vendored dependencies live under the app root but are not the developer's code, so they

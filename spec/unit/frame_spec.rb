@@ -156,6 +156,19 @@ RSpec.describe Hanami::Webconsole::Frame do
     end
   end
 
+  describe "#file?" do
+    it "is true for a file on disk" do
+      expect(frame(path: write(File.join(root, "app/actions/show.rb")))).to be_file
+    end
+
+    it "is false for a path that isn't a file" do
+      expect(frame(path: "<internal:kernel>")).not_to be_file
+      expect(frame(path: "(eval at foo.rb:1)")).not_to be_file
+      expect(frame(path: File.join(root, "app/gone.rb"))).not_to be_file
+      expect(frame(path: "")).not_to be_file
+    end
+  end
+
   describe "#display_path" do
     it "is relative to the root for app frames" do
       path = write(File.join(root, "app/actions/books/show.rb"))

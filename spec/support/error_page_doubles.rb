@@ -29,12 +29,14 @@ module ErrorPageDoubles
     source: excerpt(["def find(id)", "  books.by_pk(id).one!", "end"]),
     locals: [variable("id", "Integer", "247")],
     instance_vars: [],
-    frame_binding: nil
+    frame_binding: nil,
+    file: true
   )
     instance_double(
       Hanami::Webconsole::Frame,
       kind:,
       app?: kind == :app,
+      file?: file,
       path:,
       display_path:,
       lineno:,
