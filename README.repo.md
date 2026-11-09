@@ -14,20 +14,15 @@ And then execute:
 $ bundle install
 ```
 
-**NOTE:** You need a version of `hanami` `2.0.0+`.
+**NOTE:** Use the same major version of `hanami` and `hanami-webconsole`.
 
 ## Usage
 
-When an exception is raised during your local development in-browser, you'll see the web console.
+When an exception is raised during your local development in-browser, you'll see the web console. Hanami adds the web console automatically in development when this gem is bundled.
 
 ### Code reloading
 
-This gem in **not compatible** with `hanami` code reloading.
-
-In order to use this gem, you have two alternatives:
-
-  1. Start the server without code reloading: `bundle exec hanami server --no-code-reloading`
-  1. Use [`hanami-reloader`](https://rubygems.org/gems/hanami-reloader) gem and start the server as usual: `bundle exec hanami server`
+Hanami reloads code by restarting the server (using [`hanami-reloader`](https://rubygems.org/gems/hanami-reloader)), so web console sessions don't survive a reload. Start the server as usual with `bundle exec hanami dev` or `bundle exec hanami server`.
 
 ## Development
 
@@ -40,7 +35,7 @@ To run all the test, use `script/ci`.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/hanami/webconsole.
+Bug reports and pull requests are welcome on GitHub at https://github.com/hanami/hanami-webconsole.
 
 ## Acknowledgements
 
