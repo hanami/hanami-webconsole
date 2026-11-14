@@ -310,7 +310,7 @@
     max-width: min(78ch, 100%);
     width: fit-content;
   }
-  .caret-box .caret { color: var(--signal-text); font-weight: 700; }
+  .caret-box .caret { color: var(--color-code-ink); font-weight: 700; }
 
   /* The cause chain, outermost first: each class with its message, verbatim. */
   /* Header text, so it takes the header's prose size, not the backtrace's 13px. */
