@@ -349,9 +349,16 @@ module Hanami
         end
 
         # @return [String]
+        # The version of Hanami, if it's loaded. Webconsole doesn't depend on Hanami, so it may not be.
+        #
+        # @return [String, nil]
+        def hanami_version
+          Hanami::VERSION.to_s if defined?(Hanami::VERSION)
+        end
+
         def meta_line
           [
-            defined?(Hanami::VERSION) ? "Hanami #{Hanami::VERSION}" : nil,
+            hanami_version ? "Hanami #{hanami_version}" : nil,
             RUBY_DESCRIPTION
           ].compact.join(" • ")
         end

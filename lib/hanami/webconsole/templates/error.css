@@ -155,21 +155,9 @@
     background: var(--chrome);
     border-radius: 0 0 15px 15px;
   }
+  .topbar .brand { display: inline-flex; align-items: center; gap: 0.55rem; flex: 0 0 auto; }
   .topbar .logo { width: 20px; height: 20px; flex: 0 0 auto; }
-  /* Shrinkable, not nowrap-at-any-cost: a long exception name must ellipsis rather than
-     push the sticky bar wider than the viewport. */
-  .topbar .klass {
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: var(--color-code-ink);
-    white-space: nowrap;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex: 0 1 auto;
-  }
-  .topbar .divider { width: 1px; height: 1.25rem; background: var(--border); flex: 0 0 auto; }
+  .topbar .version { font-size: 0.875rem; color: var(--color-primary); white-space: nowrap; }
   .topbar .req {
     font-family: var(--font-mono);
     font-size: 0.875rem;
@@ -197,20 +185,24 @@
     flex: 0 0 auto;
   }
   .status-pill .status-reason { display: inline; }
-  .topbar .open-editor {
+  /* The page's primary action. */
+  .btn-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font: inherit;
     font-size: 0.875rem;
     font-weight: 700;
-    letter-spacing: 0;
     color: #fff;
     background: var(--color-primary);
     border: 2px solid var(--color-primary);
     border-radius: 9px;
     padding: 0.25rem 0.75rem 0.35rem;
-    flex-direction: row-reverse;
-    gap: 0.6rem;
+    white-space: nowrap;
+    cursor: pointer;
+    flex: 0 0 auto;
   }
-  .topbar .open-editor:hover { filter: brightness(0.95); background: var(--color-primary); color: #fff; }
-  .topbar .open-editor .icon, .topbar .open-editor:hover .icon { color: #fff; }
+  .btn-copy:hover { filter: brightness(0.95); }
 
   /* ── hero band ──────────────────────────────────────────── */
   .hero {
@@ -231,6 +223,21 @@
     color: var(--color-code-ink);
     overflow-wrap: anywhere;
   }
+  .hero .exception-class {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1.6;
+    color: var(--color-code-ink);
+    overflow-wrap: anywhere;
+  }
+  .hero .exception-class + h1 {
+    font-family: var(--font-sans);
+    font-size: 1.125rem;
+    line-height: 1.4;
+    color: rgb(var(--foreground-rgb));
+  }
+  .hero .exception-class ~ .lede.message { font-size: 0.9375rem; font-weight: 400; }
   .hero .lede {
     font-size: 0.9375rem;
     line-height: 1.55;
@@ -880,10 +887,9 @@
      two things that can go without losing meaning. */
   @media (max-width: 640px) {
     .topbar { gap: 0.5rem; padding: 0.6rem 0.9rem; }
-    .topbar .divider { display: none; }
     .status-pill .status-reason { display: none; }
-    .open-editor .label { display: none; }
-    #copy-llm { padding: 0.38rem 0.55rem; }
+    .open-editor .label, .btn-copy .label, .topbar .version { display: none; }
+    .btn-copy { padding: 0.3rem 0.5rem; }
 
     :root { --gutter: 0.9rem; }
     .topbar { border-radius: 0 0 10px 10px; }

@@ -23,7 +23,6 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
 
     expect(html).to start_with("<!DOCTYPE html>")
     expect(html).to include("NoMethodError")
-    expect(html).to include("data-webconsole-exception-class")
     # Code and reason are separate spans so narrow screens can drop the reason.
     expect(html).to include(%(<span class="status-code">500</span>))
     expect(html).to include(%(<span class="status-reason">Internal Server Error</span>))
@@ -232,6 +231,46 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     )
   end
 
+  describe "the top bar" do
+    def topbar(html)
+      html[%r{<header class="topbar">(.*?)</header>}m, 1]
+    end
+
+    it "leads with the status and request, and leaves the class name to the header" do
+      bar = topbar(html_for(error_page))
+
+      expect(bar).to include(%(<span class="status-code">500</span>))
+      expect(bar).to include("/books/247")
+      expect(bar).not_to include("data-webconsole-exception-class")
+      expect(bar.index("data-webconsole-status")).to be < bar.index("data-webconsole-request-summary")
+    end
+
+    it "offers copying the error as its primary action" do
+      bar = topbar(html_for(error_page))
+
+      expect(bar).to include(%(<span class="label">Copy error</span>))
+      expect(bar).to include(%(class="btn-copy" data-webconsole-copy="text"))
+    end
+
+    it "shows the Hanami version beside the logo, when Hanami is loaded" do
+      stub_const("Hanami::VERSION", "3.0.2")
+
+      expect(topbar(html_for(error_page))).to include(%(<span class="version">Hanami 3.0.2</span>))
+    end
+
+    it "shows only the logo when the Hanami version is unknown" do
+      hide_const("Hanami::VERSION")
+
+      expect(topbar(html_for(error_page))).not_to include(%(class="version"))
+    end
+  end
+
+  it "shows no separate class name for a crash, since the headline is the class name" do
+    html = html_for(error_page)
+
+    expect(html).not_to include("data-webconsole-exception-class")
+  end
+
   describe "a crash" do
     it "leads with the class name and message, and an open backtrace" do
       html = html_for(error_page)
@@ -261,7 +300,8 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       html = html_for(page)
 
       expect(html).to include(%(<h1 data-webconsole-headline>Missing method</h1>))
-      expect(html).to include(%(data-webconsole-exception-class>NoMethodError</span>))
+      expect(html).to include(%(<p class="exception-class" data-webconsole-exception-class>NoMethodError</p>))
+      expect(html.index("data-webconsole-exception-class")).to be < html.index("data-webconsole-headline")
       expect(html).to include("undefined method <code>&#39;titel&#39;</code>")
       expect(html.index("data-webconsole-headline")).to be < html.index("data-webconsole-message")
       expect(html.index("data-webconsole-message")).to be < html.index(%(<div class="caret-box" data-webconsole-extras>))
