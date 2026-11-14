@@ -9,61 +9,83 @@
 </head>
 <body>
 
-<!-- Lucide icons (ISC). Inlined as a sprite: the page CSP blocks external assets. -->
+<!-- Phosphor icons, Bold (MIT), as hanakai.org uses. Inlined as a sprite: the page CSP blocks external assets. -->
 <%= icon_sprite %>
 
 <div data-webconsole-shell<%= actionable? ? " data-actionable" : "" %>>
   <header class="topbar">
-    <svg class="logo" viewBox="0 0 201 194" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hanami">
-      <path fill="#FF6C89" fill-rule="evenodd" clip-rule="evenodd" d="M48.1827 120.394C43.5166 120.84 38.6883 120.362 33.9539 118.828L24.3571 115.723C5.86366 109.736 -4.2754 89.9154 1.7354 71.4882C7.74194 53.0631 27.6357 42.9638 46.1334 48.9512L55.7302 52.0564C60.4645 53.5899 64.6525 56.0303 68.1617 59.1227C66.2961 54.843 65.2588 50.1194 65.2588 45.1579V35.1053C65.2588 15.7308 81.05 0.000991821 100.495 0.000991821C119.941 0.000991821 135.728 15.7308 135.728 35.1053V45.1579C135.728 50.1194 134.695 54.843 132.825 59.1227C136.334 56.0303 140.522 53.5899 145.261 52.0564L154.857 48.9512C173.351 42.9638 193.245 53.0631 199.255 71.4882C205.266 89.9154 195.127 109.736 176.634 115.723L167.037 118.828C162.298 120.362 157.47 120.84 152.808 120.394C156.843 122.764 160.467 125.978 163.395 129.994L169.325 138.126C180.758 153.801 177.265 175.771 161.53 187.16C145.798 198.548 123.749 195.069 112.316 179.395L106.387 171.26C103.458 167.246 101.511 162.819 100.495 158.261C99.4794 162.819 97.5326 167.246 94.6041 171.26L88.6745 179.395C77.242 195.069 55.1882 198.548 39.4568 187.16C23.7254 175.771 20.2332 153.801 31.6614 138.126L37.5953 129.994C40.5196 125.978 44.1441 122.764 48.1827 120.394Z" />
-      <circle cx="100.49" cy="102.192" r="45.17" fill="#FFC9C4" />
-      <path fill-rule="evenodd" clip-rule="evenodd" fill="#000" d="M78.1877 101.341C78.1877 103.219 76.6564 104.745 74.7716 104.745C72.8851 104.745 71.3555 103.219 71.3555 101.341C71.3555 94.5942 76.8527 89.1157 83.6248 89.1157C90.397 89.1157 95.8958 94.5942 95.8958 101.341C95.8958 103.219 94.3646 104.745 92.4797 104.745C90.5949 104.745 89.0636 103.219 89.0636 101.341C89.0636 98.35 86.6273 95.9226 83.6248 95.9226C80.624 95.9226 78.1877 98.35 78.1877 101.341Z" />
-      <path fill-rule="evenodd" clip-rule="evenodd" fill="#000" d="M112.005 101.341C112.005 103.219 110.474 104.745 108.589 104.745C106.703 104.745 105.173 103.219 105.173 101.341C105.173 94.5942 110.67 89.1157 117.443 89.1157C124.215 89.1157 129.714 94.5942 129.714 101.341C129.714 103.219 128.182 104.745 126.297 104.745C124.413 104.745 122.881 103.219 122.881 101.341C122.881 98.35 120.445 95.9226 117.443 95.9226C114.442 95.9226 112.005 98.35 112.005 101.341Z" />
-    </svg>
-    <span class="klass" data-webconsole-exception-class><%= h(page.exception_class) %></span>
-    <span class="divider"></span>
+    <span class="status" data-webconsole-status><span class="status-code"><%= h(status_code) %></span> <span class="status-reason"><%= h(status_reason) %></span></span>
     <span class="req" data-webconsole-request-summary><%= request_summary_html %></span>
     <span class="spacer"></span>
-    <button type="button" class="open-editor" data-webconsole-copy="text"
-            title="Copy the error, request and backtrace as plain text">
-      <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span class="label">Copy as text</span>
-    </button>
-    <span class="status-pill" data-webconsole-status>
-      <svg class="icon" aria-hidden="true"><use href="#i-<%= status_icon %>"/></svg><span class="status-code"><%= h(status_code) %></span><span class="status-reason"><%= h(status_reason) %></span>
+    <span class="brand">
+      <svg class="logo" viewBox="0 0 201 194" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hanami">
+        <path fill="#FF6C89" fill-rule="evenodd" clip-rule="evenodd" d="M48.1827 120.394C43.5166 120.84 38.6883 120.362 33.9539 118.828L24.3571 115.723C5.86366 109.736 -4.2754 89.9154 1.7354 71.4882C7.74194 53.0631 27.6357 42.9638 46.1334 48.9512L55.7302 52.0564C60.4645 53.5899 64.6525 56.0303 68.1617 59.1227C66.2961 54.843 65.2588 50.1194 65.2588 45.1579V35.1053C65.2588 15.7308 81.05 0.000991821 100.495 0.000991821C119.941 0.000991821 135.728 15.7308 135.728 35.1053V45.1579C135.728 50.1194 134.695 54.843 132.825 59.1227C136.334 56.0303 140.522 53.5899 145.261 52.0564L154.857 48.9512C173.351 42.9638 193.245 53.0631 199.255 71.4882C205.266 89.9154 195.127 109.736 176.634 115.723L167.037 118.828C162.298 120.362 157.47 120.84 152.808 120.394C156.843 122.764 160.467 125.978 163.395 129.994L169.325 138.126C180.758 153.801 177.265 175.771 161.53 187.16C145.798 198.548 123.749 195.069 112.316 179.395L106.387 171.26C103.458 167.246 101.511 162.819 100.495 158.261C99.4794 162.819 97.5326 167.246 94.6041 171.26L88.6745 179.395C77.242 195.069 55.1882 198.548 39.4568 187.16C23.7254 175.771 20.2332 153.801 31.6614 138.126L37.5953 129.994C40.5196 125.978 44.1441 122.764 48.1827 120.394Z" />
+        <circle cx="100.49" cy="102.192" r="45.17" fill="#FFC9C4" />
+        <path fill-rule="evenodd" clip-rule="evenodd" fill="#000" d="M78.1877 101.341C78.1877 103.219 76.6564 104.745 74.7716 104.745C72.8851 104.745 71.3555 103.219 71.3555 101.341C71.3555 94.5942 76.8527 89.1157 83.6248 89.1157C90.397 89.1157 95.8958 94.5942 95.8958 101.341C95.8958 103.219 94.3646 104.745 92.4797 104.745C90.5949 104.745 89.0636 103.219 89.0636 101.341C89.0636 98.35 86.6273 95.9226 83.6248 95.9226C80.624 95.9226 78.1877 98.35 78.1877 101.341Z" />
+        <path fill-rule="evenodd" clip-rule="evenodd" fill="#000" d="M112.005 101.341C112.005 103.219 110.474 104.745 108.589 104.745C106.703 104.745 105.173 103.219 105.173 101.341C105.173 94.5942 110.67 89.1157 117.443 89.1157C124.215 89.1157 129.714 94.5942 129.714 101.341C129.714 103.219 128.182 104.745 126.297 104.745C124.413 104.745 122.881 103.219 122.881 101.341C122.881 98.35 120.445 95.9226 117.443 95.9226C114.442 95.9226 112.005 98.35 112.005 101.341Z" />
+      </svg>
+<% if hanami_version -%>
+      <span class="version">Hanami <%= h(hanami_version) %></span>
+<% end -%>
     </span>
+    <button type="button" class="btn-copy" data-webconsole-copy="text"
+            title="Copy the error, request and backtrace as plain text">
+      <span class="label">Copy error</span><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>
+    </button>
   </header>
 
   <section class="hero" data-webconsole-hero>
-    <h1 data-webconsole-headline><%= h(headline) %></h1>
+    <div class="identity">
+<% if title -%>
+      <p class="exception-class" data-webconsole-exception-class><%= h(page.exception_class) %></p>
+<% end -%>
+      <h1 data-webconsole-headline><%= prose(headline) %></h1>
 <% if message? -%>
-    <pre class="lede message" data-webconsole-message><%= message_html %></pre>
+      <pre class="lede message" data-webconsole-message><%= message_html %></pre>
 <% end -%>
 <% if extras.any? -%>
-    <div class="caret-box" data-webconsole-extras><%= extras_html %></div>
+      <div class="caret-box" data-webconsole-extras><%= extras_html %></div>
 <% end -%>
 <% if explanation -%>
-    <div class="lede prose" data-webconsole-explanation><%= text_html(explanation) %></div>
+      <div class="lede prose" data-webconsole-explanation><%= text_html(explanation) %></div>
 <% end -%>
+<% if cause_details.any? -%>
+      <div class="causes" data-webconsole-causes>
+        <p class="causes-label">Caused by:</p>
+        <ul>
+<% cause_details.each do |cause| -%>
+          <li><code><%= h(cause.class_name) %></code><% unless cause.message.empty? %><span class="cause-dash"> – </span><span class="cause-message"><%= h(cause.message) %></span><% end %></li>
+<% end -%>
+        </ul>
+      </div>
+<% end -%>
+    </div>
+<% if callout? -%>
+    <aside class="callout" data-webconsole-callout>
 <%# A button and its manual equivalent are one fix offered two ways. -%>
 <% if fix -%>
-    <div class="fix" data-webconsole-fix>
+      <div class="fix" data-webconsole-fix>
+        <p class="callout-label"><span aria-hidden="true">&#x2726;</span> Suggested fix</p>
 <% if fix_heading -%>
-      <div class="fix-title"><h2><%= h(fix_heading) %></h2></div>
+        <div class="fix-title"><h2><%= prose(fix_heading) %></h2></div>
 <% end -%>
 <% if runnable_fix? -%>
-      <div class="run-actions">
-        <button type="button" class="btn-primary" data-webconsole-run<%= fix.destructive ? " data-destructive" : "" %>>
-          <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span class="label"><%= h(run_label) %></span>
-        </button>
-        <span class="fix-note">or do it yourself &darr;</span>
+        <div class="run-actions">
+          <button type="button" class="btn-primary" data-webconsole-run<%= fix.destructive ? " data-destructive" : "" %>>
+            <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span class="label"><%= h(run_label) %></span>
+          </button>
+        </div>
+        <div data-webconsole-run-output></div>
+<% end -%>
+        <div class="prose fix-text" data-webconsole-fix-text><%= text_html(fix.text, lead: runnable_fix? ? "Or do it yourself:" : nil) %></div>
       </div>
-      <div data-webconsole-run-output></div>
+<% elsif suggestion -%>
+      <div class="suggestion" data-webconsole-suggestion>
+        <p class="callout-label"><span aria-hidden="true">&#x2726;</span> Suggested fix</p>
+        <p class="suggestion-text"><%= suggestion_html %></p>
+      </div>
 <% end -%>
-      <div class="prose fix-text" data-webconsole-fix-text><%= text_html(fix.text) %></div>
-    </div>
-<% end -%>
-<% if causes.any? -%>
-    <p class="chips" data-webconsole-causes><span class="eyebrow">Caused by</span><% causes.each do |cause| %><code><%= h(cause) %></code><% end %></p>
+    </aside>
 <% end -%>
   </section>
 
@@ -71,7 +93,7 @@
     <button type="button" data-webconsole-disclosure-toggle aria-expanded="false" aria-controls="webconsole-workbench">
       <svg class="icon chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
       <span data-webconsole-disclosure-label>Show backtrace</span>
-      <span class="count" data-webconsole-disclosure-count>(<%= frames.length %> <%= frames.length == 1 ? "frame" : "frames" %>, <%= app_frames_count %> in your app)</span>
+      <span class="count" data-webconsole-disclosure-count><%= frames.length %> <%= frames.length == 1 ? "frame" : "frames" %>, <%= app_frames_count %> in your app</span>
     </button>
   </div>
 
@@ -80,10 +102,12 @@
       <div class="col-head">
         <span class="eyebrow">Backtrace</span>
         <span class="spacer"></span>
-        <div class="seg" role="group" aria-label="Filter frames">
-          <button type="button" data-webconsole-filter="app" aria-pressed="<%= app_only? ? "true" : "false" %>">App</button>
-          <button type="button" data-webconsole-filter="all" aria-pressed="<%= app_only? ? "false" : "true" %>">All</button>
-        </div>
+<% if app_only? && hidden_frames_count.positive? -%>
+        <label class="check">
+          <input type="checkbox" data-webconsole-show-all-frames>
+          <span>Show all frames (<%= hidden_frames_count %> hidden)</span>
+        </label>
+<% end -%>
       </div>
 <% if frames.any? -%>
       <ul class="frames<%= app_only? ? " app-only" : "" %>" data-webconsole-frame-list>
@@ -97,7 +121,6 @@
         </li>
 <% end -%>
       </ul>
-      <p class="frames-note" data-webconsole-frames-note></p>
 <% else -%>
       <p class="frames-empty" data-webconsole-frames-empty>This exception carries no backtrace.</p>
 <% end -%>
@@ -121,56 +144,67 @@
     </div>
   </section>
 
-  <section class="context" data-webconsole-context>
+  <div class="ctx-bar" data-webconsole-context-bar>
+    <span class="eyebrow">Show panels</span>
+    <div class="ctx-toggles">
 <% context_panels.each do |panel| -%>
-    <div class="ctx-panel<%= panel[:wide] ? " is-wide" : "" %>" data-webconsole-context-panel="<%= h(panel[:title]) %>">
-      <div class="ctx-head">
-        <svg class="icon" aria-hidden="true"><use href="#i-<%= panel[:icon] %>"/></svg>
-        <span class="eyebrow"><%= h(panel[:title]) %></span>
-<% if panel[:search] -%>
-        <span class="spacer"></span>
-        <div class="ctx-search">
-          <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
-          <input type="search" data-webconsole-search placeholder="<%= h(panel[:search]) %>"
-                 autocomplete="off" spellcheck="false" aria-label="<%= h(panel[:search]) %>">
-          <button type="button" class="ctx-clear" data-webconsole-search-clear hidden aria-label="Clear filter">
-            <svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>
-          </button>
+      <label class="check"><input type="checkbox" data-webconsole-panel-toggle="<%= h(panel[:title]) %>" checked><span><%= h(panel[:title]) %></span></label>
+<% end -%>
+    </div>
+    <span class="spacer"></span>
+    <div class="ctx-search">
+      <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+      <input type="search" data-webconsole-search placeholder="Press / to filter"
+             autocomplete="off" spellcheck="false" aria-label="Filter every panel">
+      <button type="button" class="ctx-clear" data-webconsole-search-clear hidden aria-label="Clear filter">
+        <svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>
+      </button>
+    </div>
+  </div>
+  <section class="context" data-webconsole-context>
+<% context_panel_groups.each do |wide, panels| -%>
+    <div class="<%= wide ? "ctx-wide" : "ctx-grid" %>">
+<% panels.each do |panel| -%>
+      <div class="ctx-panel<%= panel[:wide] ? " is-wide" : "" %>" data-webconsole-context-panel="<%= h(panel[:title]) %>">
+        <div class="ctx-head">
+          <span class="eyebrow"><%= h(panel[:title]) %></span>
+          <span class="ctx-count" data-webconsole-context-count><%= panel[:rows].length %></span>
         </div>
-<% end -%>
-      </div>
-      <div class="kv-wrap">
-        <table class="kv">
+        <div class="kv-wrap">
+          <table class="kv">
 <% if panel[:columns].any? -%>
-          <thead>
-            <tr>
+            <thead>
+              <tr>
 <% panel[:columns].each do |column| -%>
-              <th scope="col"><%= h(column) %></th>
+                <th scope="col"><%= h(column) %></th>
 <% end -%>
-            </tr>
-          </thead>
+              </tr>
+            </thead>
 <% end -%>
-          <tbody data-webconsole-rows>
+            <tbody data-webconsole-rows>
 <% panel[:rows].each do |row| -%>
-            <tr data-webconsole-row>
+              <tr data-webconsole-row>
 <% row.cells.each_with_index do |cell, index| -%>
-<% value = index == row.cells.length - 1 && index.positive? -%>
-              <td class="<%= index.zero? ? "k-name" : "k-val" %><%= value && row.filtered ? " filtered" : "" %>" data-webconsole-cell><%= h(cell) %></td>
+<% if index.zero? -%>
+                <td class="k-name" data-webconsole-cell><%= h(cell) %></td>
+<% else -%>
+<% filtered = index == row.cells.length - 1 && row.filtered -%>
+                <td class="k-val<%= filtered ? " filtered" : "" %>"><div class="clamp" data-webconsole-cell><%= h(cell) %></div><button type="button" class="cell-copy" data-webconsole-copy-cell aria-label="Copy value"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg></button></td>
 <% end -%>
-            </tr>
 <% end -%>
-          </tbody>
-        </table>
-        <p class="ctx-empty" data-webconsole-context-empty hidden>No matches</p>
+              </tr>
+<% end -%>
+            </tbody>
+          </table>
+          <p class="ctx-empty" data-webconsole-context-empty hidden>No matches</p>
+        </div>
       </div>
-<% if panel[:search] -%>
-      <p class="ctx-count" data-webconsole-context-count data-webconsole-noun="<%= h(panel[:noun]) %>"><%= panel[:rows].length %> <%= h(panel[:noun]) %> &middot; press / to filter</p>
 <% end -%>
     </div>
 <% end -%>
   </section>
 
-  <p class="meta" data-webconsole-meta><%= h(meta_line) %></p>
+  <footer class="meta" data-webconsole-meta><%= h(RUBY_DESCRIPTION) %></footer>
 </div>
 
 <script type="application/json" data-webconsole-frames><%= payload_json %></script>

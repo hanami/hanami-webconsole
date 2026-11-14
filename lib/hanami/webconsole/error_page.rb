@@ -23,6 +23,24 @@ module Hanami
       # Status code used as a safe fallback for {#status}.
       DEFAULT_STATUS = 500
 
+      # A did_you_mean suggestion for a misspelt name.
+      #
+      # @!attribute [r] name
+      #   @return [String] the name as written
+      # @!attribute [r] corrections
+      #   @return [Array<String>] the closest names, best first
+      # @!attribute [r] receiver_class
+      #   @return [String, nil] the class that responds to the corrections, for a `NoMethodError`
+      Suggestion = Data.define(:name, :corrections, :receiver_class)
+
+      # One cause of the exception.
+      #
+      # @!attribute [r] class_name
+      #   @return [String]
+      # @!attribute [r] message
+      #   @return [String] the message as written, or empty if it can't be read
+      Cause = Data.define(:class_name, :message)
+
       attr_reader :exception
 
       attr_reader :env
@@ -101,11 +119,34 @@ module Hanami
         }
       end
 
-      # Class names of the exception's causes, outermost cause last.
+      # Returns did_you_mean's suggestion for the exception, or nil if it has none.
+      #
+      # This reads the corrections directly, rather than parsing them out of `detailed_message`.
+      # Computing them can call into the receiver, so a failure just means no suggestion.
+      #
+      # @return [Suggestion, nil]
+      def suggestion
+        return @suggestion if defined?(@suggestion)
+
+        @suggestion = safely(nil) { build_suggestion }
+      end
+
+      # Class names of the exception's causes, outermost first.
       #
       # @return [Array<String>]
       def causes
-        @causes ||= Hanami::Diagnostics::Causes.of(exception).map { |cause| class_name_of(cause) }
+        @causes ||= cause_details.map(&:class_name)
+      end
+
+      # The exception's causes, outermost first, each with its class name and message.
+      #
+      # The message is as Ruby wrote it, or empty if it can't be read.
+      #
+      # @return [Array<Cause>]
+      def cause_details
+        @cause_details ||= Hanami::Diagnostics::Causes.of(exception).map { |cause|
+          Cause.new(class_name: class_name_of(cause), message: safely("") { cause.message.to_s })
+        }
       end
 
       # @return [Backtrace]
@@ -143,6 +184,19 @@ module Hanami
       end
 
       private
+
+      def build_suggestion
+        return unless exception.respond_to?(:corrections)
+
+        corrections = Array(exception.corrections).map(&:to_s).reject(&:empty?)
+        return if corrections.empty?
+
+        Suggestion.new(
+          name: exception.respond_to?(:name) ? exception.name.to_s : "",
+          corrections:,
+          receiver_class: exception.is_a?(NoMethodError) ? class_name_of(exception.receiver) : nil
+        )
+      end
 
       def compute_detailed_extras
         return [] unless exception.respond_to?(:detailed_message)

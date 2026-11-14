@@ -23,7 +23,6 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
 
     expect(html).to start_with("<!DOCTYPE html>")
     expect(html).to include("NoMethodError")
-    expect(html).to include("data-webconsole-exception-class")
     # Code and reason are separate spans so narrow screens can drop the reason.
     expect(html).to include(%(<span class="status-code">500</span>))
     expect(html).to include(%(<span class="status-reason">Internal Server Error</span>))
@@ -199,18 +198,84 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     expect(page_data(html_for(page))["initialFrame"]).to eq(1)
   end
 
+  describe "the backtrace filter" do
+    let(:app) { frame(kind: :app) }
+    let(:gem) { frame(kind: :gem, display_path: "gems/rack/lib/rack.rb") }
+
+    it "hides gem frames behind a checkbox that counts them" do
+      html = html_for(error_page(frames: [app, gem, gem]))
+
+      expect(html).to include(%(<input type="checkbox" data-webconsole-show-all-frames>))
+      expect(html).to include("Show all frames (2 hidden)")
+      expect(html).to include(%(class="frames app-only"))
+    end
+
+    it "has nothing to filter when every frame is the app's" do
+      expect(html_for(error_page(frames: [app, app]))).not_to include(%(<input type="checkbox" data-webconsole-show-all-frames>))
+    end
+
+    it "shows every frame, with nothing to filter, when none are the app's" do
+      html = html_for(error_page(frames: [gem]))
+
+      expect(html).not_to include(%(<input type="checkbox" data-webconsole-show-all-frames>))
+      expect(html).to include(%(<ul class="frames" data-webconsole-frame-list>))
+    end
+  end
+
   it "renders a page with no frames at all" do
     html = html_for(error_page(frames: []))
 
     expect(html).to include("data-webconsole-frames-empty")
   end
 
-  it "renders the detailed_message extras with the caret highlighted" do
+  it "renders the detailed_message extras with the caret highlighted, without their shared indent" do
     page = error_page(detailed_extras: ["  book.titel", "       ^^^^^"])
     html = html_for(page)
 
-    expect(html).to include("data-webconsole-extras")
-    expect(html).to include(%(<span class="caret">       ^^^^^</span>))
+    expect(html).to include(%(<div class="caret-box" data-webconsole-extras>book.titel\n<span class="caret">     ^^^^^</span></div>))
+  end
+
+  describe "a suggestion" do
+    let(:suggestion) {
+      Hanami::Webconsole::ErrorPage::Suggestion.new(name: "updte", corrections: ["update"], receiver_class: "Book")
+    }
+
+    it "shows the closest method and the receiver's class beside the header" do
+      html = html_for(error_page(suggestion:))
+
+      expect(html).to include(%(<aside class="callout" data-webconsole-callout>))
+      expect(html).to include("data-webconsole-suggestion")
+      expect(html).to include("Did you mean <code>update</code>?")
+      expect(html).to include(%(<p class="callout-label"><span aria-hidden="true">&#x2726;</span> Suggested fix</p>))
+      expect(html).to include("<code>Book</code> responds to it.")
+    end
+
+    it "lists every correction when there are several" do
+      several = suggestion.with(corrections: ["update", "upgrade"])
+
+      expect(html_for(error_page(suggestion: several))).to include("Did you mean <code>update</code> or <code>upgrade</code>?")
+    end
+
+    it "drops the did_you_mean lines from the extras, since the suggestion shows them" do
+      page = error_page(
+        suggestion:,
+        detailed_extras: ["  book.updte", "      ^^^^^^", "Did you mean?  update", "               upgrade"]
+      )
+      html = html_for(page)
+
+      expect(html[%r{<div class="caret-box" data-webconsole-extras>(.*?)</div>}m, 1]).not_to include("Did you mean")
+    end
+
+    it "gives way to a fix, which takes the same place" do
+      html = html_for(error_page(suggestion:, diagnostic: diagnostic(fix: "Run `hanami db migrate`.")))
+
+      expect(html).not_to include("data-webconsole-suggestion")
+      expect(html[%r{<aside class="callout" data-webconsole-callout>(.*?)</aside>}m, 1]).to include("data-webconsole-fix")
+    end
+
+    it "leaves out the callout when there's neither" do
+      expect(html_for(error_page)).not_to include("data-webconsole-callout")
+    end
   end
 
   it "shows a multi-line message as written" do
@@ -232,6 +297,90 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     )
   end
 
+  it "loads the fonts it ships, from the console's own path" do
+    html = html_for(error_page)
+
+    expect(html).to include(%(font-family: "Instrument Sans";))
+    expect(html).to include(%(src: url("/_hanami/webconsole/fonts/instrument-sans.woff2?v=#{Hanami::Webconsole::VERSION}") format("woff2");))
+    expect(html).to include(%(src: url("/_hanami/webconsole/fonts/maple-mono-nl-italic.woff2?v=#{Hanami::Webconsole::VERSION}") format("woff2");))
+  end
+
+  it "loads the fonts from another path when given one, as the previews do" do
+    html = html_for(error_page, font_path: "fonts")
+
+    expect(html).to include(%(url("fonts/instrument-sans.woff2?v=#{Hanami::Webconsole::VERSION}")))
+  end
+
+  describe "the top bar" do
+    def topbar(html)
+      html[%r{<header class="topbar">(.*?)</header>}m, 1]
+    end
+
+    it "leads with the status and request, and leaves the class name to the header" do
+      bar = topbar(html_for(error_page))
+
+      expect(bar).to include(
+        %(<span class="status" data-webconsole-status><span class="status-code">500</span> <span class="status-reason">Internal Server Error</span></span>)
+      )
+      expect(bar).to include("/books/247")
+      expect(bar).not_to include("data-webconsole-exception-class")
+      expect(bar.index("data-webconsole-status")).to be < bar.index("data-webconsole-request-summary")
+    end
+
+    it "offers copying the error as its primary action" do
+      bar = topbar(html_for(error_page))
+
+      expect(bar).to include(%(<span class="label">Copy error</span>))
+      expect(bar).to include(%(class="btn-copy" data-webconsole-copy="text"))
+    end
+
+    it "shows the Hanami version beside the logo, when Hanami is loaded" do
+      stub_const("Hanami::VERSION", "3.0.2")
+
+      expect(topbar(html_for(error_page))).to include(%(<span class="version">Hanami 3.0.2</span>))
+    end
+
+    it "puts Ruby's version and platform at the foot of the page" do
+      html = html_for(error_page)
+
+      expect(html).to include(%(<footer class="meta" data-webconsole-meta>#{Rack::Utils.escape_html(RUBY_DESCRIPTION)}</footer>))
+    end
+
+    it "shows only the logo when the Hanami version is unknown" do
+      hide_const("Hanami::VERSION")
+
+      expect(topbar(html_for(error_page))).not_to include(%(class="version"))
+    end
+  end
+
+  it "shows no separate class name for a crash, since the headline is the class name" do
+    html = html_for(error_page)
+
+    expect(html).not_to include("data-webconsole-exception-class")
+  end
+
+  it "lists the causes, outermost first, each with its message" do
+    causes = [
+      Hanami::Webconsole::ErrorPage::Cause.new(class_name: "TimeoutError", message: "Gave up"),
+      Hanami::Webconsole::ErrorPage::Cause.new(class_name: "Errno::ECONNREFUSED", message: "Connection refused - #{xss}")
+    ]
+    html = html_for(error_page(cause_details: causes))
+    list = html[%r{<div class="causes" data-webconsole-causes>(.*?)</div>}m, 1]
+
+    expect(list).to include(%(<p class="causes-label">Caused by:</p>))
+    expect(list).to include(
+      %(<li><code>TimeoutError</code><span class="cause-dash"> – </span><span class="cause-message">Gave up</span></li>)
+    )
+    expect(list).to include("Connection refused - &lt;script&gt;")
+    expect(list.index("TimeoutError")).to be < list.index("ECONNREFUSED")
+  end
+
+  it "leaves out the dash for a cause with no message" do
+    causes = [Hanami::Webconsole::ErrorPage::Cause.new(class_name: "TimeoutError", message: "")]
+
+    expect(html_for(error_page(cause_details: causes))).to include(%(<code>TimeoutError</code></li>))
+  end
+
   describe "a crash" do
     it "leads with the class name and message, and an open backtrace" do
       html = html_for(error_page)
@@ -239,7 +388,6 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       expect(html).to include(%(<h1 data-webconsole-headline>NoMethodError</h1>))
       expect(html).to include("data-webconsole-message")
       expect(html).to include("<div data-webconsole-shell>")
-      expect(html).to include("#i-triangle-alert")
       expect(html).not_to match(/data-webconsole-workbench hidden/)
     end
 
@@ -261,7 +409,8 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       html = html_for(page)
 
       expect(html).to include(%(<h1 data-webconsole-headline>Missing method</h1>))
-      expect(html).to include(%(data-webconsole-exception-class>NoMethodError</span>))
+      expect(html).to include(%(<p class="exception-class" data-webconsole-exception-class>NoMethodError</p>))
+      expect(html.index("data-webconsole-exception-class")).to be < html.index("data-webconsole-headline")
       expect(html).to include("undefined method <code>&#39;titel&#39;</code>")
       expect(html.index("data-webconsole-headline")).to be < html.index("data-webconsole-message")
       expect(html.index("data-webconsole-message")).to be < html.index(%(<div class="caret-box" data-webconsole-extras>))
@@ -289,15 +438,20 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       html = html_for(error_page(diagnostic: diagnostic(fix: "Did you mean `/books/:id`?")))
 
       expect(html).to include("<div data-webconsole-shell data-actionable>")
-      expect(html).to include("#i-wrench")
+      expect(html).to include(%(<p class="callout-label"><span aria-hidden="true">&#x2726;</span> Suggested fix</p>))
       expect(html).to match(/data-webconsole-workbench hidden/)
     end
 
-    it "heads an unnamed fix generically" do
+    it "heads an unnamed fix with the label alone" do
       html = html_for(error_page(diagnostic: diagnostic(fix: "Do this.")))
 
-      expect(html).to include("<h2>Fix it</h2>")
+      expect(html).to include(%(<p class="callout-label"><span aria-hidden="true">&#x2726;</span> Suggested fix</p>))
+      expect(html).not_to include("<h2>")
       expect(html).to include("<p>Do this.</p>")
+    end
+
+    it "has no lead-in for a fix with no button to run it" do
+      expect(html_for(error_page(diagnostic: diagnostic(fix: "Do this.")))).not_to include(%(class="fix-lead"))
     end
 
     it "heads a named fix with its name" do
@@ -315,6 +469,27 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       expect(html).to include(%(<pre class="snippet" data-webconsole-snippet data-webconsole-highlight>get &quot;/x&quot;, to: &quot;...&quot;</pre>))
       expect(html.scan(%(data-webconsole-copy="command")).length).to eq(1)
       expect(html.scan(%(data-webconsole-copy="snippet")).length).to eq(1)
+    end
+
+    it "uses typographic apostrophes in a diagnostic's prose, but not in its code" do
+      page = error_page(
+        diagnostic: diagnostic(
+          title: "Migrations haven't run",
+          explanation: "The app's database is behind. Run `hanami db migrate` if it's safe.",
+          fix: {name: "Reset the slice's database", text: "Run it."}
+        )
+      )
+      html = html_for(page)
+
+      expect(html).to include("<h1 data-webconsole-headline>Migrations haven’t run</h1>")
+      expect(html).to include("<p>The app’s database is behind. Run <code>hanami db migrate</code> if it’s safe.</p>")
+      expect(html).to include("<h2>Reset the slice’s database</h2>")
+    end
+
+    it "shows the exception's message exactly as written, apostrophes and all" do
+      html = html_for(error_page(message: "Couldn't sync the catalogue"))
+
+      expect(html).to include("Couldn&#39;t sync the catalogue")
     end
 
     it "escapes diagnostic text" do
@@ -349,11 +524,24 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
         expect(html_for(safe)).to include("data-webconsole-run>")
       end
 
+      it "runs the manual steps on from the button, as one sentence" do
+        html = html_for(page_with_runnable_fix("Drop the database, then migrate."))
+
+        expect(html).to include(%(<p><span class="fix-lead">Or do it yourself:</span> Drop the database, then migrate.</p>))
+        expect(html).not_to include("&darr;")
+      end
+
+      it "puts the lead-in on its own line when the steps start with code" do
+        html = html_for(page_with_runnable_fix("```sh\nhanami db reset\n```"))
+
+        expect(html).to include(%(<p class="fix-lead">Or do it yourself:</p>))
+      end
+
       it "labels the button generically for an unnamed fix" do
         html = html_for(page_with_runnable_fix("Do it."))
 
         expect(html).to include(%(<span class="label">Run this fix</span>))
-        expect(html).to include("<h2>Fix it</h2>")
+        expect(html).not_to include("<h2>")
       end
 
       it "tells the page where to run it, and whether reloading retries the request" do
@@ -380,14 +568,22 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       expect(html).not_to include("<thead>")
     end
 
+    it "puts a wide table in a row of its own, above the grid of request panels" do
+      dataset = {title: "Routes", columns: ["Method", "Path", "Endpoint"], rows: [["GET", "/books", "books.index"]]}
+      html = html_for(error_page(diagnostic: diagnostic(dataset:)))
+
+      expect(html).to match(%r{<div class="ctx-wide">\s*<div class="ctx-panel is-wide" data-webconsole-context-panel="Routes">})
+      expect(html).to match(%r{<div class="ctx-grid">\s*<div class="ctx-panel" data-webconsole-context-panel="Request">})
+      expect(html.index("ctx-wide")).to be < html.index(%(<div class="ctx-grid">))
+    end
+
     it "shows a table with more columns across the full width, with its headings" do
       dataset = {title: "Routes", columns: ["Method", "Path", "Endpoint"], rows: [["GET", "/books", "books.index"]]}
       html = html_for(error_page(diagnostic: diagnostic(dataset:)))
 
       expect(html).to include(%(<div class="ctx-panel is-wide" data-webconsole-context-panel="Routes">))
       expect(html).to include(%(<th scope="col">Endpoint</th>))
-      expect(html).to include(%(<td class="k-val" data-webconsole-cell>books.index</td>))
-      expect(html).to include("#i-route")
+      expect(html).to include(%(<div class="clamp" data-webconsole-cell>books.index</div>))
     end
   end
 
@@ -406,6 +602,34 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     expect(html).to include(%(data-webconsole-context-panel="Cookies"))
     expect(html).to include(%(data-webconsole-context-panel="Headers"))
     expect(html).to include(%(class="k-val filtered"))
+  end
+
+  describe "the context panels" do
+    let(:page) {
+      error_page(request: request_context(session: {"user_id" => "12"}, cookies: {"theme" => "dark"}))
+    }
+    let(:html) { html_for(page) }
+
+    it "has a checkbox per panel, all ticked, to show or hide it" do
+      %w[Request Params Session Cookies Headers].each do |title|
+        expect(html).to include(%(<input type="checkbox" data-webconsole-panel-toggle="#{title}" checked>))
+      end
+    end
+
+    it "has one filter for every panel" do
+      expect(html.scan(/<input type="search" data-webconsole-search/).length).to eq(1)
+      expect(html).not_to include("press / to filter")
+    end
+
+    it "counts each panel's rows in its heading" do
+      expect(html).to match(%r{<span class="eyebrow">Session</span>\s*<span class="ctx-count" data-webconsole-context-count>1</span>})
+    end
+
+    it "clamps each value, with a button to copy it" do
+      expect(html).to include(%(<td class="k-name" data-webconsole-cell>user_id</td>))
+      expect(html).to include(%(<td class="k-val"><div class="clamp" data-webconsole-cell>12</div>))
+      expect(html).to include(%(<button type="button" class="cell-copy" data-webconsole-copy-cell aria-label="Copy value">))
+    end
   end
 
   # Filters replace a value with one particular String, so a value the app set to the same text
