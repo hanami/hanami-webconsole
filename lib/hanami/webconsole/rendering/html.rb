@@ -384,10 +384,24 @@ module Hanami
         # `$` prompt, and every code block gets a copy button.
         #
         # @param text [String, nil]
+        # @param lead [String, nil] words to lead into the text with, such as "Or do it yourself:"
         #
         # @return [String]
-        def text_html(text)
-          Hanami::Diagnostics::Text.blocks(text).map { |block| block_html(block) }.join("\n")
+        def text_html(text, lead: nil)
+          html = Hanami::Diagnostics::Text.blocks(text).map { |block| block_html(block) }
+          return html.join("\n") unless lead
+
+          with_lead(html, lead).join("\n")
+        end
+
+        # Puts a lead-in before the first block: inside it as the start of a sentence when it's a
+        # paragraph, or on a line of its own before code or a list.
+        def with_lead(html, lead)
+          if html.first&.start_with?("<p>")
+            [html.first.sub("<p>", %(<p><span class="fix-lead">#{h(lead)}</span> )), *html.drop(1)]
+          else
+            [%(<p class="fix-lead">#{h(lead)}</p>), *html]
+          end
         end
 
         # Returns a line of text as HTML, with any quoted or backticked names wrapped in `<code>`.

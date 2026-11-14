@@ -425,6 +425,10 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       expect(html).to include("<p>Do this.</p>")
     end
 
+    it "has no lead-in for a fix with no button to run it" do
+      expect(html_for(error_page(diagnostic: diagnostic(fix: "Do this.")))).not_to include(%(class="fix-lead"))
+    end
+
     it "heads a named fix with its name" do
       html = html_for(error_page(diagnostic: diagnostic(fix: {name: "Add a route", text: "Add it."})))
 
@@ -472,6 +476,19 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
 
         expect(html_for(destructive)).to include("data-webconsole-run data-destructive>")
         expect(html_for(safe)).to include("data-webconsole-run>")
+      end
+
+      it "runs the manual steps on from the button, as one sentence" do
+        html = html_for(page_with_runnable_fix("Drop the database, then migrate."))
+
+        expect(html).to include(%(<p><span class="fix-lead">Or do it yourself:</span> Drop the database, then migrate.</p>))
+        expect(html).not_to include("&darr;")
+      end
+
+      it "puts the lead-in on its own line when the steps start with code" do
+        html = html_for(page_with_runnable_fix("```sh\nhanami db reset\n```"))
+
+        expect(html).to include(%(<p class="fix-lead">Or do it yourself:</p>))
       end
 
       it "labels the button generically for an unnamed fix" do

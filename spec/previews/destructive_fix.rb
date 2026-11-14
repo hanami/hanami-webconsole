@@ -29,5 +29,5 @@ unless Hanami::Diagnostics::Registry.entries.any? { |entry| entry.first == "Book
 end
 
 Previews.scenario "destructive_fix", "Actionable error with a destructive fix" do
-  raise Bookshelf::PendingMigrationError, "2 migrations are pending: 20261101_create_books, 20261102_add_isbn"
+  raise Bookshelf::PendingMigrationError, "2 migrations are pending: `20261101_create_books`, `20261102_add_isbn`"
 end

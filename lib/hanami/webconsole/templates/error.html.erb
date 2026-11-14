@@ -67,11 +67,10 @@
           <button type="button" class="btn-primary" data-webconsole-run<%= fix.destructive ? " data-destructive" : "" %>>
             <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span class="label"><%= h(run_label) %></span>
           </button>
-          <span class="fix-note">or do it yourself &darr;</span>
         </div>
         <div data-webconsole-run-output></div>
 <% end -%>
-        <div class="prose fix-text" data-webconsole-fix-text><%= text_html(fix.text) %></div>
+        <div class="prose fix-text" data-webconsole-fix-text><%= text_html(fix.text, lead: runnable_fix? ? "Or do it yourself:" : nil) %></div>
       </div>
 <% elsif suggestion -%>
       <div class="suggestion" data-webconsole-suggestion>
