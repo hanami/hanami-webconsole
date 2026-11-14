@@ -236,7 +236,7 @@
      set the whole page's minimum width and scroll a phone sideways. */
   .hero h1 {
     font-family: var(--font-mono);
-    font-size: 0.8125rem; /* 13px: the page's mono size for code and names */
+    font-size: 0.875rem; /* 14px: a step above the page's 13px mono, as it heads the error */
     font-weight: 700;
     line-height: 1.6;
     color: var(--color-code-ink);
@@ -244,7 +244,7 @@
   }
   .hero .exception-class {
     font-family: var(--font-mono);
-    font-size: 0.8125rem; /* 13px: the page's mono size for code and names */
+    font-size: 0.875rem; /* 14px: a step above the page's 13px mono, as it heads the error */
     font-weight: 700;
     line-height: 1.6;
     color: var(--color-code-ink);
