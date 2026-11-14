@@ -48,7 +48,6 @@
     --panel: var(--color-rom-50);
     --evidence: oklch(95.8% 0.02 279.99 / 0.4);  /* the site's bg-secondary-subtle */
     --evidence-border: var(--color-rom-100);
-    --input-border: #d4d4d4;
 
     /* swapped by [data-actionable] */
     --signal: var(--color-primary);
@@ -99,7 +98,6 @@
       --panel: oklch(18.2% 0.079 261.06 / 0.6);
       --evidence: oklch(18.2% 0.079 261.06 / 0.4);
       --evidence-border: oklch(30.95% 0.136 261.25);
-      --input-border: #404040;
       --syn-comment: #a3a3a3;
     }
   }
@@ -127,7 +125,6 @@
     --panel: oklch(18.2% 0.079 261.06 / 0.6);
     --evidence: oklch(18.2% 0.079 261.06 / 0.4);
     --evidence-border: oklch(30.95% 0.136 261.25);
-    --input-border: #404040;
     --syn-comment: #a3a3a3;
   }
 
@@ -836,7 +833,7 @@
     align-items: center;
     gap: 0.4rem;
     background: var(--card);
-    border: 1px solid var(--input-border);
+    border: 1px solid var(--border);
     border-radius: 5px;
     padding: 0.25rem 0.6rem;
     min-width: 0;
