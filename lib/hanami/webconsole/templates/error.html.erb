@@ -54,7 +54,7 @@
         <p class="causes-label">Caused by:</p>
         <ul>
 <% cause_details.each do |cause| -%>
-          <li><span class="cause-arrow" aria-hidden="true">↳</span> <code><%= h(cause.class_name) %></code><% unless cause.message.empty? %> – <span class="cause-message"><%= h(cause.message) %></span><% end %></li>
+          <li><span class="cause-arrow" aria-hidden="true">↳</span><code><%= h(cause.class_name) %></code><% unless cause.message.empty? %><span class="cause-dash"> – </span><span class="cause-message"><%= h(cause.message) %></span><% end %></li>
 <% end -%>
         </ul>
       </div>

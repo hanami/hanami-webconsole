@@ -236,7 +236,7 @@
      set the whole page's minimum width and scroll a phone sideways. */
   .hero h1 {
     font-family: var(--font-mono);
-    font-size: 0.9375rem;
+    font-size: 0.84375rem; /* 0.9 of the header's 15px: mono reads larger */
     font-weight: 700;
     line-height: 1.6;
     color: var(--color-code-ink);
@@ -244,7 +244,7 @@
   }
   .hero .exception-class {
     font-family: var(--font-mono);
-    font-size: 0.9375rem;
+    font-size: 0.84375rem; /* 0.9 of the header's 15px: mono reads larger */
     font-weight: 700;
     line-height: 1.6;
     color: var(--color-code-ink);
@@ -311,9 +311,13 @@
   .causes { font-size: 0.9375rem; min-width: 0; }
   .causes-label { color: var(--muted); margin-bottom: 0.35rem; }
   .causes ul { list-style: none; display: flex; flex-direction: column; gap: 0.3rem; }
-  .causes li { font-family: var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
-  .causes code { font-family: var(--font-mono); color: var(--color-code-ink); }
-  .cause-arrow { font-family: var(--font-sans); }
+  /* The arrow and dash are Instrument Sans at the header's size, the class and message mono at
+     0.9 of it, as code in prose is. The sans dash also stands apart from any hyphen in a message. */
+  .causes li { color: var(--muted); overflow-wrap: anywhere; }
+  .causes code, .cause-message { font-family: var(--font-mono); font-size: 0.9em; }
+  .causes code { color: var(--color-code-ink); }
+  .cause-arrow { margin-right: 0.45em; }
+  .cause-dash { white-space: pre; margin: 0 0.15em; }
 
   /* ── fix card (actionable errors) ───────────────────────── */
   .fix, .suggestion {
