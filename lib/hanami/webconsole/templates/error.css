@@ -286,7 +286,7 @@
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     padding: 0.625rem 0.875rem;
     color: rgb(var(--foreground-rgb));
-    max-width: 78ch;
+    max-width: min(78ch, 100%);
     width: fit-content;
   }
   .caret-box .caret { color: var(--signal-text); font-weight: 700; }
@@ -937,8 +937,8 @@
 
     :root { --gutter: 0.9rem; }
     .topbar { border-radius: 0 0 10px 10px; }
-    .fix, .caret-box { max-width: none; }
-    .hero { flex-direction: column; gap: 1rem; }
+    .fix { max-width: none; }
+    .hero { flex-direction: column; align-items: stretch; gap: 1rem; }
     .hero .callout { flex-basis: auto; width: 100%; }
 
     .col-head { padding: 0.6rem 0.9rem; flex-wrap: wrap; }

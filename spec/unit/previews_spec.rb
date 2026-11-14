@@ -29,8 +29,12 @@ RSpec.describe Previews, :isolate_diagnostics do
   end
 
   it "shows the fix for the actionable scenarios" do
-    expect(described_class.render(described_class.find("destructive_fix"))).to include("data-destructive")
-    expect(described_class.render(described_class.find("not_found"))).to include("data-webconsole-fix")
+    destructive = described_class.find("destructive_fix")
+    not_found = described_class.find("not_found")
+
+    expect(not_found.page.exception_class).to eq("Hanami::Router::NotFoundError")
+    expect(described_class.render(destructive)).to include("data-webconsole-run data-destructive>")
+    expect(described_class.render(not_found)).to include(%(<div class="fix" data-webconsole-fix>))
   end
 
   it "writes every scenario and an index linking them" do
