@@ -319,6 +319,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       bar = topbar(html_for(error_page))
 
       expect(bar).to include(%(<span class="status-code">500</span>))
+      expect(bar).to match(%r{<span class="status-code">500</span>\s*</span>\s*<span class="status-reason">Internal Server Error</span>})
       expect(bar).to include("/books/247")
       expect(bar).not_to include("data-webconsole-exception-class")
       expect(bar.index("data-webconsole-status")).to be < bar.index("data-webconsole-request-summary")

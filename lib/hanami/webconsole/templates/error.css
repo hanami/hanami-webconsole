@@ -211,7 +211,7 @@
     white-space: nowrap;
     flex: 0 0 auto;
   }
-  .status-pill .status-reason { display: inline; }
+  .topbar .status-reason { font-size: 0.875rem; font-weight: 500; color: #636363; white-space: nowrap; margin-left: -0.6rem; }
   /* The page's primary action. */
   .btn-copy {
     display: inline-flex;
@@ -323,15 +323,12 @@
      opportunities. */
   .chips code {
     font-family: var(--font-mono);
-    font-weight: 700;
-    font-size: 0.9375rem;
-    background: var(--amber-wash);
-    border: 1px solid rgba(255, 211, 59, 0.5);
-    border-radius: 5px;
-    padding: 0.15em 0.45em;
+    font-size: 0.875rem;
+    color: var(--color-code-ink);
     overflow-wrap: anywhere;
     min-width: 0;
   }
+  .chips code + code::before { content: "\2192"; color: var(--muted); margin-right: 0.5rem; }
 
   /* ── fix card (actionable errors) ───────────────────────── */
   .fix, .suggestion {
@@ -808,7 +805,8 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--card-shadow);
-    overflow: hidden;
+    /* clip, not hidden: hidden makes a scroll container, and the panel headings couldn't stick. */
+    overflow: clip;
   }
   /* Every panel draws its right and bottom edges, and the card clips the outer ones. */
   .ctx-panel { flex: 1 1 260px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0 -1px -1px 0; min-width: 0; }
@@ -820,6 +818,10 @@
     padding: 0.4rem 0.75rem;
     border-bottom: 1px solid var(--border);
     min-height: 2.25rem;
+    position: sticky;
+    top: var(--topbar-height, 0px);
+    z-index: 2;
+    background: var(--card);
   }
   .ctx-head > .icon { display: none; }
   .ctx-head .spacer { flex: 1 1 auto; }
@@ -886,7 +888,6 @@
     border-radius: 4px;
     padding: 0.05em 0.3em;
   }
-  .kv-wrap { overflow: auto; max-height: 24rem; }
   .kv { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
   .kv { table-layout: fixed; font-size: 0.75rem; }
   .kv td { padding: 0.375rem 0.75rem; border-bottom: 1px solid var(--border-soft); vertical-align: top; font-family: var(--font-mono); overflow-wrap: anywhere; }
@@ -924,14 +925,14 @@
     font-weight: 600;
     color: var(--muted);
     position: sticky;
-    top: 0;
+    top: calc(var(--topbar-height, 0px) + 2.25rem);
+    z-index: 1;
     background: rgb(var(--background-rgb));
   }
   /* A table with more than two columns needs the room. */
   .ctx-panel.is-wide { flex-basis: 100%; }
   .ctx-panel.is-wide .kv { table-layout: auto; }
   .ctx-panel.is-wide .kv .k-name { width: auto; }
-  .ctx-panel.is-wide .kv-wrap { max-height: 22rem; }
 
   .snippet {
     font-family: var(--font-mono);
@@ -959,7 +960,7 @@
      two things that can go without losing meaning. */
   @media (max-width: 640px) {
     .topbar { gap: 0.5rem; padding: 0.75rem var(--gutter) calc(0.5rem + 14px); }
-    .status-pill .status-reason { display: none; }
+    .topbar .status-reason { display: none; }
     .open-editor .label, .btn-copy .label, .topbar .version { display: none; }
     .btn-copy { padding: 0.3rem 0.5rem; }
 

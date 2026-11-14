@@ -15,8 +15,9 @@
 <div data-webconsole-shell<%= actionable? ? " data-actionable" : "" %>>
   <header class="topbar">
     <span class="status-pill" data-webconsole-status>
-      <svg class="icon" aria-hidden="true"><use href="#i-<%= status_icon %>"/></svg><span class="status-code"><%= h(status_code) %></span><span class="status-reason"><%= h(status_reason) %></span>
+      <svg class="icon" aria-hidden="true"><use href="#i-<%= status_icon %>"/></svg><span class="status-code"><%= h(status_code) %></span>
     </span>
+    <span class="status-reason"><%= h(status_reason) %></span>
     <span class="req" data-webconsole-request-summary><%= request_summary_html %></span>
     <span class="spacer"></span>
     <span class="brand">
