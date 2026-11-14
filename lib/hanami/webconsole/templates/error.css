@@ -222,8 +222,14 @@
     align-items: flex-start;
     gap: 2rem;
   }
-  .hero .identity { display: flex; flex-direction: column; gap: 0.25rem; flex: 1 1 0; min-width: 0; }
-  .hero .identity > :is(.caret-box, .prose, .chips) { margin-top: 0.75rem; }
+  /* One rhythm: the class and the title sit together as a heading (on a crash, the h1 is the
+     class and the message is the title), each paragraph after them is a step down, and the code
+     box and causes a step more, as in the design. */
+  .hero .identity { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; }
+  .hero .identity > * + * { margin-top: 0.75rem; }
+  .hero .identity > .exception-class + h1,
+  .hero .identity > h1:first-child + .message { margin-top: 0.25rem; }
+  .hero .identity > :is(.caret-box, .chips) { margin-top: 1rem; }
   .hero .callout { flex: 0 1 500px; min-width: 0; align-self: center; }
   /* `overflow-wrap: anywhere` rather than `break-word`: only `anywhere` reduces the
      min-content width, and an unbreakable constant like Foo::Bar::BazError would otherwise
@@ -277,7 +283,6 @@
     font-weight: 500;
     line-height: 1.4;
     white-space: pre-wrap;
-    margin: 0;
   }
   .hero .lede.message code { font-family: var(--font-mono); color: var(--color-code-ink); }
 
@@ -327,7 +332,6 @@
   .suggestion { gap: 0.75rem; }
   /* The label, the button and the manual steps read as one block, close together. */
   .fix { gap: 0.75rem; }
-  .fix-lead { color: var(--muted); }
   .suggestion-text { font-size: 0.9375rem; line-height: 1.55; overflow-wrap: anywhere; }
   .suggestion-text code { font-family: var(--font-mono); font-size: 0.875rem; color: var(--color-code-ink); }
   :is(.fix h2, .callout-label) {
