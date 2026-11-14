@@ -113,6 +113,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
+    padding-bottom: 2.5rem;
     color: rgb(var(--foreground-rgb));
     background: rgb(var(--background-rgb));
     font-family: var(--font-sans);
@@ -918,7 +919,6 @@
   .snippet-wrap { position: relative; }
   .snippet-wrap .copy-btn { position: absolute; top: 0.5rem; right: 0.5rem; }
 
-  .meta { text-align: center; font-size: 0.75rem; color: var(--faint); padding: 1.25rem 1.5rem 2rem; }
 
   @media (max-width: 900px) {
     .workbench { grid-template-columns: 1fr; }
@@ -954,7 +954,6 @@
     .vars td, .vars th, .kv td { padding-left: 0.9rem; padding-right: 0.9rem; }
     .repl-scroll, .repl-form, .repl-note { padding-left: 0.9rem; padding-right: 0.9rem; }
     .disclosure > button { padding: 0.85rem 0.9rem; }
-    .meta { padding: 1rem 0.9rem 2rem; }
   }
 
   @media (prefers-reduced-motion: reduce) {

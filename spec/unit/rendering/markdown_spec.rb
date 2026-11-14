@@ -37,6 +37,7 @@ RSpec.describe Hanami::Webconsole::Rendering::Markdown do
 
       - Request: GET /books/247
       - Status: 500
+      - Ruby: #{RUBY_DESCRIPTION}
 
       ### Backtrace (1 application frame of 2)
           app/actions/books/show.rb:16:in 'Show#handle'
@@ -59,6 +60,12 @@ RSpec.describe Hanami::Webconsole::Rendering::Markdown do
 
   it "fences the extras when there's no message" do
     expect(markdown_for(error_page(message: "", detailed_extras: ["  foo", "  ^^^"]))).to include("```\n  foo\n  ^^^\n```")
+  end
+
+  it "names the Hanami version, when Hanami is loaded" do
+    stub_const("Hanami::VERSION", "3.0.2")
+
+    expect(markdown_for(error_page)).to include("- Status: 500\n- Hanami: 3.0.2\n- Ruby: #{RUBY_DESCRIPTION}")
   end
 
   it "lists the cause chain" do
@@ -129,6 +136,7 @@ RSpec.describe Hanami::Webconsole::Rendering::Markdown do
 
         - Request: GET /books/247
         - Status: 500
+        - Ruby: #{RUBY_DESCRIPTION}
 
         ### Fix: Add a route
 

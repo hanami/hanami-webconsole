@@ -80,6 +80,8 @@ module Hanami
           bullets = []
           bullets << "- Request: #{request_summary}" if request_summary
           bullets << "- Status: #{page.status}"
+          bullets << "- Hanami: #{Hanami::VERSION}" if defined?(Hanami::VERSION)
+          bullets << "- Ruby: #{RUBY_DESCRIPTION}"
           bullets << "- Caused by: #{page.causes.join(' → ')}" if page.causes.any?
           bullets.join("\n")
         end
