@@ -68,9 +68,17 @@ RSpec.describe Hanami::Webconsole::Rendering::Markdown do
     expect(markdown_for(error_page)).to include("- Status: 500\n- Hanami: 3.0.2\n- Ruby: #{RUBY_DESCRIPTION}")
   end
 
-  it "lists the cause chain" do
-    expect(markdown_for(error_page(causes: ["TypeError", "ArgumentError"])))
-      .to include("- Caused by: TypeError → ArgumentError")
+  it "lists the cause chain, outermost first, with each cause's message on one line" do
+    causes = [
+      Hanami::Webconsole::ErrorPage::Cause.new(class_name: "TimeoutError", message: "Gave up\nafter 3 attempts"),
+      Hanami::Webconsole::ErrorPage::Cause.new(class_name: "Errno::ECONNREFUSED", message: "")
+    ]
+
+    expect(markdown_for(error_page(cause_details: causes))).to include(<<~TEXT.chomp)
+      - Caused by:
+        - `TimeoutError` – Gave up after 3 attempts
+        - `Errno::ECONNREFUSED`
+    TEXT
   end
 
   it "leaves out the label of a frame that has none" do

@@ -82,8 +82,18 @@ module Hanami
           bullets << "- Status: #{page.status}"
           bullets << "- Hanami: #{Hanami::VERSION}" if defined?(Hanami::VERSION)
           bullets << "- Ruby: #{RUBY_DESCRIPTION}"
-          bullets << "- Caused by: #{page.causes.join(' → ')}" if page.causes.any?
+          bullets << causes_text if page.cause_details.any?
           bullets.join("\n")
+        end
+
+        # The cause chain as a nested list, outermost first, each cause with its message. A
+        # message's line breaks become spaces, so it stays inside its list item.
+        def causes_text
+          items = page.cause_details.map { |cause|
+            message = cause.message.split(/\s*\n\s*/).join(" ").strip
+            message.empty? ? "  - `#{cause.class_name}`" : "  - `#{cause.class_name}` – #{message}"
+          }
+          ["- Caused by:", *items].join("\n")
         end
 
         def request_summary
