@@ -193,23 +193,8 @@
   }
   .topbar .req b { color: inherit; font-weight: 400; }
   .topbar .spacer { flex: 1 1 auto; }
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.6875rem;
-    font-weight: 800;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    padding: 0.28rem 0.7rem;
-    border-radius: 999px;
-    background: var(--signal);
-    color: var(--signal-ink);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    flex: 0 0 auto;
-  }
-  .topbar .status-reason { font-size: 0.875rem; font-weight: 500; color: #636363; white-space: nowrap; margin-left: -0.6rem; }
+  /* The status reads as the design has it: plain text, the code and its reason together. */
+  .topbar .status { font-size: 0.875rem; font-weight: 500; color: #636363; white-space: nowrap; font-variant-numeric: tabular-nums; }
   /* The page's primary action. */
   .btn-copy {
     display: inline-flex;
@@ -239,7 +224,7 @@
   }
   .hero .identity { display: flex; flex-direction: column; gap: 0.25rem; flex: 1 1 0; min-width: 0; }
   .hero .identity > :is(.caret-box, .prose, .chips) { margin-top: 0.75rem; }
-  .hero .callout { flex: 0 1 500px; min-width: 0; }
+  .hero .callout { flex: 0 1 500px; min-width: 0; align-self: center; }
   /* `overflow-wrap: anywhere` rather than `break-word`: only `anywhere` reduces the
      min-content width, and an unbreakable constant like Foo::Bar::BazError would otherwise
      set the whole page's minimum width and scroll a phone sideways. */

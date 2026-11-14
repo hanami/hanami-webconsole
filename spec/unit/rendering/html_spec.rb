@@ -318,8 +318,9 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     it "leads with the status and request, and leaves the class name to the header" do
       bar = topbar(html_for(error_page))
 
-      expect(bar).to include(%(<span class="status-code">500</span>))
-      expect(bar).to match(%r{<span class="status-code">500</span>\s*</span>\s*<span class="status-reason">Internal Server Error</span>})
+      expect(bar).to include(
+        %(<span class="status" data-webconsole-status><span class="status-code">500</span> <span class="status-reason">Internal Server Error</span></span>)
+      )
       expect(bar).to include("/books/247")
       expect(bar).not_to include("data-webconsole-exception-class")
       expect(bar.index("data-webconsole-status")).to be < bar.index("data-webconsole-request-summary")
@@ -362,7 +363,6 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       expect(html).to include(%(<h1 data-webconsole-headline>NoMethodError</h1>))
       expect(html).to include("data-webconsole-message")
       expect(html).to include("<div data-webconsole-shell>")
-      expect(html).to include("#i-triangle-alert")
       expect(html).not_to match(/data-webconsole-workbench hidden/)
     end
 
@@ -413,7 +413,6 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       html = html_for(error_page(diagnostic: diagnostic(fix: "Did you mean `/books/:id`?")))
 
       expect(html).to include("<div data-webconsole-shell data-actionable>")
-      expect(html).to include("#i-wrench")
       expect(html).to match(/data-webconsole-workbench hidden/)
     end
 

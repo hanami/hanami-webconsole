@@ -146,18 +146,6 @@ module Hanami
           page.actionable?
         end
 
-        # Returns the name of the icon to show next to the status code.
-        #
-        # @return [String]
-        def status_icon
-          actionable? ? "wrench" : "triangle-alert"
-        end
-
-        # @return [String]
-        def status_label
-          [status_code, status_reason].reject(&:empty?).join(" ")
-        end
-
         # Split from the reason so narrow screens can keep the code and drop the words.
         #
         # @return [String]
