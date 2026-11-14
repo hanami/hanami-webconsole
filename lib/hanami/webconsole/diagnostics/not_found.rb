@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "did_you_mean"
 require "did_you_mean/levenshtein"
 require_relative "../../diagnostics"
 
@@ -37,7 +36,6 @@ module Hanami
         # @param _context [Hanami::Diagnostics::Context] not used, since the routes come from the slice on the exception
         def initialize(exception, _context)
           @exception = exception
-          Corrections.register(exception.class)
         end
 
         # Returns the title.
@@ -48,10 +46,8 @@ module Hanami
 
         # Returns the fix.
         #
-        # If the path has a route's shape but fails its constraints, this says which constraints.
-        # If there's a close route, there's no fix: the route is a did_you_mean correction (see
-        # {#corrections}), shown as a suggestion, as Ruby's own are. Otherwise, it says where to
-        # add a new route.
+        # This suggests the closest matching route, if there is one. Otherwise, it says where to add
+        # a new route.
         #
         # We don't suggest the route itself. We'd have to guess at too much: whether it belongs in
         # `resources`, which slice it's for, and which action it goes to. The routes list shows how
@@ -61,28 +57,14 @@ module Hanami
         # defined it, so we can't tell whether the requested path belongs to a slice. Instead of
         # (possibly wrongly) pointing only to the app's routes file, we mention slices too.
         #
-        # @return [String, Hash, nil] nil if there's a close route, or the request's HTTP method has
-        #   no method of its own in the router DSL
+        # @return [String, Hash, nil] nil if there's no close route, and the request's HTTP method
+        #   has no method of its own in the router DSL
         def fix
-          if constrained_route
-            constrained_route_fix
-          elsif suggested_route?
-            nil
+          if suggested_route?
+            suggested_route_fix
           elsif ROUTABLE_METHODS.include?(verb)
             {name: "Add a route", text: "Add a route to `config/routes.rb`, or to a slice's routes."}
           end
-        end
-
-        # Returns the closest route's pattern, as a did_you_mean correction, or nothing.
-        #
-        # A route whose shape matches but whose constraints don't is left to {#fix}, which explains
-        # the constraints.
-        #
-        # @return [Array<String>]
-        def corrections
-          return [] if constrained_route || !suggested_route?
-
-          [nearest_match.first]
         end
 
         # Returns the app's routes as a dataset, with the same columns as `hanami routes`.
@@ -112,28 +94,23 @@ module Hanami
           !nearest_match.nil?
         end
 
-        # Returns the route whose shape the path has, but whose constraints it fails, or nil.
+        # Returns a sentence suggesting the closest matching route, for the fix.
         #
-        # The closest route has a distance of zero exactly when the path has its shape (see
-        # {#nearest_match}).
-        #
-        # @return [Hanami::Router::Route, nil]
-        def constrained_route
-          return @constrained_route if defined?(@constrained_route)
-
-          pattern, distance = nearest_match
-          @constrained_route =
-            if distance&.zero?
-              reachable_routes.find { _1.path == pattern && _1.constraints? }
-            end
-        end
-
-        # Returns a sentence saying which constraints the path failed, for the fix.
+        # If the closest route has a distance of zero, then the requested path has the route's
+        # shape, but failed one of its constraints (see {#nearest_match}). In this case, the
+        # sentence says which constraints the route has.
         #
         # @return [String]
-        def constrained_route_fix
-          "`#{constrained_route.http_method} #{constrained_route.path}` matches this path, but not its " \
-            "constraints (`#{constrained_route.inspect_constraints}`)."
+        def suggested_route_fix
+          pattern, distance = nearest_match
+
+          if distance.zero?
+            constrained_route = reachable_routes.find { _1.path == pattern && _1.constraints? }
+          end
+          return "Did you mean `#{pattern}`?" unless constrained_route
+
+          "`#{constrained_route.http_method} #{pattern}` matches this path, but not its constraints " \
+            "(`#{constrained_route.inspect_constraints}`)."
         end
 
         # Returns the routes to list in the dataset.
@@ -296,39 +273,6 @@ module Hanami
         # @return [String]
         def request_path
           exception.env["PATH_INFO"]
-        end
-      end
-
-      class NotFound
-        # A did_you_mean spell checker for `Hanami::Router::NotFoundError`, so the exception gives its
-        # closest route as `corrections`, as a `NameError` gives its closest name. Webconsole shows
-        # corrections as a suggestion, and Ruby adds them to the message, as "Did you mean?".
-        #
-        # The class comes from the hanami gem, so this registers it the first time {NotFound} sees
-        # one, rather than at load time.
-        #
-        # @api private
-        class Corrections
-          # @param exception_class [Class]
-          def self.register(exception_class)
-            return if DidYouMean.spell_checkers[exception_class.to_s].equal?(self)
-
-            DidYouMean.correct_error(exception_class, self)
-          rescue StandardError
-            nil
-          end
-
-          # @param exception [Exception]
-          def initialize(exception)
-            @exception = exception
-          end
-
-          # @return [Array<String>]
-          def corrections
-            NotFound.new(@exception, nil).corrections
-          rescue StandardError
-            []
-          end
         end
       end
 

@@ -186,9 +186,6 @@ module Hanami
       private
 
       def build_suggestion
-        # A diagnostic can register a did_you_mean spell checker for its exception (as the not
-        # found one does for routes), so it has to exist before the corrections are read.
-        diagnostic
         return unless exception.respond_to?(:corrections)
 
         corrections = Array(exception.corrections).map(&:to_s).reject(&:empty?)

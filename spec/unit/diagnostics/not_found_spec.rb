@@ -69,14 +69,34 @@ RSpec.describe Hanami::Webconsole::Diagnostics::NotFound do
     end
 
     describe "with a route that's close" do
-      it "leaves the route to the suggestion, as a did_you_mean correction" do
-        expect(diagnostic_for(path: "/boks").fix).to be_nil
+      it "suggests the closest path for a typo" do
+        expect(fix_text(path: "/boks")).to start_with("Did you mean `/books`?")
+      end
+
+      it "reads a dynamic segment as the param it would fill" do
+        expect(fix_text(path: "/bookz/1")).to start_with("Did you mean `/books/:id`?")
       end
 
       it "says which constraint the path failed" do
         expect(fix_text(path: "/books/abc")).to start_with(
           "`GET /books/:id` matches this path, but not its constraints (`id: /\\d+/`)."
         )
+      end
+
+      it "reads a glob as the rest of the path" do
+        files = routes { get "/files/*path", to: "files.show" }
+
+        expect(fix_text(path: "/filez/a/b.txt", router: files)).to start_with("Did you mean `/files/*path`?")
+      end
+
+      it "finds routes in a scope" do
+        scoped = routes { scope("admin") { get "/users", to: "admin.users.index" } }
+
+        expect(fix_text(path: "/admin/user", router: scoped)).to start_with("Did you mean `/admin/users`?")
+      end
+
+      it "only suggests the route, without saying where to add one" do
+        expect(diagnostic_for(path: "/boks").fix).to have_attributes(name: nil, text: "Did you mean `/books`?")
       end
     end
 
@@ -103,31 +123,7 @@ RSpec.describe Hanami::Webconsole::Diagnostics::NotFound do
 
     describe "suggestions" do
       def suggestion(**options)
-        Hanami::Webconsole::Diagnostics::NotFound.new(error(**options), nil).corrections.first
-      end
-
-      it "suggests the closest path for a typo" do
-        expect(suggestion(path: "/boks")).to eq("/books")
-      end
-
-      it "reads a dynamic segment as the param it would fill" do
-        expect(suggestion(path: "/bookz/1")).to eq("/books/:id")
-      end
-
-      it "reads a glob as the rest of the path" do
-        files = routes { get "/files/*path", to: "files.show" }
-
-        expect(suggestion(path: "/filez/a/b.txt", router: files)).to eq("/files/*path")
-      end
-
-      it "finds routes in a scope" do
-        scoped = routes { scope("admin") { get "/users", to: "admin.users.index" } }
-
-        expect(suggestion(path: "/admin/user", router: scoped)).to eq("/admin/users")
-      end
-
-      it "suggests nothing when a route matches but for its constraints, since the fix explains that" do
-        expect(suggestion(path: "/books/abc")).to be_nil
+        fix_text(**options)[/\ADid you mean `([^`]+)`/, 1]
       end
 
       it "never suggests the root path for a short path" do
@@ -140,7 +136,7 @@ RSpec.describe Hanami::Webconsole::Diagnostics::NotFound do
       end
 
       it "doesn't suggest a route of another shape that is only close as text" do
-        expect(suggestion(path: "/bookz/1")).not_to eq("/books")
+        expect(fix_text(path: "/bookz/1")).not_to include("`/books`")
       end
 
       it "is not misled by a long param value shared with other routes" do
@@ -191,21 +187,5 @@ RSpec.describe Hanami::Webconsole::Diagnostics::NotFound do
     expect(Hanami::Diagnostics::Registry.entries).to include(
       "Hanami::Router::NotFoundError" => [described_class.name]
     )
-  end
-
-  describe "as a did_you_mean spell checker" do
-    it "gives the exception its corrections, as Ruby does for a NameError" do
-      router = self.router
-      klass = stub_const("SpecRouterNotFoundError", Class.new(StandardError) {
-        define_method(:env) { {"REQUEST_METHOD" => "GET", "PATH_INFO" => "/boks"} }
-        define_method(:slice) { Struct.new(:router).new(router) }
-      })
-      exception = klass.new("No route found for GET /boks")
-
-      described_class.new(exception, nil)
-
-      expect(exception.corrections).to eq(["/books"])
-      expect(exception.detailed_message(highlight: false)).to include("Did you mean?  /books")
-    end
   end
 end

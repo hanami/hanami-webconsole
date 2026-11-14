@@ -59,7 +59,7 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
     end
   end
 
-  describe "#suggestion", :isolate_diagnostics do
+  describe "#suggestion" do
     def raised
       yield
     rescue Exception => exception # rubocop:disable Lint/RescueException
@@ -88,21 +88,6 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
 
     it "is nil when nothing is close enough to suggest" do
       expect(page_for(raised { binding.eval("xyzzy_unknown_helper") }).suggestion).to be_nil
-    end
-
-    it "builds the diagnostic first, so a diagnostic can register a did_you_mean spell checker" do
-      checker = Class.new {
-        def initialize(_exception) = nil
-        def corrections = ["/books"]
-      }
-      klass = stub_const("SpecSuggestedError", Class.new(StandardError))
-      diagnostic = Class.new {
-        define_method(:initialize) { |exception, _context| DidYouMean.correct_error(exception.class, checker) }
-      }
-
-      Hanami::Diagnostics::Registry.register("SpecSuggestedError", diagnostic)
-
-      expect(page_for(klass.new("boom")).suggestion).to have_attributes(corrections: ["/books"])
     end
 
     it "is nil for an exception with no corrections" do
