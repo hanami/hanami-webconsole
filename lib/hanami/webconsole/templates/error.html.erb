@@ -65,7 +65,7 @@
 <%# A button and its manual equivalent are one fix offered two ways. -%>
 <% if fix -%>
       <div class="fix" data-webconsole-fix>
-        <p class="callout-label"><span aria-hidden="true">&#x2726;</span> Fix</p>
+        <p class="callout-label"><span aria-hidden="true">&#x2726;</span> Suggested fix</p>
 <% if fix_heading -%>
         <div class="fix-title"><h2><%= prose(fix_heading) %></h2></div>
 <% end -%>
@@ -81,7 +81,7 @@
       </div>
 <% elsif suggestion -%>
       <div class="suggestion" data-webconsole-suggestion>
-        <p class="callout-label"><span aria-hidden="true">&#x2726;</span> Suggestion</p>
+        <p class="callout-label"><span aria-hidden="true">&#x2726;</span> Suggested fix</p>
         <p class="suggestion-text"><%= suggestion_html %></p>
       </div>
 <% end -%>
