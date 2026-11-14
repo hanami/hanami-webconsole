@@ -217,9 +217,7 @@
   }
   .topbar .req b { color: inherit; font-weight: inherit; }
   .topbar .spacer { flex: 1 1 auto; }
-  /* The status reads as the design has it: plain text, the code and its reason together. */
   .topbar .status { font-size: 0.875rem; font-weight: 500; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  /* The page's primary action. */
   .btn-copy {
     display: inline-flex;
     align-items: center;
@@ -331,7 +329,6 @@
   }
   .caret-box .caret { color: var(--color-code-ink); font-weight: 700; }
 
-  /* The cause chain, outermost first: each class with its message, verbatim. */
   /* Header text, so it takes the header's prose size, not the backtrace's 13px. */
   .causes { font-size: 0.9375rem; min-width: 0; }
   .causes-label { color: var(--muted); margin-bottom: 0.35rem; }
@@ -367,7 +364,6 @@
     max-width: 78ch;
   }
   .suggestion { gap: 0.75rem; }
-  /* The label, the button and the manual steps read as one block, close together. */
   .fix { gap: 0.75rem; }
   .suggestion-text { font-size: 0.9375rem; line-height: 1.55; overflow-wrap: anywhere; }
   .suggestion-text code { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-code-ink); }
@@ -559,7 +555,6 @@
     align-items: start;
   }
   .workbench[hidden] { display: none; }
-  /* Ruby's version and platform, for bug reports, at the very bottom. */
   .meta { margin: 1.5rem var(--gutter) 0; font-family: var(--font-mono); font-size: 0.6875rem; color: var(--muted); overflow-wrap: anywhere; }
   /* Under the "Show backtrace" bar, the backtrace sits as close as the panels do under theirs. */
   .disclosure:not([hidden]) + .workbench { margin-top: 0.625rem; }
@@ -813,7 +808,6 @@
   /* ── context strip ──────────────────────────────────────── */
   /* Flex, not an auto-fit grid: a full-width panel spanning `1 / -1` keeps every auto-fit
      track alive, which leaves the panels after it squeezed into a few narrow columns. */
-  /* The bar above the panels: which panels to show, and one filter for them all. */
   .ctx-bar {
     display: flex;
     align-items: center;
