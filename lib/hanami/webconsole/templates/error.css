@@ -857,7 +857,8 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--card);
+    /* Tinted, so a panel's heading reads apart from its rows, even where panels wrap. */
+    background: var(--chrome);
     /* Each panel overlaps the right and bottom borders of the panels before it by 1px (see
        .ctx-panel), and this opaque sticky heading would cover them. Starting 1px in and 1px down
        keeps the dividers. */
