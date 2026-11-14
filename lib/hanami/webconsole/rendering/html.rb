@@ -264,17 +264,14 @@ module Hanami
           !!diagnostic&.runnable_fix?
         end
 
-        # Returns the heading for the fix card.
+        # Returns the heading under the fix card's "Fix" label: the fix's name, or nil.
         #
-        # This is the fix's name, or a generic heading if the fix has no name. When a named fix can
-        # be run, there's no heading, since the name goes on the run button instead, and we don't
-        # want to show it twice.
+        # A fix that can run has no heading, since its name goes on the run button instead, and we
+        # don't want to show it twice. An unnamed fix needs none beyond the label.
         #
         # @return [String, nil]
         def fix_heading
-          return nil if runnable_fix? && fix.name
-
-          fix.name || "Fix it"
+          fix.name unless runnable_fix?
         end
 
         # Returns the label for the button that runs the fix.

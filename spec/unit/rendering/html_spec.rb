@@ -413,13 +413,15 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       html = html_for(error_page(diagnostic: diagnostic(fix: "Did you mean `/books/:id`?")))
 
       expect(html).to include("<div data-webconsole-shell data-actionable>")
+      expect(html).to include(%(<p class="callout-label"><span aria-hidden="true">&#x2726;</span> Fix</p>))
       expect(html).to match(/data-webconsole-workbench hidden/)
     end
 
-    it "heads an unnamed fix generically" do
+    it "heads an unnamed fix with the label alone" do
       html = html_for(error_page(diagnostic: diagnostic(fix: "Do this.")))
 
-      expect(html).to include("<h2>Fix it</h2>")
+      expect(html).to include(%(<p class="callout-label"><span aria-hidden="true">&#x2726;</span> Fix</p>))
+      expect(html).not_to include("<h2>")
       expect(html).to include("<p>Do this.</p>")
     end
 
@@ -476,7 +478,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
         html = html_for(page_with_runnable_fix("Do it."))
 
         expect(html).to include(%(<span class="label">Run this fix</span>))
-        expect(html).to include("<h2>Fix it</h2>")
+        expect(html).not_to include("<h2>")
       end
 
       it "tells the page where to run it, and whether reloading retries the request" do

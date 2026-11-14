@@ -396,11 +396,10 @@
   .btn-primary {
     font: inherit;
     font-size: 0.875rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    color: var(--signal-ink);
-    background: var(--signal);
-    border: 2px solid var(--signal);
+    font-weight: 700;
+    color: #fff;
+    background: var(--color-rom-500);
+    border: 2px solid var(--color-rom-500);
     border-radius: 8px;
     padding: 0.5rem 1rem;
     cursor: pointer;
@@ -409,6 +408,8 @@
     gap: 0.5rem;
   }
   .btn-primary:hover { filter: brightness(0.94); }
+  /* Holds the fix's output once it runs. Empty until then, so it takes no gap in the card. */
+  [data-webconsole-run-output]:empty { display: none; }
   .btn-primary[disabled] { cursor: default; opacity: 0.75; filter: none; }
   .btn-ghost {
     display: inline-flex;
@@ -805,6 +806,9 @@
     top: 0;
     z-index: 2;
     background: var(--card);
+    /* Each panel overlaps its neighbour's right border by 1px (see .ctx-panel), and this opaque
+       sticky heading would cover it. Starting 1px in keeps the divider. */
+    margin-left: 1px;
   }
   .ctx-head > .icon { display: none; }
   .ctx-head .spacer { flex: 1 1 auto; }
