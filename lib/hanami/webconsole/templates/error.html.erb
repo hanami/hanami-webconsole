@@ -93,7 +93,7 @@
     <button type="button" data-webconsole-disclosure-toggle aria-expanded="false" aria-controls="webconsole-workbench">
       <svg class="icon chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
       <span data-webconsole-disclosure-label>Show backtrace</span>
-      <span class="count" data-webconsole-disclosure-count>(<%= frames.length %> <%= frames.length == 1 ? "frame" : "frames" %>, <%= app_frames_count %> in your app)</span>
+      <span class="count" data-webconsole-disclosure-count><%= frames.length %> <%= frames.length == 1 ? "frame" : "frames" %>, <%= app_frames_count %> in your app</span>
     </button>
   </div>
 

@@ -48,6 +48,7 @@
     --panel: var(--color-rom-50);
     --evidence: oklch(95.8% 0.02 279.99 / 0.4);  /* the site's bg-secondary-subtle */
     --evidence-border: var(--color-rom-100);
+    --scrollbar-track: #f5f5f5;
 
     /* swapped by [data-actionable] */
     --signal: var(--color-primary);
@@ -98,6 +99,7 @@
       --panel: oklch(18.2% 0.079 261.06 / 0.6);
       --evidence: oklch(18.2% 0.079 261.06 / 0.4);
       --evidence-border: oklch(30.95% 0.136 261.25);
+      --scrollbar-track: #262626;
       --syn-comment: #a3a3a3;
     }
   }
@@ -125,10 +127,21 @@
     --panel: oklch(18.2% 0.079 261.06 / 0.6);
     --evidence: oklch(18.2% 0.079 261.06 / 0.4);
     --evidence-border: oklch(30.95% 0.136 261.25);
+    --scrollbar-track: #262626;
     --syn-comment: #a3a3a3;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* Scrollbars, as on hanakai.org (scrollbar.css): a slim rounded thumb on a light track, for the
+     page and every scrolling pane in it. The thumb is the Hanami theme's light pink. */
+  @supports not selector(::-webkit-scrollbar) {
+    :root, :root * { scrollbar-color: var(--color-hanami-300) var(--scrollbar-track); }
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; background-color: var(--scrollbar-track); }
+  ::-webkit-scrollbar-track { background-color: var(--scrollbar-track); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05); }
+  ::-webkit-scrollbar-thumb { border-radius: 6px; background-color: var(--color-hanami-300); }
+  ::-webkit-scrollbar-corner { background-color: var(--scrollbar-track); }
 
   body {
     padding-bottom: 2.5rem;
@@ -524,7 +537,7 @@
   /* ── workbench: full-bleed two pane ─────────────────────── */
   .workbench {
     display: grid;
-    grid-template-columns: clamp(280px, 24vw, 400px) minmax(0, 1fr);
+    grid-template-columns: clamp(300px, 26vw, 400px) minmax(0, 1fr);
     gap: 1rem;
     margin: 1.5rem var(--gutter) 0;
     align-items: start;
@@ -552,6 +565,8 @@
     background: var(--card);
   }
   .col.frames-col .col-head {
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--card-shadow);
