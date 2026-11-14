@@ -37,23 +37,6 @@ module Hanami
           icon_sprite: "icons.svg"
         }.freeze
 
-        # Icons for panel titles. Unknown titles fall back to a list icon.
-        PANEL_ICONS = {
-          "Cookies" => "lock",
-          "Headers" => "list",
-          "Params" => "braces",
-          "Request" => "globe",
-          "Routes" => "route",
-          "Session" => "key"
-        }.freeze
-
-        # Panels longer than this get a search box. The request summary never does: it is short and
-        # fixed, and reads as a caption rather than as a table.
-        SEARCHABLE_FROM = 6
-
-        # The titles of panels that never get a search box, however many rows they have.
-        UNSEARCHABLE_PANELS = ["Request"].freeze
-
         # The most columns a panel can have and still fit alongside other panels. A panel with more
         # columns than this spans the full width of the page.
         NARROW_COLUMNS = 2
@@ -634,7 +617,7 @@ module Hanami
         # Returns a context panel, ready for the template.
         #
         # A panel with more than {NARROW_COLUMNS} columns is marked as wide, so it spans the full
-        # width of the page. A panel with enough rows gets a filter box (see {#searchable?}).
+        # width of the page.
         #
         # @param title [String]
         # @param rows [Array<Row>]
@@ -646,22 +629,10 @@ module Hanami
 
           {
             title:,
-            icon: PANEL_ICONS.fetch(title, "list"),
-            search: searchable?(title, rows) ? "Filter #{title.downcase}" : nil,
-            noun: panel_noun(title),
             columns:,
             wide: [width, columns.length].max > NARROW_COLUMNS,
             rows:
           }
-        end
-
-        def searchable?(title, rows)
-          !UNSEARCHABLE_PANELS.include?(title) && rows.length >= SEARCHABLE_FROM
-        end
-
-        def panel_noun(title)
-          label = title.downcase
-          label.match?(/\A\w+s\z/) ? label : "rows"
         end
       end
     end

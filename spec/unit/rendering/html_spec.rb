@@ -491,8 +491,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
 
       expect(html).to include(%(<div class="ctx-panel is-wide" data-webconsole-context-panel="Routes">))
       expect(html).to include(%(<th scope="col">Endpoint</th>))
-      expect(html).to include(%(<td class="k-val" data-webconsole-cell>books.index</td>))
-      expect(html).to include("#i-route")
+      expect(html).to include(%(<div class="clamp" data-webconsole-cell>books.index</div>))
     end
   end
 
@@ -511,6 +510,34 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     expect(html).to include(%(data-webconsole-context-panel="Cookies"))
     expect(html).to include(%(data-webconsole-context-panel="Headers"))
     expect(html).to include(%(class="k-val filtered"))
+  end
+
+  describe "the context panels" do
+    let(:page) {
+      error_page(request: request_context(session: {"user_id" => "12"}, cookies: {"theme" => "dark"}))
+    }
+    let(:html) { html_for(page) }
+
+    it "has a checkbox per panel, all ticked, to show or hide it" do
+      %w[Request Params Session Cookies Headers].each do |title|
+        expect(html).to include(%(<input type="checkbox" data-webconsole-panel-toggle="#{title}" checked>))
+      end
+    end
+
+    it "has one filter for every panel" do
+      expect(html.scan(/<input type="search" data-webconsole-search/).length).to eq(1)
+      expect(html).not_to include("press / to filter")
+    end
+
+    it "counts each panel's rows in its heading" do
+      expect(html).to match(%r{<span class="eyebrow">Session</span>\s*<span class="ctx-count" data-webconsole-context-count>1</span>})
+    end
+
+    it "clamps each value, with a button to copy it" do
+      expect(html).to include(%(<td class="k-name" data-webconsole-cell>user_id</td>))
+      expect(html).to include(%(<td class="k-val"><div class="clamp" data-webconsole-cell>12</div>))
+      expect(html).to include(%(<button type="button" class="cell-copy" data-webconsole-copy-cell aria-label="Copy value">))
+    end
   end
 
   # Filters replace a value with one particular String, so a value the app set to the same text
