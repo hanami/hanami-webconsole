@@ -59,6 +59,49 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
     end
   end
 
+  describe "#suggestion" do
+    def raised
+      yield
+    rescue Exception => exception # rubocop:disable Lint/RescueException
+      exception
+    end
+
+    def page_for(exception)
+      described_class.new(exception:, env:, config:)
+    end
+
+    it "names the typo, the receiver's class and the closest methods" do
+      stub_const("SpecBook", Class.new { def title = "Ruby" })
+
+      suggestion = page_for(raised { SpecBook.new.titel }).suggestion
+
+      expect(suggestion).to have_attributes(name: "titel", corrections: ["title"], receiver_class: "SpecBook")
+    end
+
+    it "has no receiver class for a NameError" do
+      stub_const("SpecBookshelf", Module.new)
+
+      suggestion = page_for(raised { Object.const_get(:SpecBokshelf) }).suggestion
+
+      expect(suggestion).to have_attributes(name: "SpecBokshelf", corrections: ["SpecBookshelf"], receiver_class: nil)
+    end
+
+    it "is nil when nothing is close enough to suggest" do
+      expect(page_for(raised { binding.eval("xyzzy_unknown_helper") }).suggestion).to be_nil
+    end
+
+    it "is nil for an exception with no corrections" do
+      expect(page.suggestion).to be_nil
+    end
+
+    it "is nil when the corrections raise" do
+      exception = NameError.new("boom", :x)
+      allow(exception).to receive(:corrections).and_raise(NotImplementedError)
+
+      expect(page_for(exception).suggestion).to be_nil
+    end
+  end
+
   describe "#detailed_extras" do
     it "returns the did_you_mean suggestion for a real typo" do
       stub_const("SpecBook", Class.new { def title = "Ruby" })

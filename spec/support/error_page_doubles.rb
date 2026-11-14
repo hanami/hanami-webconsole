@@ -76,7 +76,8 @@ module ErrorPageDoubles
     causes: [],
     frames: [frame],
     request: request_context,
-    diagnostic: nil
+    diagnostic: nil,
+    suggestion: nil
   )
     instance_double(
       Hanami::Webconsole::ErrorPage,
@@ -87,6 +88,7 @@ module ErrorPageDoubles
       status:,
       actionable?: !diagnostic&.fix.nil?,
       diagnostic:,
+      suggestion:,
       causes:,
       frames:,
       app_frames: frames.select(&:app?),

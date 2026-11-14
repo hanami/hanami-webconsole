@@ -306,9 +306,43 @@ module Hanami
           fix.name || "Run this fix"
         end
 
+        # The `detailed_message` extras to show under the message: usually error_highlight's code
+        # line and carets.
+        #
+        # When there's a suggestion, the callout shows did_you_mean's lines, so they're dropped
+        # here. The lines lose their shared indent, which comes from the source and only pushes the
+        # code away from the box's edge.
+        #
         # @return [Array<String>]
         def extras
-          @extras ||= trim_blanks(Array(page.detailed_extras).map { |line| line.to_s.chomp })
+          @extras ||= begin
+            lines = trim_blanks(Array(page.detailed_extras).map { |line| line.to_s.chomp })
+            lines = without_did_you_mean(lines) if suggestion
+            dedent(trim_blanks(lines.reverse).reverse)
+          end
+        end
+
+        # @return [ErrorPage::Suggestion, nil]
+        def suggestion
+          page.suggestion
+        end
+
+        # The suggestion as a sentence, with names as code.
+        #
+        # @return [String]
+        def suggestion_html
+          names = suggestion.corrections.map { |name| "<code>#{h(name)}</code>" }
+          sentence = "Did you mean #{names.join(" or ")}?"
+          return sentence unless suggestion.receiver_class
+
+          "#{sentence} <code>#{h(suggestion.receiver_class)}</code> responds to it."
+        end
+
+        # The callout beside the header holds the fix if there is one, or else the suggestion.
+        #
+        # @return [Boolean]
+        def callout?
+          !fix.nil? || !suggestion.nil?
         end
 
         # `detailed_message` extras carry the error_highlight caret rows. Those get the signal
@@ -512,6 +546,21 @@ module Hanami
             "locals" => frame.locals.map(&:to_row),
             "ivars" => frame.instance_vars.map(&:to_row)
           }
+        end
+
+        # Drops did_you_mean's "Did you mean?" line and the indented corrections under it, one name
+        # per line. error_highlight's carets always come before it, so they're never dropped.
+        def without_did_you_mean(lines)
+          start = lines.index { |line| line.lstrip.start_with?("Did you mean?") }
+          return lines unless start
+
+          rest = lines[(start + 1)..].drop_while { |line| line.match?(/\A\s+\S+\s*\z/) }
+          lines[0...start] + rest
+        end
+
+        def dedent(lines)
+          indent = lines.reject { |line| line.strip.empty? }.map { |line| line[/\A */].length }.min.to_i
+          lines.map { |line| line[indent..] || "" }
         end
 
         def trim_blanks(lines)

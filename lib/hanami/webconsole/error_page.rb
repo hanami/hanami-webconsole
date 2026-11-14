@@ -23,6 +23,16 @@ module Hanami
       # Status code used as a safe fallback for {#status}.
       DEFAULT_STATUS = 500
 
+      # A did_you_mean suggestion for a misspelt name.
+      #
+      # @!attribute [r] name
+      #   @return [String] the name as written
+      # @!attribute [r] corrections
+      #   @return [Array<String>] the closest names, best first
+      # @!attribute [r] receiver_class
+      #   @return [String, nil] the class that responds to the corrections, for a `NoMethodError`
+      Suggestion = Data.define(:name, :corrections, :receiver_class)
+
       attr_reader :exception
 
       attr_reader :env
@@ -101,6 +111,18 @@ module Hanami
         }
       end
 
+      # Returns did_you_mean's suggestion for the exception, or nil if it has none.
+      #
+      # This reads the corrections directly, rather than parsing them out of `detailed_message`.
+      # Computing them can call into the receiver, so a failure just means no suggestion.
+      #
+      # @return [Suggestion, nil]
+      def suggestion
+        return @suggestion if defined?(@suggestion)
+
+        @suggestion = safely(nil) { build_suggestion }
+      end
+
       # Class names of the exception's causes, outermost cause last.
       #
       # @return [Array<String>]
@@ -143,6 +165,19 @@ module Hanami
       end
 
       private
+
+      def build_suggestion
+        return unless exception.respond_to?(:corrections)
+
+        corrections = Array(exception.corrections).map(&:to_s).reject(&:empty?)
+        return if corrections.empty?
+
+        Suggestion.new(
+          name: exception.respond_to?(:name) ? exception.name.to_s : "",
+          corrections:,
+          receiver_class: exception.is_a?(NoMethodError) ? class_name_of(exception.receiver) : nil
+        )
+      end
 
       def compute_detailed_extras
         return [] unless exception.respond_to?(:detailed_message)

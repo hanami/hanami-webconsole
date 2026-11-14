@@ -204,12 +204,53 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     expect(html).to include("data-webconsole-frames-empty")
   end
 
-  it "renders the detailed_message extras with the caret highlighted" do
+  it "renders the detailed_message extras with the caret highlighted, without their shared indent" do
     page = error_page(detailed_extras: ["  book.titel", "       ^^^^^"])
     html = html_for(page)
 
-    expect(html).to include("data-webconsole-extras")
-    expect(html).to include(%(<span class="caret">       ^^^^^</span>))
+    expect(html).to include(%(<div class="caret-box" data-webconsole-extras>book.titel\n<span class="caret">     ^^^^^</span></div>))
+  end
+
+  describe "a suggestion" do
+    let(:suggestion) {
+      Hanami::Webconsole::ErrorPage::Suggestion.new(name: "updte", corrections: ["update"], receiver_class: "Book")
+    }
+
+    it "shows the closest method and the receiver's class beside the header" do
+      html = html_for(error_page(suggestion:))
+
+      expect(html).to include(%(<aside class="callout" data-webconsole-callout>))
+      expect(html).to include("data-webconsole-suggestion")
+      expect(html).to include("Did you mean <code>update</code>?")
+      expect(html).to include("<code>Book</code> responds to it.")
+    end
+
+    it "lists every correction when there are several" do
+      several = suggestion.with(corrections: ["update", "upgrade"])
+
+      expect(html_for(error_page(suggestion: several))).to include("Did you mean <code>update</code> or <code>upgrade</code>?")
+    end
+
+    it "drops the did_you_mean lines from the extras, since the suggestion shows them" do
+      page = error_page(
+        suggestion:,
+        detailed_extras: ["  book.updte", "      ^^^^^^", "Did you mean?  update", "               upgrade"]
+      )
+      html = html_for(page)
+
+      expect(html[%r{<div class="caret-box" data-webconsole-extras>(.*?)</div>}m, 1]).not_to include("Did you mean")
+    end
+
+    it "gives way to a fix, which takes the same place" do
+      html = html_for(error_page(suggestion:, diagnostic: diagnostic(fix: "Run `hanami db migrate`.")))
+
+      expect(html).not_to include("data-webconsole-suggestion")
+      expect(html[%r{<aside class="callout" data-webconsole-callout>(.*?)</aside>}m, 1]).to include("data-webconsole-fix")
+    end
+
+    it "leaves out the callout when there's neither" do
+      expect(html_for(error_page)).not_to include("data-webconsole-callout")
+    end
   end
 
   it "shows a multi-line message as written" do

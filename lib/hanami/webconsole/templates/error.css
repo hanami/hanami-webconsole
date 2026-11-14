@@ -205,13 +205,16 @@
   .btn-copy:hover { filter: brightness(0.95); }
 
   /* ── hero band ──────────────────────────────────────────── */
+  /* The identity on the left, and the fix or suggestion beside it. */
   .hero {
     padding: 1.5rem var(--gutter) 0;
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    align-items: flex-start;
+    gap: 2rem;
   }
-  .hero > :is(.caret-box, .prose, .fix, .chips) { margin-top: 0.75rem; }
+  .hero .identity { display: flex; flex-direction: column; gap: 0.25rem; flex: 1 1 0; min-width: 0; }
+  .hero .identity > :is(.caret-box, .prose, .chips) { margin-top: 0.75rem; }
+  .hero .callout { flex: 0 1 500px; min-width: 0; }
   /* `overflow-wrap: anywhere` rather than `break-word`: only `anywhere` reduces the
      min-content width, and an unbreakable constant like Foo::Bar::BazError would otherwise
      set the whole page's minimum width and scroll a phone sideways. */
@@ -303,7 +306,7 @@
   }
 
   /* ── fix card (actionable errors) ───────────────────────── */
-  .fix {
+  .fix, .suggestion {
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
@@ -313,7 +316,10 @@
     padding: 0.875rem 1rem 1.375rem;
     max-width: 78ch;
   }
-  .fix h2 {
+  .suggestion { gap: 0.75rem; }
+  .suggestion-text { font-size: 0.9375rem; line-height: 1.55; overflow-wrap: anywhere; }
+  .suggestion-text code { font-family: var(--font-mono); font-size: 0.875rem; color: var(--color-code-ink); }
+  :is(.fix h2, .callout-label) {
     font-size: 0.875rem;
     font-weight: 800;
     letter-spacing: 0.02em;
@@ -894,6 +900,8 @@
     :root { --gutter: 0.9rem; }
     .topbar { border-radius: 0 0 10px 10px; }
     .fix, .caret-box { max-width: none; }
+    .hero { flex-direction: column; gap: 1rem; }
+    .hero .callout { flex-basis: auto; width: 100%; }
 
     .col-head { padding: 0.6rem 0.9rem; flex-wrap: wrap; }
     .ctx-head { padding: 0.55rem 0.9rem; flex-wrap: wrap; }
