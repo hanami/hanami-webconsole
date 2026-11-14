@@ -288,14 +288,14 @@ module Hanami
         # The `detailed_message` extras to show under the message: usually error_highlight's code
         # line and carets.
         #
-        # When there's a suggestion, the callout shows the did_you_mean lines, so they're excluded
-        # here.
+        # When the callout shows the suggestion, the did_you_mean lines are excluded here. A fix
+        # takes the callout instead, so then they stay.
         #
         # @return [Array<String>]
         def extras
           @extras ||= begin
             lines = trim_blanks(Array(page.detailed_extras).map { |line| line.to_s.chomp })
-            lines = without_did_you_mean(lines) if suggestion
+            lines = without_did_you_mean(lines) if suggestion && !fix
             dedent(trim_blanks(lines.reverse).reverse)
           end
         end

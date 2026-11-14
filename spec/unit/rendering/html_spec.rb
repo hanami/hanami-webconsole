@@ -266,6 +266,16 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       expect(html[%r{<div class="caret-box" data-webconsole-extras>(.*?)</div>}m, 1]).not_to include("Did you mean")
     end
 
+    it "keeps the did_you_mean lines in the extras when a fix takes the callout instead" do
+      page = error_page(
+        suggestion:,
+        diagnostic: diagnostic(fix: "Run `hanami db migrate`."),
+        detailed_extras: ["  book.updte", "      ^^^^^^", "Did you mean?  update"]
+      )
+
+      expect(html_for(page)[%r{<div class="caret-box" data-webconsole-extras>(.*?)</div>}m, 1]).to include("Did you mean?  update")
+    end
+
     it "gives way to a fix, which takes the same place" do
       html = html_for(error_page(suggestion:, diagnostic: diagnostic(fix: "Run `hanami db migrate`.")))
 
