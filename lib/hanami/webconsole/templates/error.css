@@ -5,6 +5,7 @@
     --color-hanami-100: oklch(94.38% 0.029 9.78);
     --color-hanami-300: oklch(83.17% 0.096 9.64);
     --color-hanami-500: oklch(71.93% 0.18 10.67);
+    --color-hanami-600: oklch(61.85% 0.247 12.28);
     --color-hanami-800: oklch(38.24% 0.153 12.34);
     --color-hanami-950: oklch(19.73% 0.079 11.46);
     --color-rom-50: oklch(95.8% 0.02 279.99);
@@ -296,7 +297,7 @@
   .prose ul { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.25rem; }
   .caret-box {
     font-family: var(--font-mono);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     line-height: 1.6;
     white-space: pre;
     overflow-x: auto;
@@ -593,7 +594,7 @@
     display: inline-block;
     width: 6px; height: 6px;
     border-radius: 50%;
-    background: var(--color-amber);
+    background: var(--color-hanami-600);
     margin-right: 0.45rem;
     vertical-align: middle;
   }
