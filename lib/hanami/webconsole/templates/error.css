@@ -135,13 +135,16 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   /* Scrollbars, as on hanakai.org (scrollbar.css): a slim rounded thumb on a light track, for the
-     page and every scrolling pane in it. The thumb is hanakai-300, the site's yellow, as there. */
+     page and every scrolling pane in it. The page's thumb is hanakai-300, the site's yellow, as
+     there. Panes that scroll within it are the Hanami theme's light pink. */
   @supports not selector(::-webkit-scrollbar) {
-    :root, :root * { scrollbar-color: var(--color-hanakai-300) var(--scrollbar-track); }
+    :root { scrollbar-color: var(--color-hanakai-300) var(--scrollbar-track); }
+    :root * { scrollbar-color: var(--color-hanami-300) var(--scrollbar-track); }
   }
   ::-webkit-scrollbar { width: 6px; height: 6px; background-color: var(--scrollbar-track); }
   ::-webkit-scrollbar-track { background-color: var(--scrollbar-track); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05); }
-  ::-webkit-scrollbar-thumb { border-radius: 6px; background-color: var(--color-hanakai-300); }
+  ::-webkit-scrollbar-thumb { border-radius: 6px; background-color: var(--color-hanami-300); }
+  html::-webkit-scrollbar-thumb { background-color: var(--color-hanakai-300); }
   ::-webkit-scrollbar-corner { background-color: var(--scrollbar-track); }
 
   body {
