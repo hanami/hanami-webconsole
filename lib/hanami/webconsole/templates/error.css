@@ -530,6 +530,8 @@
     align-items: start;
   }
   .workbench[hidden] { display: none; }
+  /* Under the "Show backtrace" bar, the backtrace sits as close as the panels do under theirs. */
+  .disclosure:not([hidden]) + .workbench { margin-top: 0.625rem; }
 
   .col { display: flex; flex-direction: column; min-width: 0; }
   .col:not(.frames-col) {
