@@ -793,12 +793,9 @@
   .ctx-bar .spacer { flex: 1 1 auto; }
   .ctx-toggles { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 
-  /* Flex, not a grid: panels share each row whatever their number, and a wide panel takes a row
-     of its own. (An auto-fit grid keeps every track alive around a `1 / -1` panel, and auto-fill
-     leaves empty tracks when there are few panels.) */
+  /* Wide panels take rows of their own, above a grid of the rest. The grid's columns line up when
+     the panels wrap, and auto-fit collapses unused columns, so a few panels share the full width. */
   .context {
-    display: flex;
-    flex-wrap: wrap;
     margin: 0.625rem var(--gutter) 0;
     background: var(--card);
     border: 1px solid var(--border);
@@ -808,7 +805,8 @@
     overflow: clip;
   }
   /* Every panel draws its right and bottom edges, and the card clips the outer ones. */
-  .ctx-panel { flex: 1 1 260px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0 -1px -1px 0; min-width: 0; }
+  .ctx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .ctx-panel { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0 -1px -1px 0; min-width: 0; }
   .ctx-panel[hidden] { display: none; }
   .ctx-head {
     display: flex;
@@ -821,9 +819,10 @@
     top: 0;
     z-index: 2;
     background: var(--card);
-    /* Each panel overlaps its neighbour's right border by 1px (see .ctx-panel), and this opaque
-       sticky heading would cover it. Starting 1px in keeps the divider. */
-    margin-left: 1px;
+    /* Each panel overlaps the right and bottom borders of the panels before it by 1px (see
+       .ctx-panel), and this opaque sticky heading would cover them. Starting 1px in and 1px down
+       keeps the dividers. */
+    margin: 1px 0 0 1px;
   }
   .ctx-head > .icon { display: none; }
   .ctx-head .spacer { flex: 1 1 auto; }
@@ -932,7 +931,6 @@
     background: rgb(var(--background-rgb));
   }
   /* A table with more than two columns needs the room. */
-  .ctx-panel.is-wide { flex-basis: 100%; }
   .ctx-panel.is-wide .kv { table-layout: auto; }
   .ctx-panel.is-wide .kv .k-name { width: auto; }
 

@@ -162,40 +162,44 @@
     </div>
   </div>
   <section class="context" data-webconsole-context>
-<% context_panels.each do |panel| -%>
-    <div class="ctx-panel<%= panel[:wide] ? " is-wide" : "" %>" data-webconsole-context-panel="<%= h(panel[:title]) %>">
-      <div class="ctx-head">
-        <span class="eyebrow"><%= h(panel[:title]) %></span>
-        <span class="ctx-count" data-webconsole-context-count><%= panel[:rows].length %></span>
-      </div>
-      <div class="kv-wrap">
-        <table class="kv">
+<% context_panel_groups.each do |wide, panels| -%>
+    <div class="<%= wide ? "ctx-wide" : "ctx-grid" %>">
+<% panels.each do |panel| -%>
+      <div class="ctx-panel<%= panel[:wide] ? " is-wide" : "" %>" data-webconsole-context-panel="<%= h(panel[:title]) %>">
+        <div class="ctx-head">
+          <span class="eyebrow"><%= h(panel[:title]) %></span>
+          <span class="ctx-count" data-webconsole-context-count><%= panel[:rows].length %></span>
+        </div>
+        <div class="kv-wrap">
+          <table class="kv">
 <% if panel[:columns].any? -%>
-          <thead>
-            <tr>
+            <thead>
+              <tr>
 <% panel[:columns].each do |column| -%>
-              <th scope="col"><%= h(column) %></th>
+                <th scope="col"><%= h(column) %></th>
 <% end -%>
-            </tr>
-          </thead>
+              </tr>
+            </thead>
 <% end -%>
-          <tbody data-webconsole-rows>
+            <tbody data-webconsole-rows>
 <% panel[:rows].each do |row| -%>
-            <tr data-webconsole-row>
+              <tr data-webconsole-row>
 <% row.cells.each_with_index do |cell, index| -%>
 <% if index.zero? -%>
-              <td class="k-name" data-webconsole-cell><%= h(cell) %></td>
+                <td class="k-name" data-webconsole-cell><%= h(cell) %></td>
 <% else -%>
 <% filtered = index == row.cells.length - 1 && row.filtered -%>
-              <td class="k-val<%= filtered ? " filtered" : "" %>"><div class="clamp" data-webconsole-cell><%= h(cell) %></div><button type="button" class="cell-copy" data-webconsole-copy-cell aria-label="Copy value"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg></button></td>
+                <td class="k-val<%= filtered ? " filtered" : "" %>"><div class="clamp" data-webconsole-cell><%= h(cell) %></div><button type="button" class="cell-copy" data-webconsole-copy-cell aria-label="Copy value"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg></button></td>
 <% end -%>
 <% end -%>
-            </tr>
+              </tr>
 <% end -%>
-          </tbody>
-        </table>
-        <p class="ctx-empty" data-webconsole-context-empty hidden>No matches</p>
+            </tbody>
+          </table>
+          <p class="ctx-empty" data-webconsole-context-empty hidden>No matches</p>
+        </div>
       </div>
+<% end -%>
     </div>
 <% end -%>
   </section>

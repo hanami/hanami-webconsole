@@ -362,6 +362,15 @@ module Hanami
           @context_panels ||= (diagnostic_panels + request_panels)
         end
 
+        # The panels, as wide ones (rows of their own) and then the rest (a grid of columns). A
+        # wide panel in the grid would keep every column alive, squeezing the panels after it.
+        #
+        # @return [Array<Array(Boolean, Array<Hash>)>]
+        def context_panel_groups
+          wide, narrow = context_panels.partition { |panel| panel[:wide] }
+          [[true, wide], [false, narrow]].reject { |(_, panels)| panels.empty? }
+        end
+
         # The version of Hanami, if it's loaded. Webconsole doesn't depend on Hanami, so it may not be.
         #
         # @return [String, nil]

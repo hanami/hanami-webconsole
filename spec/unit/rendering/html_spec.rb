@@ -566,6 +566,15 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       expect(html).not_to include("<thead>")
     end
 
+    it "puts a wide table in a row of its own, above the grid of request panels" do
+      dataset = {title: "Routes", columns: ["Method", "Path", "Endpoint"], rows: [["GET", "/books", "books.index"]]}
+      html = html_for(error_page(diagnostic: diagnostic(dataset:)))
+
+      expect(html).to match(%r{<div class="ctx-wide">\s*<div class="ctx-panel is-wide" data-webconsole-context-panel="Routes">})
+      expect(html).to match(%r{<div class="ctx-grid">\s*<div class="ctx-panel" data-webconsole-context-panel="Request">})
+      expect(html.index("ctx-wide")).to be < html.index(%(<div class="ctx-grid">))
+    end
+
     it "shows a table with more columns across the full width, with its headings" do
       dataset = {title: "Routes", columns: ["Method", "Path", "Endpoint"], rows: [["GET", "/books", "books.index"]]}
       html = html_for(error_page(diagnostic: diagnostic(dataset:)))
