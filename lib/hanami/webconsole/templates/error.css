@@ -584,7 +584,7 @@
     padding: 0.4rem 0.75rem;
     border-bottom: 1px solid var(--border);
     min-height: 2.3rem;
-    background: var(--card);
+    background: var(--chrome);
   }
   .col.frames-col .col-head {
     flex-wrap: wrap;
