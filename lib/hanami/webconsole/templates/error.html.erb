@@ -49,8 +49,15 @@
 <% if explanation -%>
       <div class="lede prose" data-webconsole-explanation><%= text_html(explanation) %></div>
 <% end -%>
-<% if causes.any? -%>
-      <p class="chips" data-webconsole-causes><span class="eyebrow">Caused by</span><% causes.each do |cause| %><code><%= h(cause) %></code><% end %></p>
+<% if cause_details.any? -%>
+      <div class="causes" data-webconsole-causes>
+        <p class="causes-label">Caused by:</p>
+        <ul>
+<% cause_details.each do |cause| -%>
+          <li><span class="cause-arrow" aria-hidden="true">↳</span> <code><%= h(cause.class_name) %></code><% unless cause.message.empty? %> – <span class="cause-message"><%= h(cause.message) %></span><% end %></li>
+<% end -%>
+        </ul>
+      </div>
 <% end -%>
     </div>
 <% if callout? -%>

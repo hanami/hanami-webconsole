@@ -74,6 +74,7 @@ module ErrorPageDoubles
     detailed_extras: [],
     status: 500,
     causes: [],
+    cause_details: causes.map { |name| Hanami::Webconsole::ErrorPage::Cause.new(class_name: name, message: "") },
     frames: [frame],
     request: request_context,
     diagnostic: nil,
@@ -89,7 +90,8 @@ module ErrorPageDoubles
       actionable?: !diagnostic&.fix.nil?,
       diagnostic:,
       suggestion:,
-      causes:,
+      causes: cause_details.map(&:class_name),
+      cause_details:,
       frames:,
       app_frames: frames.select(&:app?),
       request:

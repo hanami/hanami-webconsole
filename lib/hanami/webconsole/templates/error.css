@@ -229,7 +229,7 @@
   .hero .identity > * + * { margin-top: 0.75rem; }
   .hero .identity > .exception-class + h1,
   .hero .identity > h1:first-child + .message { margin-top: 0.25rem; }
-  .hero .identity > :is(.caret-box, .chips) { margin-top: 1rem; }
+  .hero .identity > :is(.caret-box, .causes) { margin-top: 1rem; }
   .hero .callout { flex: 0 1 500px; min-width: 0; align-self: center; }
   /* `overflow-wrap: anywhere` rather than `break-word`: only `anywhere` reduces the
      min-content width, and an unbreakable constant like Foo::Bar::BazError would otherwise
@@ -306,17 +306,13 @@
   }
   .caret-box .caret { color: var(--signal-text); font-weight: 700; }
 
-  .chips { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; font-size: 0.875rem; min-width: 0; }
-  /* Cause chains land here, and carry fully qualified constant names with no break
-     opportunities. */
-  .chips code {
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-    color: var(--color-code-ink);
-    overflow-wrap: anywhere;
-    min-width: 0;
-  }
-  .chips code + code::before { content: "\2192"; color: var(--muted); margin-right: 0.5rem; }
+  /* The cause chain, outermost first: each class with its message, verbatim. */
+  .causes { font-size: 0.875rem; min-width: 0; }
+  .causes-label { font-size: 0.8125rem; color: var(--muted); margin-bottom: 0.35rem; }
+  .causes ul { list-style: none; display: flex; flex-direction: column; gap: 0.3rem; }
+  .causes li { font-family: var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
+  .causes code { font-family: var(--font-mono); color: var(--color-code-ink); }
+  .cause-arrow { font-family: var(--font-sans); }
 
   /* ── fix card (actionable errors) ───────────────────────── */
   .fix, .suggestion {

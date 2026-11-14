@@ -280,6 +280,42 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
     end
   end
 
+  describe "#cause_details" do
+    it "gives each cause's class and message, outermost first" do
+      exception = begin
+        begin
+          raise Errno::ECONNREFUSED, "connect(2) for 10.0.0.5:443"
+        rescue Errno::ECONNREFUSED
+          raise "Gave up after 3 attempts"
+        end
+      rescue RuntimeError
+        begin
+          raise ArgumentError, "Couldn't sync"
+        rescue ArgumentError => exception
+          exception
+        end
+      end
+
+      details = described_class.new(exception:, env:, config:).cause_details
+
+      expect(details.map(&:class_name)).to eq(["RuntimeError", "Errno::ECONNREFUSED"])
+      expect(details.map(&:message)).to eq(
+        ["Gave up after 3 attempts", "Connection refused - connect(2) for 10.0.0.5:443"]
+      )
+    end
+
+    it "leaves the message empty when it can't be read" do
+      cause = RuntimeError.new("hidden")
+      allow(cause).to receive(:message).and_raise(NotImplementedError)
+      exception = RuntimeError.new("outer")
+      allow(exception).to receive(:cause).and_return(cause)
+
+      details = described_class.new(exception:, env:, config:).cause_details
+
+      expect(details.map(&:message)).to eq([""])
+    end
+  end
+
   describe "#frames" do
     it "delegates to the backtrace" do
       app_frame = instance_double(Hanami::Webconsole::Frame)

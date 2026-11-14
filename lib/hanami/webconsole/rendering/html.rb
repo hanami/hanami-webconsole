@@ -339,9 +339,9 @@ module Hanami
           }.join("\n")
         end
 
-        # @return [Array<String>]
-        def causes
-          page.causes
+        # @return [Array<ErrorPage::Cause>]
+        def cause_details
+          page.cause_details
         end
 
         # The topbar summary. Built here, from escaped parts, so the template interpolates it whole.

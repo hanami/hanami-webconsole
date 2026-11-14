@@ -356,6 +356,28 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     expect(html).not_to include("data-webconsole-exception-class")
   end
 
+  it "lists the causes, outermost first, each with its message" do
+    causes = [
+      Hanami::Webconsole::ErrorPage::Cause.new(class_name: "TimeoutError", message: "Gave up"),
+      Hanami::Webconsole::ErrorPage::Cause.new(class_name: "Errno::ECONNREFUSED", message: "Connection refused - #{xss}")
+    ]
+    html = html_for(error_page(cause_details: causes))
+    list = html[%r{<div class="causes" data-webconsole-causes>(.*?)</div>}m, 1]
+
+    expect(list).to include(%(<p class="causes-label">Caused by:</p>))
+    expect(list).to include(
+      %(<li><span class="cause-arrow" aria-hidden="true">↳</span> <code>TimeoutError</code> – <span class="cause-message">Gave up</span></li>)
+    )
+    expect(list).to include("Connection refused - &lt;script&gt;")
+    expect(list.index("TimeoutError")).to be < list.index("ECONNREFUSED")
+  end
+
+  it "leaves out the dash for a cause with no message" do
+    causes = [Hanami::Webconsole::ErrorPage::Cause.new(class_name: "TimeoutError", message: "")]
+
+    expect(html_for(error_page(cause_details: causes))).to include(%(<code>TimeoutError</code></li>))
+  end
+
   describe "a crash" do
     it "leads with the class name and message, and an open backtrace" do
       html = html_for(error_page)

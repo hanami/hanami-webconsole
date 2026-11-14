@@ -33,6 +33,14 @@ module Hanami
       #   @return [String, nil] the class that responds to the corrections, for a `NoMethodError`
       Suggestion = Data.define(:name, :corrections, :receiver_class)
 
+      # One cause of the exception.
+      #
+      # @!attribute [r] class_name
+      #   @return [String]
+      # @!attribute [r] message
+      #   @return [String] the message as written, or empty if it can't be read
+      Cause = Data.define(:class_name, :message)
+
       attr_reader :exception
 
       attr_reader :env
@@ -123,11 +131,22 @@ module Hanami
         @suggestion = safely(nil) { build_suggestion }
       end
 
-      # Class names of the exception's causes, outermost cause last.
+      # Class names of the exception's causes, outermost first.
       #
       # @return [Array<String>]
       def causes
-        @causes ||= Hanami::Diagnostics::Causes.of(exception).map { |cause| class_name_of(cause) }
+        @causes ||= cause_details.map(&:class_name)
+      end
+
+      # The exception's causes, outermost first, each with its class name and message.
+      #
+      # The message is as Ruby wrote it, or empty if it can't be read.
+      #
+      # @return [Array<Cause>]
+      def cause_details
+        @cause_details ||= Hanami::Diagnostics::Causes.of(exception).map { |cause|
+          Cause.new(class_name: class_name_of(cause), message: safely("") { cause.message.to_s })
+        }
       end
 
       # @return [Backtrace]
