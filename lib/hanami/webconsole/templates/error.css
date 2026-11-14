@@ -805,7 +805,7 @@
     font-size: 0.8125rem;
     color: rgba(var(--foreground-rgb), 0.7);
   }
-  .repl-note .icon { color: var(--color-success); }
+  .repl-note .icon { color: var(--muted); }
 
   .empty { padding: 1.6rem 1rem; font-size: 0.875rem; color: var(--muted); text-align: center; line-height: 1.65; }
   .empty code { font-family: var(--font-mono); background: var(--surface-strong); border-radius: 4px; padding: 0.1em 0.35em; font-size: 0.9em; }
@@ -940,23 +940,31 @@
   .clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
   .clamp.is-open { display: block; }
   .clamp.is-clamped { cursor: pointer; }
+  /* The copy button from hanakai.org's code blocks (content.css, .pre-wrapper__button): the
+     Hanami theme's secondary blue, faint, with a dark navy icon. */
   .cell-copy {
     position: absolute;
     top: 0.3rem;
     right: 0.4rem;
     display: inline-flex;
-    padding: 0.2rem;
+    padding: 0.25rem;
     font-size: 0.75rem;
-    color: var(--muted);
-    background: var(--card);
-    border: 1px solid var(--border);
+    color: oklch(25.79% 0.194 261.2);
+    background: oklch(100% 0.02 279.99);
+    border: 1px solid oklch(64.7% 0.188 268.82 / 0.2);
     border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     cursor: pointer;
     opacity: 0;
+    transition: background-color 100ms, border-color 100ms, color 100ms;
   }
   .kv tr:hover .cell-copy, .cell-copy:focus-visible { opacity: 1; }
-  .cell-copy:hover { color: rgb(var(--foreground-rgb)); }
+  .cell-copy:hover { background: #fff; border-color: oklch(64.7% 0.188 268.82 / 0.3); }
   @media (hover: none) { .cell-copy { opacity: 1; } }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .cell-copy { color: oklch(90.79% 0.094 261.2); background: oklch(18.2% 0.079 261.06); }
+  }
+  :root[data-theme="dark"] .cell-copy { color: oklch(90.79% 0.094 261.2); background: oklch(18.2% 0.079 261.06); }
   .filtered { color: var(--signal-text); font-weight: 700; }
   .kv th {
     padding: 0.375rem 0.75rem;
