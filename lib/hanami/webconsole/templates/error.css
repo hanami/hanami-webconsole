@@ -11,7 +11,7 @@
     --color-rom-50: oklch(95.8% 0.02 279.99);
     --color-rom-100: oklch(90.71% 0.045 278.66);
     --color-rom-300: oklch(73.02% 0.14 273.47);
-    --color-rom-400: oklch(64.7% 0.188 268.82);
+    --color-hanakai-300: oklch(88.06% 0.164 91.71);
     --color-rom-500: oklch(55.79% 0.244 261.2);
     --color-rom-950: oklch(18.2% 0.079 261.06);
 
@@ -135,14 +135,13 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   /* Scrollbars, as on hanakai.org (scrollbar.css): a slim rounded thumb on a light track, for the
-     page and every scrolling pane in it. The thumb is rom-400, the Hanami theme's secondary
-     colour, which the site's code blocks use. */
+     page and every scrolling pane in it. The thumb is hanakai-300, the site's yellow, as there. */
   @supports not selector(::-webkit-scrollbar) {
-    :root, :root * { scrollbar-color: var(--color-rom-400) var(--scrollbar-track); }
+    :root, :root * { scrollbar-color: var(--color-hanakai-300) var(--scrollbar-track); }
   }
   ::-webkit-scrollbar { width: 6px; height: 6px; background-color: var(--scrollbar-track); }
   ::-webkit-scrollbar-track { background-color: var(--scrollbar-track); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05); }
-  ::-webkit-scrollbar-thumb { border-radius: 6px; background-color: var(--color-rom-400); }
+  ::-webkit-scrollbar-thumb { border-radius: 6px; background-color: var(--color-hanakai-300); }
   ::-webkit-scrollbar-corner { background-color: var(--scrollbar-track); }
 
   body {
