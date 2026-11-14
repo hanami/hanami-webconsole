@@ -55,6 +55,9 @@ module Hanami
           |`([^`&<>\n]+)`
         /x
 
+        # An escaped straight apostrophe between a letter or digit and a letter.
+        APOSTROPHE = /(?<=[[:alnum:]])&#39;(?=[[:alpha:]])/
+
         # A row in a context panel.
         #
         # @!attribute [r] cells
@@ -423,10 +426,34 @@ module Hanami
         #
         # @return [String]
         def inline_html(text)
-          h(text).gsub(CODE_SPAN) {
+          html = h(text).gsub(CODE_SPAN) {
             match = Regexp.last_match
             "<code>#{match[1] || match[2] || match[3]}</code>"
           }
+          apostrophes(html)
+        end
+
+        # Returns escaped prose with each apostrophe between two letters (as in "haven't" or
+        # "slice's") made typographic.
+        #
+        # This is for the prose webconsole renders: a diagnostic's title, explanation and fix. Code
+        # spans are never touched, since {CODE_SPAN} can't match one holding an apostrophe. An
+        # exception's message is shown exactly as Ruby wrote it, so it never comes through here.
+        #
+        # @param html [String] escaped HTML
+        #
+        # @return [String]
+        def apostrophes(html)
+          html.gsub(APOSTROPHE, "\u2019")
+        end
+
+        # Escaped prose, with typographic apostrophes. See {#apostrophes}.
+        #
+        # @param text [String]
+        #
+        # @return [String]
+        def prose(text)
+          apostrophes(h(text))
         end
 
         # Returns a block of parsed text as HTML.

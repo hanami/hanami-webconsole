@@ -446,6 +446,27 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       expect(html.scan(%(data-webconsole-copy="snippet")).length).to eq(1)
     end
 
+    it "uses typographic apostrophes in a diagnostic's prose, but not in its code" do
+      page = error_page(
+        diagnostic: diagnostic(
+          title: "Migrations haven't run",
+          explanation: "The app's database is behind. Run `hanami db migrate` if it's safe.",
+          fix: {name: "Reset the slice's database", text: "Run it."}
+        )
+      )
+      html = html_for(page)
+
+      expect(html).to include("<h1 data-webconsole-headline>Migrations haven’t run</h1>")
+      expect(html).to include("<p>The app’s database is behind. Run <code>hanami db migrate</code> if it’s safe.</p>")
+      expect(html).to include("<h2>Reset the slice’s database</h2>")
+    end
+
+    it "shows the exception's message exactly as written, apostrophes and all" do
+      html = html_for(error_page(message: "Couldn't sync the catalogue"))
+
+      expect(html).to include("Couldn&#39;t sync the catalogue")
+    end
+
     it "escapes diagnostic text" do
       page = error_page(
         diagnostic: diagnostic(title: xss, explanation: xss, fix: {name: xss, text: "```sh\n#{xss}\n```"})

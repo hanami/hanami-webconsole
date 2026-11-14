@@ -330,7 +330,7 @@ module Hanami
 
         unless diagnostic&.runnable_fix?
           return json_response(
-            404, error: "No fix to run", explanation: "This error doesn't offer a fix that can run."
+            404, error: "No fix to run", explanation: "This error doesn’t offer a fix that can run."
           )
         end
 

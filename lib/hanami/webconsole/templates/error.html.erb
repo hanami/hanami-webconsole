@@ -39,7 +39,7 @@
 <% if title -%>
       <p class="exception-class" data-webconsole-exception-class><%= h(page.exception_class) %></p>
 <% end -%>
-      <h1 data-webconsole-headline><%= h(headline) %></h1>
+      <h1 data-webconsole-headline><%= prose(headline) %></h1>
 <% if message? -%>
       <pre class="lede message" data-webconsole-message><%= message_html %></pre>
 <% end -%>
@@ -60,7 +60,7 @@
       <div class="fix" data-webconsole-fix>
         <p class="callout-label"><span aria-hidden="true">&#x2726;</span> Fix</p>
 <% if fix_heading -%>
-        <div class="fix-title"><h2><%= h(fix_heading) %></h2></div>
+        <div class="fix-title"><h2><%= prose(fix_heading) %></h2></div>
 <% end -%>
 <% if runnable_fix? -%>
         <div class="run-actions">
