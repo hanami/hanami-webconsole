@@ -1,9 +1,21 @@
   :root {
     color-scheme: light;
-    /* Palette from the Figma design ("Callout · Crash"). */
-    --color-primary: #ff6c89;      /* coral: primary actions, keywords */
-    --color-critical: #8b0836;     /* error: error line number, carets */
-    --color-code-ink: #0063ff;     /* names in prose, symbols, strings */
+    /* The Hanakai palette, as on hanakai.org (hanakai-rb/site, tailwind.css and theme.css), in
+       its Hanami theme: hanami for the primary accent, rom for the secondary. */
+    --color-hanami-100: oklch(94.38% 0.029 9.78);
+    --color-hanami-300: oklch(83.17% 0.096 9.64);
+    --color-hanami-500: oklch(71.93% 0.18 10.67);
+    --color-hanami-800: oklch(38.24% 0.153 12.34);
+    --color-hanami-950: oklch(19.73% 0.079 11.46);
+    --color-rom-50: oklch(95.8% 0.02 279.99);
+    --color-rom-100: oklch(90.71% 0.045 278.66);
+    --color-rom-300: oklch(73.02% 0.14 273.47);
+    --color-rom-500: oklch(55.79% 0.244 261.2);
+    --color-rom-950: oklch(18.2% 0.079 261.06);
+
+    --color-primary: var(--color-hanami-500);   /* primary actions, keywords, the wiggle */
+    --color-critical: var(--color-hanami-800);  /* error line number, carets */
+    --color-code-ink: var(--color-rom-500);     /* names in prose, symbols, strings */
     --color-amber: #FFD33B;
     --color-amber-text: oklch(52% 0.12 78);
     --color-success: oklch(50% 0.13 150);
@@ -16,7 +28,7 @@
     --foreground-rgb: 38, 38, 38;
     --background-rgb: 255, 255, 255;
     --font-sans: "Instrument Sans", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif;
-    --font-mono: "Maple Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    --font-mono: "Maple Mono NL", "Maple Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 
     --chrome: #fafafa;
     --card: rgb(var(--background-rgb));
@@ -28,11 +40,11 @@
     --muted: #737373;
     --faint: rgba(var(--foreground-rgb), 0.45);
 
-    --primary-wash: #ffe8ee;
+    --primary-wash: var(--color-hanami-100);
     --amber-wash: rgba(255, 211, 59, 0.18);
-    --panel: #eef0ff;
-    --evidence: #f8f9ff;
-    --evidence-border: #d9e1ff;
+    --panel: var(--color-rom-50);
+    --evidence: oklch(95.8% 0.02 279.99 / 0.4);  /* the site's bg-secondary-subtle */
+    --evidence-border: var(--color-rom-100);
 
     /* swapped by [data-actionable] */
     --signal: var(--color-primary);
@@ -59,26 +71,26 @@
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --foreground-rgb: 235, 235, 235;
-      --background-rgb: 23, 23, 23;
-      --color-critical: #ff9db0;
-      --color-code-ink: #7aa9ff;
+      --foreground-rgb: 245, 245, 245;
+      --background-rgb: 10, 10, 10;
+      --color-critical: var(--color-hanami-300);
+      --color-code-ink: var(--color-rom-300);
       --color-amber-text: #FFD33B;
       --color-success: oklch(76% 0.15 150);
       --success-wash: oklch(76% 0.15 150 / 0.14);
       --box-shadow: rgba(0, 0, 0, 0.5) 0px 10px 15px -3px, rgba(0, 0, 0, 0.5) 0px 4px 6px -4px;
       --card-shadow: 0 0 0 transparent;
-      --chrome: #1f1f1f;
+      --chrome: #171717;
       --surface: rgba(var(--foreground-rgb), 0.055);
       --surface-strong: rgba(var(--foreground-rgb), 0.11);
-      --border: #333;
-      --border-soft: #2b2b2b;
+      --border: #262626;
+      --border-soft: #262626;
       --muted: #a3a3a3;
-      --primary-wash: rgba(255, 108, 137, 0.16);
+      --primary-wash: oklch(19.73% 0.079 11.46 / 0.8);
       --amber-wash: rgba(255, 211, 59, 0.13);
-      --panel: rgba(0, 99, 255, 0.14);
-      --evidence: rgba(0, 99, 255, 0.08);
-      --evidence-border: rgba(122, 169, 255, 0.3);
+      --panel: oklch(18.2% 0.079 261.06 / 0.6);
+      --evidence: oklch(18.2% 0.079 261.06 / 0.4);
+      --evidence-border: oklch(30.95% 0.136 261.25);
       --syn-const: #FFD33B;
       --syn-ivar: oklch(77% 0.15 310);
     }
@@ -86,26 +98,26 @@
 
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --foreground-rgb: 235, 235, 235;
-    --background-rgb: 23, 23, 23;
-    --color-critical: #ff9db0;
-    --color-code-ink: #7aa9ff;
+    --foreground-rgb: 245, 245, 245;
+    --background-rgb: 10, 10, 10;
+    --color-critical: var(--color-hanami-300);
+    --color-code-ink: var(--color-rom-300);
     --color-amber-text: #FFD33B;
     --color-success: oklch(76% 0.15 150);
     --success-wash: oklch(76% 0.15 150 / 0.14);
     --box-shadow: rgba(0, 0, 0, 0.5) 0px 10px 15px -3px, rgba(0, 0, 0, 0.5) 0px 4px 6px -4px;
     --card-shadow: 0 0 0 transparent;
-    --chrome: #1f1f1f;
+    --chrome: #171717;
     --surface: rgba(var(--foreground-rgb), 0.055);
     --surface-strong: rgba(var(--foreground-rgb), 0.11);
-    --border: #333;
-    --border-soft: #2b2b2b;
+    --border: #262626;
+    --border-soft: #262626;
     --muted: #a3a3a3;
-    --primary-wash: rgba(255, 108, 137, 0.16);
+    --primary-wash: oklch(19.73% 0.079 11.46 / 0.8);
     --amber-wash: rgba(255, 211, 59, 0.13);
-    --panel: rgba(0, 99, 255, 0.14);
-    --evidence: rgba(0, 99, 255, 0.08);
-    --evidence-border: rgba(122, 169, 255, 0.3);
+    --panel: oklch(18.2% 0.079 261.06 / 0.6);
+    --evidence: oklch(18.2% 0.079 261.06 / 0.4);
+    --evidence-border: oklch(30.95% 0.136 261.25);
     --syn-const: #FFD33B;
     --syn-ivar: oklch(77% 0.15 310);
   }
@@ -114,6 +126,7 @@
 
   body {
     padding-bottom: 2.5rem;
+    font-variant-ligatures: none;
     color: rgb(var(--foreground-rgb));
     background: rgb(var(--background-rgb));
     font-family: var(--font-sans);
@@ -151,19 +164,20 @@
     display: flex;
     align-items: center;
     gap: 1.25rem;
-    padding: 1.25rem var(--gutter) calc(1.5rem + 7.5px);
+    padding: 1.25rem var(--gutter) calc(1rem + 14px);
     background: rgb(var(--background-rgb));
   }
-  /* The Hanakai wiggle: one 12.6px cycle of the design's wave, repeated and clipped, never
-     stretched. A `data:` image, since the page's CSP allows those and nothing else. */
+  /* The Hanakai wiggle, drawn as hanakai.org draws it (svgs/_wiggle.html.erb at height 14,
+     stroke 2): one 12.6px cycle, repeated and clipped, never stretched. A `data:` image, since
+     the page's CSP allows those and nothing else for images. */
   .topbar::after {
     content: "";
     position: absolute;
     left: var(--gutter);
     right: var(--gutter);
     bottom: 0;
-    height: 7.5px;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12.6' height='7.5' viewBox='0 0 12.6 7.5'%3E%3Cpath d='M0 3.75C2.1 1.41667 4.2 1.41667 6.3 3.75C8.4 6.08333 10.5 6.08333 12.6 3.75' fill='none' stroke='%23FF6C89' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x left center / 12.6px 7.5px;
+    height: 14px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12.6' height='14' viewBox='0 0 12.6 14'%3E%3Cpath d='M0,7 Q3.15,3.5 6.3,7 Q9.45,10.5 12.6,7' fill='none' stroke='%23FF6C89' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x left center / 12.6px 14px;
   }
   .topbar .brand { display: inline-flex; align-items: center; gap: 0.55rem; flex: 0 0 auto; }
   .topbar .logo { width: 20px; height: 20px; flex: 0 0 auto; }
@@ -942,7 +956,7 @@
   /* Phones. The sticky bar has to fit: the status reason and the copy button's label are the
      two things that can go without losing meaning. */
   @media (max-width: 640px) {
-    .topbar { gap: 0.5rem; padding: 0.75rem var(--gutter) calc(1rem + 7.5px); }
+    .topbar { gap: 0.5rem; padding: 0.75rem var(--gutter) calc(0.5rem + 14px); }
     .status-pill .status-reason { display: none; }
     .open-editor .label, .btn-copy .label, .topbar .version { display: none; }
     .btn-copy { padding: 0.3rem 0.5rem; }
