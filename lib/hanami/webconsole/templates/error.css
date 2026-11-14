@@ -12,7 +12,7 @@
     --box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px;
     --card-shadow: 0 0 2px rgba(0, 0, 0, 0.12);
     --radius: 8px;
-    --gutter: 2.5rem;
+    --gutter: 1.5rem;
     --foreground-rgb: 38, 38, 38;
     --background-rgb: 255, 255, 255;
     --font-sans: "Instrument Sans", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif;
@@ -151,17 +151,27 @@
     display: flex;
     align-items: center;
     gap: 1.25rem;
-    min-height: 4rem;
-    padding: 0.5rem 1rem;
-    background: var(--chrome);
-    border-radius: 0 0 15px 15px;
+    padding: 1.25rem var(--gutter) calc(1.5rem + 7.5px);
+    background: rgb(var(--background-rgb));
+  }
+  /* The Hanakai wiggle: one 12.6px cycle of the design's wave, repeated and clipped, never
+     stretched. A `data:` image, since the page's CSP allows those and nothing else. */
+  .topbar::after {
+    content: "";
+    position: absolute;
+    left: var(--gutter);
+    right: var(--gutter);
+    bottom: 0;
+    height: 7.5px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12.6' height='7.5' viewBox='0 0 12.6 7.5'%3E%3Cpath d='M0 3.75C2.1 1.41667 4.2 1.41667 6.3 3.75C8.4 6.08333 10.5 6.08333 12.6 3.75' fill='none' stroke='%23FF6C89' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x left center / 12.6px 7.5px;
   }
   .topbar .brand { display: inline-flex; align-items: center; gap: 0.55rem; flex: 0 0 auto; }
   .topbar .logo { width: 20px; height: 20px; flex: 0 0 auto; }
-  .topbar .version { font-size: 0.875rem; color: var(--color-primary); white-space: nowrap; }
+  .topbar .version { font-size: 0.875rem; font-weight: 500; color: var(--color-primary); white-space: nowrap; }
   .topbar .req {
     font-family: var(--font-mono);
     font-size: 0.875rem;
+    font-weight: 500;
     color: #636363;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -238,6 +248,7 @@
   .hero .exception-class + h1 {
     font-family: var(--font-sans);
     font-size: 1.125rem;
+    font-weight: 500;
     line-height: 1.4;
     color: rgb(var(--foreground-rgb));
   }
@@ -264,7 +275,7 @@
   .hero .lede.message {
     font-family: var(--font-sans);
     font-size: 1.125rem;
-    font-weight: 700;
+    font-weight: 500;
     line-height: 1.4;
     white-space: pre-wrap;
     margin: 0;
@@ -770,11 +781,12 @@
   .ctx-bar .spacer { flex: 1 1 auto; }
   .ctx-toggles { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 
-  /* Fixed tracks (auto-fill, not auto-fit), so a full-width panel spanning `1 / -1` doesn't
-     squeeze the rest. */
+  /* Flex, not a grid: panels share each row whatever their number, and a wide panel takes a row
+     of its own. (An auto-fit grid keeps every track alive around a `1 / -1` panel, and auto-fill
+     leaves empty tracks when there are few panels.) */
   .context {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     margin: 0.625rem var(--gutter) 0;
     background: var(--card);
     border: 1px solid var(--border);
@@ -783,7 +795,7 @@
     overflow: hidden;
   }
   /* Every panel draws its right and bottom edges, and the card clips the outer ones. */
-  .ctx-panel { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0 -1px -1px 0; min-width: 0; }
+  .ctx-panel { flex: 1 1 260px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0 -1px -1px 0; min-width: 0; }
   .ctx-panel[hidden] { display: none; }
   .ctx-head {
     display: flex;
@@ -900,7 +912,7 @@
     background: rgb(var(--background-rgb));
   }
   /* A table with more than two columns needs the room. */
-  .ctx-panel.is-wide { grid-column: 1 / -1; }
+  .ctx-panel.is-wide { flex-basis: 100%; }
   .ctx-panel.is-wide .kv { table-layout: auto; }
   .ctx-panel.is-wide .kv .k-name { width: auto; }
   .ctx-panel.is-wide .kv-wrap { max-height: 22rem; }
@@ -930,20 +942,18 @@
   /* Phones. The sticky bar has to fit: the status reason and the copy button's label are the
      two things that can go without losing meaning. */
   @media (max-width: 640px) {
-    .topbar { gap: 0.5rem; padding: 0.6rem 0.9rem; }
+    .topbar { gap: 0.5rem; padding: 0.75rem var(--gutter) calc(1rem + 7.5px); }
     .status-pill .status-reason { display: none; }
     .open-editor .label, .btn-copy .label, .topbar .version { display: none; }
     .btn-copy { padding: 0.3rem 0.5rem; }
 
     :root { --gutter: 0.9rem; }
-    .topbar { border-radius: 0 0 10px 10px; }
     .fix { max-width: none; }
     .hero { flex-direction: column; align-items: stretch; gap: 1rem; }
     .hero .callout { flex-basis: auto; width: 100%; }
 
     .col-head { padding: 0.6rem 0.9rem; flex-wrap: wrap; }
     .ctx-search { flex: 1 1 100%; }
-    .context { grid-template-columns: 1fr; }
 
     .code { font-size: 0.75rem; }
     .code .gutter { width: 2.75rem; padding-right: 0.6rem; }
