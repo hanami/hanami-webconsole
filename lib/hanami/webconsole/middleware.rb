@@ -64,6 +64,9 @@ module Hanami
         /(?<action>variables|eval|run)\z
       }x
 
+      # Path of the fonts the page loads. See {Fonts}.
+      FONT_PATH = %r{\A#{Regexp.escape(Fonts::PATH)}/(?<name>[a-z0-9-]+\.woff2)\z}
+
       # The lock that makes fixes run one at a time, across all threads and browser tabs.
       #
       # See {#with_run_lock}.
@@ -93,6 +96,9 @@ module Hanami
         match = INTERNAL_PATH.match(env["PATH_INFO"].to_s)
         return internal_call(Rack::Request.new(env), match[:id], match[:action]) if match
 
+        font = font_response(env)
+        return font if font
+
         app_call(env)
       end
 
@@ -106,6 +112,23 @@ module Hanami
         rescue Exception => rendering_exception
           fallback_response(exception, rendering_exception)
         end
+      end
+
+      # Serves one of the page's fonts, or returns nil to leave the request to the app. The fonts
+      # never change within a version, so the browser may keep them.
+      def font_response(env)
+        return unless %w[GET HEAD].include?(env["REQUEST_METHOD"])
+
+        match = FONT_PATH.match(env["PATH_INFO"].to_s)
+        body = match && Fonts.read(match[:name])
+        return unless body
+
+        headers = {
+          "content-type" => "font/woff2",
+          "content-length" => body.bytesize.to_s,
+          "cache-control" => "public, max-age=31536000, immutable"
+        }
+        [200, headers, env["REQUEST_METHOD"] == "HEAD" ? [] : [body]]
       end
 
       # Ported from better_errors, including its two quirks: a blank or missing `REMOTE_ADDR` is
@@ -190,6 +213,7 @@ module Hanami
           "script-src 'nonce-#{nonce}'",
           "style-src 'nonce-#{nonce}'",
           "img-src data:",
+          "font-src 'self'",
           "connect-src 'self'"
         ].join("; ")
       end

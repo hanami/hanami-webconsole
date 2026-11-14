@@ -296,6 +296,20 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     )
   end
 
+  it "loads the fonts it ships, from the console's own path" do
+    html = html_for(error_page)
+
+    expect(html).to include(%(font-family: "Instrument Sans";))
+    expect(html).to include(%(src: url("/_hanami/webconsole/fonts/instrument-sans.woff2?v=#{Hanami::Webconsole::VERSION}") format("woff2");))
+    expect(html).to include(%(src: url("/_hanami/webconsole/fonts/maple-mono-nl-italic.woff2?v=#{Hanami::Webconsole::VERSION}") format("woff2");))
+  end
+
+  it "loads the fonts from another path when given one, as the previews do" do
+    html = html_for(error_page, font_path: "fonts")
+
+    expect(html).to include(%(url("fonts/instrument-sans.woff2?v=#{Hanami::Webconsole::VERSION}")))
+  end
+
   describe "the top bar" do
     def topbar(html)
       html[%r{<header class="topbar">(.*?)</header>}m, 1]

@@ -130,6 +130,12 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
         end
       end
 
+      it "does not serve the fonts" do
+        get "/_hanami/webconsole/fonts/instrument-sans.woff2", {}, remote
+
+        expect(last_response.body).to eq("from the app")
+      end
+
       it "does not serve the console endpoints" do
         registry.put(page)
         set_cookie "Hanami-Webconsole-CSRF-Token=#{csrf_token}"
@@ -213,6 +219,7 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
             "script-src 'nonce-(?<nonce>#{nonce})'; " \
             "style-src 'nonce-\\k<nonce>'; " \
             "img-src data:; " \
+            "font-src 'self'; " \
             "connect-src 'self'\\z"
           )
         )
@@ -288,6 +295,33 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
 
         expect(last_response.headers["content-type"]).to eq("text/html; charset=utf-8")
       end
+    end
+  end
+
+  describe "fonts" do
+    let(:fonts) { Pathname(__dir__).join("../../lib/hanami/webconsole/fonts") }
+
+    it "serves the page's fonts, for the browser to keep" do
+      get "/_hanami/webconsole/fonts/maple-mono-nl-regular.woff2"
+
+      expect(last_response.status).to eq(200)
+      expect(last_response.headers["content-type"]).to eq("font/woff2")
+      expect(last_response.headers["cache-control"]).to eq("public, max-age=31536000, immutable")
+      expect(last_response.body.b).to eq(fonts.join("maple-mono-nl-regular.woff2").binread)
+    end
+
+    it "serves only the fonts it ships, and leaves any other path to the app" do
+      ["fonts/OFL-MapleMono.txt", "fonts/../webconsole.rb", "fonts/nope.woff2"].each do |path|
+        get "/_hanami/webconsole/#{path}"
+
+        expect(last_response.body).to eq("from the app")
+      end
+    end
+
+    it "is only for GET and HEAD" do
+      post "/_hanami/webconsole/fonts/instrument-sans.woff2"
+
+      expect(last_response.body).to eq("from the app")
     end
   end
 

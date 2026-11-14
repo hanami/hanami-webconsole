@@ -54,6 +54,7 @@ module Hanami
     require_relative "webconsole/editor"
     require_relative "webconsole/error_page"
     require_relative "webconsole/filters"
+    require_relative "webconsole/fonts"
     require_relative "webconsole/frame"
     require_relative "webconsole/inspector"
     require_relative "webconsole/middleware"

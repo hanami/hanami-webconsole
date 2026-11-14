@@ -68,12 +68,15 @@ module Previews
     end
 
     def render(scenario)
-      Hanami::Webconsole::Rendering::HTML.new(scenario.page, nonce: "preview").to_s
+      Hanami::Webconsole::Rendering::HTML.new(scenario.page, nonce: "preview", font_path: "fonts").to_s
     end
 
     # Writes each scenario to `<dir>/<name>.html`, with an index linking them all.
     def write(dir)
       FileUtils.mkdir_p(dir)
+      # The pages are opened from disk, with no middleware to serve the fonts, so they sit beside
+      # the pages instead.
+      FileUtils.cp_r(Hanami::Webconsole::Fonts::DIR, dir)
 
       scenarios.each do |scenario|
         File.write(File.join(dir, "#{scenario.name}.html"), render(scenario))

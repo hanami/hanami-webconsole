@@ -93,10 +93,12 @@ module Hanami
         # @param page [ErrorPage]
         # @param nonce [String] the CSP nonce for the page's `<style>` and `<script>`
         # @param csrf_token [String, nil]
-        def initialize(page, nonce:, csrf_token: nil)
+        # @param font_path [String] where the page loads its fonts from (see {Fonts})
+        def initialize(page, nonce:, csrf_token: nil, font_path: Fonts::PATH)
           @page = page
           @nonce = nonce.to_s
           @csrf_token = csrf_token
+          @font_path = font_path
         end
 
         # Returns the error page as HTML.
@@ -108,14 +110,14 @@ module Hanami
 
         private
 
-        attr_reader :nonce, :csrf_token
+        attr_reader :nonce, :csrf_token, :font_path
 
         # Inlined verbatim. These are our own files, never user input, so they are deliberately
         # not escaped — escaping them would break the CSS and JS.
         #
         # @return [String]
         def stylesheet
-          self.class.asset(:stylesheet)
+          Fonts.css(font_path) + self.class.asset(:stylesheet)
         end
 
         # @return [String]
