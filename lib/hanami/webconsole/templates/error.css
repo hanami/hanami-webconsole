@@ -37,8 +37,10 @@
     --border: #e5e5e5;
     --border-soft: #e5e5e5;
     --strong: rgba(var(--foreground-rgb), 0.86);
-    --muted: #737373;
-    --faint: rgba(var(--foreground-rgb), 0.45);
+    /* Secondary text: about 7:1 on white, and still over 5.5:1 on the pink selected frame. */
+    --muted: #595959;
+    /* Tertiary text (line numbers, types): 4.6:1, so it still passes WCAG AA. */
+    --faint: #757575;
 
     --primary-wash: var(--color-hanami-100);
     --amber-wash: rgba(255, 211, 59, 0.18);
@@ -52,7 +54,7 @@
     --signal-wash: var(--primary-wash);
     --signal-ink: #fff;
 
-    --syn-comment: rgba(var(--foreground-rgb), 0.45);
+    --syn-comment: var(--faint);
     --syn-string: var(--color-code-ink);
     --syn-keyword: var(--color-primary);
     --syn-const: oklch(54% 0.13 68);
@@ -86,6 +88,7 @@
       --border: #262626;
       --border-soft: #262626;
       --muted: #a3a3a3;
+      --faint: #8f8f8f;
       --primary-wash: oklch(19.73% 0.079 11.46 / 0.8);
       --amber-wash: rgba(255, 211, 59, 0.13);
       --panel: oklch(18.2% 0.079 261.06 / 0.6);
@@ -113,6 +116,7 @@
     --border: #262626;
     --border-soft: #262626;
     --muted: #a3a3a3;
+    --faint: #8f8f8f;
     --primary-wash: oklch(19.73% 0.079 11.46 / 0.8);
     --amber-wash: rgba(255, 211, 59, 0.13);
     --panel: oklch(18.2% 0.079 261.06 / 0.6);
@@ -186,7 +190,7 @@
     font-family: var(--font-mono);
     font-size: 0.875rem;
     font-weight: 500;
-    color: #636363;
+    color: var(--muted);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -194,7 +198,7 @@
   .topbar .req b { color: inherit; font-weight: inherit; }
   .topbar .spacer { flex: 1 1 auto; }
   /* The status reads as the design has it: plain text, the code and its reason together. */
-  .topbar .status { font-size: 0.875rem; font-weight: 500; color: #636363; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .topbar .status { font-size: 0.875rem; font-weight: 500; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
   /* The page's primary action. */
   .btn-copy {
     display: inline-flex;
@@ -513,7 +517,7 @@
   .disclosure > button:hover { color: rgb(var(--foreground-rgb)); }
   .disclosure > button .chevron { transition: transform 150ms ease; display: inline-block; }
   .disclosure > button[aria-expanded="true"] .chevron { transform: rotate(90deg); }
-  .disclosure > button .count { font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 400; color: var(--muted); }
+  .disclosure > button .count { font-size: 0.75rem; font-weight: 400; color: var(--muted); }
 
   /* ── workbench: full-bleed two pane ─────────────────────── */
   .workbench {
