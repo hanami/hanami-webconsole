@@ -156,11 +156,9 @@
   }
   .icon.lg { width: 1.15em; height: 1.15em; }
 
-  /* ── sticky identity bar ────────────────────────────────── */
+  /* ── identity bar ───────────────────────────────────────── */
   .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 20;
+    position: relative;
     display: flex;
     align-items: center;
     gap: 1.25rem;
@@ -819,7 +817,7 @@
     border-bottom: 1px solid var(--border);
     min-height: 2.25rem;
     position: sticky;
-    top: var(--topbar-height, 0px);
+    top: 0;
     z-index: 2;
     background: var(--card);
   }
@@ -925,7 +923,7 @@
     font-weight: 600;
     color: var(--muted);
     position: sticky;
-    top: calc(var(--topbar-height, 0px) + 2.25rem);
+    top: 2.25rem;
     z-index: 1;
     background: rgb(var(--background-rgb));
   }
@@ -956,7 +954,7 @@
     .topbar .req { display: none; }
   }
 
-  /* Phones. The sticky bar has to fit: the status reason and the copy button's label are the
+  /* Phones. The top bar has to fit on one line: the status reason and the copy button's label are the
      two things that can go without losing meaning. */
   @media (max-width: 640px) {
     .topbar { gap: 0.5rem; padding: 0.75rem var(--gutter) calc(0.5rem + 14px); }
