@@ -20,6 +20,9 @@ desc "Render the error page for a range of errors to tmp/previews"
 task :preview do
   require_relative "spec/previews"
 
+  # The previews don't load Hanami, so stand in a version, as an app would have, for the top bar.
+  Hanami.const_set(:VERSION, "3.0.2") unless Hanami.const_defined?(:VERSION)
+
   dir = File.expand_path("tmp/previews", __dir__)
   Previews.write(dir)
   puts "Wrote #{Previews.scenarios.length} previews. Open #{dir}/index.html"

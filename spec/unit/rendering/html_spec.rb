@@ -340,8 +340,10 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       expect(topbar(html_for(error_page))).to include(%(<span class="version">Hanami 3.0.2</span>))
     end
 
-    it "leaves the versions to the copied text, with no line for them at the foot of the page" do
-      expect(html_for(error_page)).not_to include("data-webconsole-meta")
+    it "puts Ruby's version and platform at the foot of the page" do
+      html = html_for(error_page)
+
+      expect(html).to include(%(<footer class="meta" data-webconsole-meta>#{Rack::Utils.escape_html(RUBY_DESCRIPTION)}</footer>))
     end
 
     it "shows only the logo when the Hanami version is unknown" do

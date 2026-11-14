@@ -549,6 +549,8 @@
     align-items: start;
   }
   .workbench[hidden] { display: none; }
+  /* Ruby's version and platform, for bug reports, at the very bottom. */
+  .meta { margin: 1.5rem var(--gutter) 0; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); overflow-wrap: anywhere; }
   /* Under the "Show backtrace" bar, the backtrace sits as close as the panels do under theirs. */
   .disclosure:not([hidden]) + .workbench { margin-top: 0.625rem; }
 
