@@ -346,14 +346,14 @@
      mono, so the dash stands apart from any hyphen in a message. */
   .causes li {
     position: relative;
-    padding: 0.15rem 0 0.15rem 1.1em;
+    padding: 0.15rem 0 0.15rem 1.75em;
     color: var(--muted);
     overflow-wrap: anywhere;
   }
   .causes li::before,
-  .causes li::after { content: ""; position: absolute; left: 0.3em; border: 0 solid var(--tree); }
-  .causes li::before { top: 0; bottom: 0; border-left-width: 1.5px; }
-  .causes li::after { top: 0.85em; width: 0.55em; border-top-width: 1.5px; }
+  .causes li::after { content: ""; position: absolute; left: 0.6em; border: 0 solid var(--tree); }
+  .causes li::before { top: 0; bottom: 0; border-left-width: 1px; }
+  .causes li::after { top: 0.85em; width: 0.65em; border-top-width: 1px; }
   .causes li:last-child::before { bottom: auto; height: 0.85em; }
   .causes code, .cause-message { font-family: var(--font-mono); font-size: 0.8125rem; }
   .causes code { color: var(--color-code-ink); }
