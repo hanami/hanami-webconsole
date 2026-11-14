@@ -236,7 +236,7 @@
      set the whole page's minimum width and scroll a phone sideways. */
   .hero h1 {
     font-family: var(--font-mono);
-    font-size: 0.84375rem; /* 0.9 of the header's 15px: mono reads larger */
+    font-size: 0.8125rem; /* 13px: the page's mono size for code and names */
     font-weight: 700;
     line-height: 1.6;
     color: var(--color-code-ink);
@@ -244,7 +244,7 @@
   }
   .hero .exception-class {
     font-family: var(--font-mono);
-    font-size: 0.84375rem; /* 0.9 of the header's 15px: mono reads larger */
+    font-size: 0.8125rem; /* 13px: the page's mono size for code and names */
     font-weight: 700;
     line-height: 1.6;
     color: var(--color-code-ink);
@@ -258,6 +258,7 @@
     color: rgb(var(--foreground-rgb));
   }
   .hero .exception-class ~ .lede.message { font-size: 0.9375rem; font-weight: 400; }
+  .hero .exception-class ~ .lede.message code { font-size: 0.8125rem; }
   .hero .lede {
     font-size: 0.9375rem;
     line-height: 1.55;
@@ -268,7 +269,7 @@
   }
   .hero .lede :is(p, li) code {
     font-family: var(--font-mono);
-    font-size: 0.9em;
+    font-size: 0.8125rem;
     color: rgb(var(--foreground-rgb));
     background: var(--surface-strong);
     border-radius: 4px;
@@ -311,10 +312,10 @@
   .causes { font-size: 0.9375rem; min-width: 0; }
   .causes-label { color: var(--muted); margin-bottom: 0.35rem; }
   .causes ul { list-style: none; display: flex; flex-direction: column; gap: 0.3rem; }
-  /* The arrow and dash are Instrument Sans at the header's size, the class and message mono at
-     0.9 of it, as code in prose is. The sans dash also stands apart from any hyphen in a message. */
+  /* The arrow and dash are Instrument Sans at the header's size, the class and message the
+     page's 13px mono. The sans dash also stands apart from any hyphen in a message. */
   .causes li { color: var(--muted); overflow-wrap: anywhere; }
-  .causes code, .cause-message { font-family: var(--font-mono); font-size: 0.9em; }
+  .causes code, .cause-message { font-family: var(--font-mono); font-size: 0.8125rem; }
   .causes code { color: var(--color-code-ink); }
   .cause-arrow { margin-right: 0.45em; }
   .cause-dash { white-space: pre; margin: 0 0.15em; }
@@ -334,7 +335,7 @@
   /* The label, the button and the manual steps read as one block, close together. */
   .fix { gap: 0.75rem; }
   .suggestion-text { font-size: 0.9375rem; line-height: 1.55; overflow-wrap: anywhere; }
-  .suggestion-text code { font-family: var(--font-mono); font-size: 0.9em; color: var(--color-code-ink); }
+  .suggestion-text code { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-code-ink); }
   :is(.fix h2, .callout-label) {
     font-size: 0.875rem;
     font-weight: 700;
@@ -345,7 +346,7 @@
   .fix-text { font-size: 0.9375rem; line-height: 1.5; overflow-wrap: anywhere; }
   .fix-text :is(p, li) code {
     font-family: var(--font-mono);
-    font-size: 0.9em;
+    font-size: 0.8125rem;
     background: var(--surface-strong);
     border-radius: 4px;
     padding: 0.1em 0.32em;
@@ -579,9 +580,9 @@
   }
   .frames button:hover { background: var(--surface); }
   .frames button[aria-current="true"] { background: var(--primary-wash); }
-  .fr-loc { font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.6; word-break: break-all; }
+  .fr-loc { font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.4; word-break: break-all; }
   .fr-loc .ln { color: var(--color-code-ink); }
-  .fr-meth { font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.6; color: var(--muted); word-break: break-all; }
+  .fr-meth { font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.4; color: var(--muted); word-break: break-all; }
   .frames li.is-gem .fr-loc { font-weight: 400; color: var(--muted); }
   .frames li.is-app .fr-loc::before {
     content: "";
