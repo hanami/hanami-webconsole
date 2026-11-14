@@ -168,8 +168,10 @@
     background: rgb(var(--background-rgb));
   }
   /* The Hanakai wiggle, drawn as hanakai.org draws it (svgs/_wiggle.html.erb at height 14,
-     stroke 2): one 12.6px cycle, repeated and clipped, never stretched. A `data:` image, since
-     the page's CSP allows those and nothing else for images. */
+     stroke 2), repeated and clipped, never stretched. The tile is five cycles, 63px, because a
+     12.6px tile gets rounded to whole pixels in Safari and leaves a gap at every seam. The path
+     runs past both edges, so no round cap is cut off at a seam. A `data:` image, since the page's
+     CSP allows those and nothing else for images. */
   .topbar::after {
     content: "";
     position: absolute;
@@ -177,7 +179,7 @@
     right: var(--gutter);
     bottom: 0;
     height: 14px;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12.6' height='14' viewBox='0 0 12.6 14'%3E%3Cpath d='M0,7 Q3.15,3.5 6.3,7 Q9.45,10.5 12.6,7' fill='none' stroke='%23FF6C89' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x left center / 12.6px 14px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='63' height='14' viewBox='0 0 63 14'%3E%3Cpath d='M-6.3,7 Q-3.15,10.5 0.0,7 Q3.15,3.5 6.3,7 Q9.45,10.5 12.6,7 Q15.75,3.5 18.9,7 Q22.05,10.5 25.2,7 Q28.35,3.5 31.5,7 Q34.65,10.5 37.8,7 Q40.95,3.5 44.1,7 Q47.25,10.5 50.4,7 Q53.55,3.5 56.7,7 Q59.85,10.5 63.0,7 Q66.15,3.5 69.3,7' fill='none' stroke='%23FF6C89' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x left center / 63px 14px;
   }
   .topbar .brand { display: inline-flex; align-items: center; gap: 0.55rem; flex: 0 0 auto; }
   .topbar .logo { width: 20px; height: 20px; flex: 0 0 auto; }
