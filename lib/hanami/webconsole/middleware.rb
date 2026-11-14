@@ -114,8 +114,7 @@ module Hanami
         end
       end
 
-      # Serves one of the page's fonts, or returns nil to leave the request to the app. The fonts
-      # never change within a version, so the browser may keep them.
+      # Serves one of the page's fonts, or returns nil to leave the request to the app
       def font_response(env)
         return unless %w[GET HEAD].include?(env["REQUEST_METHOD"])
 

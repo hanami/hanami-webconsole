@@ -8,7 +8,7 @@ require "hanami/webconsole"
 #
 # Each scenario raises a real exception and renders it with the real renderer, so the page goes
 # through everything a live request would: `detailed_message` extras, backtrace parsing, diagnostics
-# and causes. Only the console needs a server, so it won't evaluate here.
+# and causes. Note that the console still needs a server, so it doesn't evaluate here.
 #
 #   bundle exec rake preview   # writes tmp/previews/, open index.html
 #

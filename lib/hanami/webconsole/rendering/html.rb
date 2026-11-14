@@ -269,8 +269,7 @@ module Hanami
 
         # Returns the heading under the fix card's "Fix" label: the fix's name, or nil.
         #
-        # A fix that can run has no heading, since its name goes on the run button instead, and we
-        # don't want to show it twice. An unnamed fix needs none beyond the label.
+        # Runnable fixes show the name on the button, so we don't show those.
         #
         # @return [String, nil]
         def fix_heading
@@ -289,9 +288,8 @@ module Hanami
         # The `detailed_message` extras to show under the message: usually error_highlight's code
         # line and carets.
         #
-        # When there's a suggestion, the callout shows did_you_mean's lines, so they're dropped
-        # here. The lines lose their shared indent, which comes from the source and only pushes the
-        # code away from the box's edge.
+        # When there's a suggestion, the callout shows the did_you_mean lines, so they're excluded
+        # here.
         #
         # @return [Array<String>]
         def extras
@@ -362,9 +360,6 @@ module Hanami
           @context_panels ||= (diagnostic_panels + request_panels)
         end
 
-        # The panels, as wide ones (rows of their own) and then the rest (a grid of columns). A
-        # wide panel in the grid would keep every column alive, squeezing the panels after it.
-        #
         # @return [Array<Array(Boolean, Array<Hash>)>]
         def context_panel_groups
           wide, narrow = context_panels.partition { |panel| panel[:wide] }
@@ -444,10 +439,6 @@ module Hanami
 
         # Returns escaped prose with each apostrophe between two letters (as in "haven't" or
         # "slice's") made typographic.
-        #
-        # This is for the prose webconsole renders: a diagnostic's title, explanation and fix. Code
-        # spans are never touched, since {CODE_SPAN} can't match one holding an apostrophe. An
-        # exception's message is shown exactly as Ruby wrote it, so it never comes through here.
         #
         # @param html [String] escaped HTML
         #

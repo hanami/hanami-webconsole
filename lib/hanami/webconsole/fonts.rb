@@ -2,18 +2,15 @@
 
 module Hanami
   module Webconsole
-    # The fonts the error page ships with: Instrument Sans and Maple Mono NL.
+    # Error page fonts are Instrument Sans and Maple Mono NL.
     #
-    # Both are under the SIL Open Font License, whose text is alongside them in `fonts/`. They are
-    # subset to Latin and served by the middleware, under {MOUNT_PATH}, so the browser caches them
-    # once rather than downloading them inside every error page.
+    # Both are under the SIL Open Font License. Fonts are subset to Latin and served by the
+    # middleware, under {MOUNT_PATH}, so the browser can cache them.
     #
     # @api private
     module Fonts
       DIR = File.expand_path("fonts", __dir__)
 
-      # Each file the middleware serves, with the `@font-face` descriptors that use it. Only these
-      # names are served, so a request can never reach any other file.
       FACES = {
         "instrument-sans.woff2" => {family: "Instrument Sans", weight: "400 700", style: "normal"},
         "maple-mono-nl-regular.woff2" => {family: "Maple Mono NL", weight: "400", style: "normal"},
@@ -36,10 +33,8 @@ module Hanami
         (@cache ||= {})[name] ||= File.binread(File.join(DIR, name)).freeze
       end
 
-      # Returns the `@font-face` rules for every font, loading from the given path.
-      #
-      # The URLs carry the gem's version, since the fonts are served as immutable: an upgrade that
-      # changes them gets new URLs, rather than a year of stale cache.
+      # Returns the `@font-face` rules for every font, loading from the given path. Restricted to
+      # the values in `FACES`.
       #
       # @param path [String] where the fonts are served from: {PATH}, or a relative path for a
       #   page opened from disk
