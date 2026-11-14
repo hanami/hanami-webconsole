@@ -652,7 +652,6 @@
     font-family: var(--font-sans);
     font-size: 0.75rem;
     font-weight: 700;
-    letter-spacing: 0.01em;
     color: var(--strong);
     background: var(--surface);
     text-decoration: none;
@@ -823,8 +822,7 @@
     gap: 0.75rem;
     flex-wrap: wrap;
     margin: 1.5rem var(--gutter) 0;
-    /* Lifted 1px: Instrument Sans sits low in its line box, so centred content looks low. */
-    padding: 2px 0.25rem 4px 0.75rem;
+    padding: 3px 0.25rem 3px 0.75rem;
     min-height: 2.3rem;
     background: var(--card);
     border: 1px solid var(--border);
@@ -832,6 +830,8 @@
     box-shadow: var(--card-shadow);
   }
   .ctx-bar .spacer { flex: 1 1 auto; }
+  /* Instrument Sans sits low in its line box, so centred text looks low: lift it half a pixel. */
+  .ctx-bar > .eyebrow, .ctx-toggles { position: relative; top: -0.5px; }
   .ctx-toggles { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 
   /* Wide panels take rows of their own, above a grid of the rest. The grid's columns line up when
@@ -853,7 +853,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.4rem 0.75rem;
+    padding: calc(0.4rem - 1px) 0.75rem calc(0.4rem + 1px);
     border-bottom: 1px solid var(--border);
     min-height: 2.25rem;
     position: sticky;
