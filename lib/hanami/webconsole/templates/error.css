@@ -49,6 +49,7 @@
     --panel: var(--color-rom-50);
     --evidence: oklch(95.8% 0.02 279.99 / 0.4);  /* the site's bg-secondary-subtle */
     --evidence-border: var(--color-rom-100);
+    --tree: #c4c4c4;
     --scrollbar-track: #f5f5f5;
 
     /* swapped by [data-actionable] */
@@ -100,6 +101,7 @@
       --panel: oklch(18.2% 0.079 261.06 / 0.6);
       --evidence: oklch(18.2% 0.079 261.06 / 0.4);
       --evidence-border: oklch(30.95% 0.136 261.25);
+      --tree: #4a4a4a;
       --scrollbar-track: #262626;
       --syn-comment: #a3a3a3;
     }
@@ -128,6 +130,7 @@
     --panel: oklch(18.2% 0.079 261.06 / 0.6);
     --evidence: oklch(18.2% 0.079 261.06 / 0.4);
     --evidence-border: oklch(30.95% 0.136 261.25);
+    --tree: #4a4a4a;
     --scrollbar-track: #262626;
     --syn-comment: #a3a3a3;
   }
@@ -336,23 +339,24 @@
   /* Header text, so it takes the header's prose size, not the backtrace's 13px. */
   .causes { font-size: 0.9375rem; min-width: 0; }
   .causes-label { color: var(--muted); margin-bottom: 0.35rem; }
-  .causes ul { list-style: none; display: flex; flex-direction: column; gap: 0.3rem; }
-  /* The arrow and dash are Instrument Sans at the header's size, the class and message the
-     page's 13px mono. The sans dash also stands apart from any hyphen in a message. */
-  .causes li { color: var(--muted); overflow-wrap: anywhere; }
+  .causes ul { list-style: none; }
+  /* The chain is drawn as a tree: a line down from the label, a branch to each cause, ending in a
+     corner at the last one. The branches sit in the items' left padding, with no further indent.
+     The dash is Instrument Sans at the header's size, the class and message the page's 13px
+     mono, so the dash stands apart from any hyphen in a message. */
+  .causes li {
+    position: relative;
+    padding: 0.15rem 0 0.15rem 1.1em;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+  }
+  .causes li::before,
+  .causes li::after { content: ""; position: absolute; left: 0.3em; border: 0 solid var(--tree); }
+  .causes li::before { top: 0; bottom: 0; border-left-width: 1.5px; }
+  .causes li::after { top: 0.85em; width: 0.55em; border-top-width: 1.5px; }
+  .causes li:last-child::before { bottom: auto; height: 0.85em; }
   .causes code, .cause-message { font-family: var(--font-mono); font-size: 0.8125rem; }
   .causes code { color: var(--color-code-ink); }
-  /* A ⌙, drawn rather than typed: neither font has the glyph, so a character would fall back to
-     whatever the system has. */
-  .cause-arrow {
-    display: inline-block;
-    width: 0.45em;
-    height: 0.55em;
-    margin: 0 0.5em 0 0.1em;
-    border-left: 1.5px solid currentColor;
-    border-bottom: 1.5px solid currentColor;
-    vertical-align: 0.15em;
-  }
   .cause-dash { white-space: pre; margin: 0 0.15em; }
 
   /* ── fix card (actionable errors) ───────────────────────── */

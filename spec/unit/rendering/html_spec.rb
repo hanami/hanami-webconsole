@@ -369,7 +369,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
 
     expect(list).to include(%(<p class="causes-label">Caused by:</p>))
     expect(list).to include(
-      %(<li><span class="cause-arrow" aria-hidden="true"></span><code>TimeoutError</code><span class="cause-dash"> – </span><span class="cause-message">Gave up</span></li>)
+      %(<li><code>TimeoutError</code><span class="cause-dash"> – </span><span class="cause-message">Gave up</span></li>)
     )
     expect(list).to include("Connection refused - &lt;script&gt;")
     expect(list.index("TimeoutError")).to be < list.index("ECONNREFUSED")
