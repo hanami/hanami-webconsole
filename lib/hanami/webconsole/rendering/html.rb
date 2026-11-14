@@ -200,6 +200,13 @@ module Hanami
           app_frames_count.positive?
         end
 
+        # The frames the checkbox hides: those from gems and the framework.
+        #
+        # @return [Integer]
+        def hidden_frames_count
+          frames.length - app_frames_count
+        end
+
         # Start on the first frame the developer wrote, not on the middleware that caught it.
         #
         # @return [Integer]

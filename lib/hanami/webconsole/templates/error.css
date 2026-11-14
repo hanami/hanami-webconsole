@@ -533,21 +533,17 @@
   }
   .col-head .spacer { flex: 1 1 auto; }
 
-  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
-  .seg button {
-    font: inherit;
-    font-size: 0.6875rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
+  .check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
     color: var(--muted);
-    background: rgb(var(--background-rgb));
-    border: 0;
-    padding: 0.32rem 0.7rem;
     cursor: pointer;
+    white-space: nowrap;
   }
-  .seg button + button { border-left: 1px solid var(--border); }
-  .seg button[aria-pressed="true"] { background: var(--color-primary); color: #fff; }
-  .seg button:not([aria-pressed="true"]):hover { color: rgb(var(--foreground-rgb)); }
+  .check input { width: 12px; height: 12px; margin: 0; accent-color: var(--color-primary); cursor: pointer; }
+  .check:hover { color: rgb(var(--foreground-rgb)); }
 
   .frames { list-style: none; overflow-y: auto; flex: 1 1 auto; max-height: 62vh; }
   .frames li + li { margin-top: 2px; }
@@ -580,7 +576,6 @@
     vertical-align: middle;
   }
   .frames.app-only li.is-gem { display: none; }
-  .frames-note { padding: 0.6rem 0.75rem; font-size: 0.75rem; color: var(--muted); }
 
   .src-path { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--muted); word-break: break-all; line-height: 1.6; }
   .src-path .dim { color: var(--faint); font-weight: 400; }

@@ -198,6 +198,30 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     expect(page_data(html_for(page))["initialFrame"]).to eq(1)
   end
 
+  describe "the backtrace filter" do
+    let(:app) { frame(kind: :app) }
+    let(:gem) { frame(kind: :gem, display_path: "gems/rack/lib/rack.rb") }
+
+    it "hides gem frames behind a checkbox that counts them" do
+      html = html_for(error_page(frames: [app, gem, gem]))
+
+      expect(html).to include(%(<input type="checkbox" data-webconsole-show-all-frames>))
+      expect(html).to include("Show all frames (2 hidden)")
+      expect(html).to include(%(class="frames app-only"))
+    end
+
+    it "has nothing to filter when every frame is the app's" do
+      expect(html_for(error_page(frames: [app, app]))).not_to include(%(<input type="checkbox" data-webconsole-show-all-frames>))
+    end
+
+    it "shows every frame, with nothing to filter, when none are the app's" do
+      html = html_for(error_page(frames: [gem]))
+
+      expect(html).not_to include(%(<input type="checkbox" data-webconsole-show-all-frames>))
+      expect(html).to include(%(<ul class="frames" data-webconsole-frame-list>))
+    end
+  end
+
   it "renders a page with no frames at all" do
     html = html_for(error_page(frames: []))
 

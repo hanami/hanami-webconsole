@@ -97,10 +97,12 @@
       <div class="col-head">
         <span class="eyebrow">Backtrace</span>
         <span class="spacer"></span>
-        <div class="seg" role="group" aria-label="Filter frames">
-          <button type="button" data-webconsole-filter="app" aria-pressed="<%= app_only? ? "true" : "false" %>">App</button>
-          <button type="button" data-webconsole-filter="all" aria-pressed="<%= app_only? ? "false" : "true" %>">All</button>
-        </div>
+<% if app_only? && hidden_frames_count.positive? -%>
+        <label class="check">
+          <input type="checkbox" data-webconsole-show-all-frames>
+          <span>Show all frames (<%= hidden_frames_count %> hidden)</span>
+        </label>
+<% end -%>
       </div>
 <% if frames.any? -%>
       <ul class="frames<%= app_only? ? " app-only" : "" %>" data-webconsole-frame-list>
@@ -114,7 +116,6 @@
         </li>
 <% end -%>
       </ul>
-      <p class="frames-note" data-webconsole-frames-note></p>
 <% else -%>
       <p class="frames-empty" data-webconsole-frames-empty>This exception carries no backtrace.</p>
 <% end -%>
