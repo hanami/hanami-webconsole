@@ -15,3 +15,12 @@ desc "Run all linters"
 task lint: :rubocop
 
 task default: %i[lint test]
+
+desc "Render the error page for a range of errors to tmp/previews"
+task :preview do
+  require_relative "spec/previews"
+
+  dir = File.expand_path("tmp/previews", __dir__)
+  Previews.write(dir)
+  puts "Wrote #{Previews.scenarios.length} previews. Open #{dir}/index.html"
+end
