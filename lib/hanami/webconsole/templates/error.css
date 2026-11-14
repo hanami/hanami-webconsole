@@ -23,7 +23,7 @@
     --success-wash: oklch(50% 0.13 150 / 0.12);
 
     --box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px;
-    --card-shadow: 0 0 2px rgba(0, 0, 0, 0.12);
+    --card-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
     --radius: 8px;
     --gutter: 1.5rem;
     --foreground-rgb: 38, 38, 38;
@@ -48,6 +48,7 @@
     --panel: var(--color-rom-50);
     --evidence: oklch(95.8% 0.02 279.99 / 0.4);  /* the site's bg-secondary-subtle */
     --evidence-border: var(--color-rom-100);
+    --input-border: #d4d4d4;
 
     /* swapped by [data-actionable] */
     --signal: var(--color-primary);
@@ -55,13 +56,16 @@
     --signal-wash: var(--primary-wash);
     --signal-ink: #fff;
 
-    --syn-comment: var(--faint);
+    /* Code colours: hanakai.org's syntax theme, in its Hanami variant (content.css). Primary
+       (hanami-500) for keywords, classes and numbers, secondary (rom) for strings and
+       symbols, neutral for variables, and neutral-500 italic for comments. */
+    --syn-comment: #737373;
     --syn-string: var(--color-code-ink);
     --syn-keyword: var(--color-primary);
-    --syn-const: oklch(54% 0.13 68);
+    --syn-const: var(--color-primary);
     --syn-symbol: var(--color-code-ink);
-    --syn-ivar: oklch(51% 0.17 310);
-    --syn-num: var(--color-code-ink);
+    --syn-ivar: rgb(var(--foreground-rgb));
+    --syn-num: var(--color-primary);
   }
 
   [data-actionable] {
@@ -95,8 +99,8 @@
       --panel: oklch(18.2% 0.079 261.06 / 0.6);
       --evidence: oklch(18.2% 0.079 261.06 / 0.4);
       --evidence-border: oklch(30.95% 0.136 261.25);
-      --syn-const: #FFD33B;
-      --syn-ivar: oklch(77% 0.15 310);
+      --input-border: #404040;
+      --syn-comment: #a3a3a3;
     }
   }
 
@@ -123,8 +127,8 @@
     --panel: oklch(18.2% 0.079 261.06 / 0.6);
     --evidence: oklch(18.2% 0.079 261.06 / 0.4);
     --evidence-border: oklch(30.95% 0.136 261.25);
-    --syn-const: #FFD33B;
-    --syn-ivar: oklch(77% 0.15 310);
+    --input-border: #404040;
+    --syn-comment: #a3a3a3;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -664,8 +668,8 @@
 
   .c { color: var(--syn-comment); font-style: italic; }
   .s { color: var(--syn-string); }
-  .k { color: var(--syn-keyword); }
-  .t { color: var(--syn-const); }
+  .k { color: var(--syn-keyword); font-weight: 600; }
+  .t { color: var(--syn-const); font-weight: 600; }
   .y { color: var(--syn-symbol); }
   .v { color: var(--syn-ivar); }
   .n { color: var(--syn-num); }
@@ -831,15 +835,15 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    background: var(--chrome);
-    border: 1px solid var(--border);
+    background: var(--card);
+    border: 1px solid var(--input-border);
     border-radius: 5px;
     padding: 0.25rem 0.6rem;
     min-width: 0;
     flex: 0 1 13rem;
   }
   .ctx-search:focus-within { border-color: var(--color-code-ink); }
-  .ctx-search > .icon { color: var(--faint); }
+  .ctx-search > .icon { color: var(--muted); }
   .ctx-search input {
     font: inherit;
     font-family: var(--font-mono);
@@ -852,7 +856,7 @@
     flex: 1 1 auto;
     padding: 0.1rem 0;
   }
-  .ctx-search input::placeholder { color: var(--faint); font-family: var(--font-sans); }
+  .ctx-search input::placeholder { color: var(--muted); font-family: var(--font-sans); }
   .ctx-search input::-webkit-search-cancel-button { display: none; }
   .ctx-clear {
     font: inherit;
