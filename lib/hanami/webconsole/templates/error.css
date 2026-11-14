@@ -191,7 +191,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .topbar .req b { color: inherit; font-weight: 400; }
+  .topbar .req b { color: inherit; font-weight: inherit; }
   .topbar .spacer { flex: 1 1 auto; }
   /* The status reads as the design has it: plain text, the code and its reason together. */
   .topbar .status { font-size: 0.875rem; font-weight: 500; color: #636363; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -268,7 +268,7 @@
   }
   .hero .lede :is(p, li) code {
     font-family: var(--font-mono);
-    font-size: 0.92em;
+    font-size: 0.9em;
     color: rgb(var(--foreground-rgb));
     background: var(--surface-strong);
     border-radius: 4px;
@@ -284,7 +284,7 @@
     line-height: 1.4;
     white-space: pre-wrap;
   }
-  .hero .lede.message code { font-family: var(--font-mono); color: var(--color-code-ink); }
+  .hero .lede.message code { font-family: var(--font-mono); font-size: 0.9em; color: var(--color-code-ink); }
 
   /* A diagnostic's text: paragraphs, lists and code blocks. */
   .prose { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
@@ -307,7 +307,7 @@
   .caret-box .caret { color: var(--signal-text); font-weight: 700; }
 
   /* The cause chain, outermost first: each class with its message, verbatim. */
-  .causes { font-size: 0.875rem; min-width: 0; }
+  .causes { font-size: 0.8125rem; min-width: 0; }
   .causes-label { font-size: 0.8125rem; color: var(--muted); margin-bottom: 0.35rem; }
   .causes ul { list-style: none; display: flex; flex-direction: column; gap: 0.3rem; }
   .causes li { font-family: var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
@@ -329,10 +329,10 @@
   /* The label, the button and the manual steps read as one block, close together. */
   .fix { gap: 0.75rem; }
   .suggestion-text { font-size: 0.9375rem; line-height: 1.55; overflow-wrap: anywhere; }
-  .suggestion-text code { font-family: var(--font-mono); font-size: 0.875rem; color: var(--color-code-ink); }
+  .suggestion-text code { font-family: var(--font-mono); font-size: 0.9em; color: var(--color-code-ink); }
   :is(.fix h2, .callout-label) {
     font-size: 0.875rem;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.02em;
     text-transform: uppercase;
     color: var(--color-code-ink);
@@ -369,7 +369,7 @@
     gap: 0.35rem;
     font: inherit;
     font-size: 0.6875rem;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
     color: var(--strong);
@@ -386,7 +386,7 @@
   .fix-title { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
   .badge-future {
     font-size: 0.625rem;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
@@ -507,7 +507,7 @@
   .disclosure > button:hover { color: rgb(var(--foreground-rgb)); }
   .disclosure > button .chevron { transition: transform 150ms ease; display: inline-block; }
   .disclosure > button[aria-expanded="true"] .chevron { transform: rotate(90deg); }
-  .disclosure > button .count { color: var(--faint); font-weight: 400; }
+  .disclosure > button .count { font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 400; color: var(--muted); }
 
   /* ── workbench: full-bleed two pane ─────────────────────── */
   .workbench {
@@ -675,7 +675,7 @@
   .tabs .count { font-family: var(--font-mono); font-size: 0.6875rem; color: var(--muted); margin-left: 0.35rem; }
 
   .vars-wrap { overflow: auto; max-height: 17rem; }
-  .vars { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+  .vars { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
   .vars th {
     text-align: left;
     font-size: 0.75rem;
