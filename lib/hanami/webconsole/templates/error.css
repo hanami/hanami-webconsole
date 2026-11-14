@@ -342,7 +342,17 @@
   .causes li { color: var(--muted); overflow-wrap: anywhere; }
   .causes code, .cause-message { font-family: var(--font-mono); font-size: 0.8125rem; }
   .causes code { color: var(--color-code-ink); }
-  .cause-arrow { margin-right: 0.45em; }
+  /* A ⌙, drawn rather than typed: neither font has the glyph, so a character would fall back to
+     whatever the system has. */
+  .cause-arrow {
+    display: inline-block;
+    width: 0.45em;
+    height: 0.55em;
+    margin: 0 0.5em 0 0.1em;
+    border-left: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    vertical-align: 0.15em;
+  }
   .cause-dash { white-space: pre; margin: 0 0.15em; }
 
   /* ── fix card (actionable errors) ───────────────────────── */
