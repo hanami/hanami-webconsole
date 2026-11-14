@@ -236,7 +236,7 @@
      set the whole page's minimum width and scroll a phone sideways. */
   .hero h1 {
     font-family: var(--font-mono);
-    font-size: 0.8125rem;
+    font-size: 0.9375rem;
     font-weight: 700;
     line-height: 1.6;
     color: var(--color-code-ink);
@@ -244,7 +244,7 @@
   }
   .hero .exception-class {
     font-family: var(--font-mono);
-    font-size: 0.8125rem;
+    font-size: 0.9375rem;
     font-weight: 700;
     line-height: 1.6;
     color: var(--color-code-ink);
@@ -307,8 +307,9 @@
   .caret-box .caret { color: var(--signal-text); font-weight: 700; }
 
   /* The cause chain, outermost first: each class with its message, verbatim. */
-  .causes { font-size: 0.8125rem; min-width: 0; }
-  .causes-label { font-size: 0.8125rem; color: var(--muted); margin-bottom: 0.35rem; }
+  /* Header text, so it takes the header's prose size, not the backtrace's 13px. */
+  .causes { font-size: 0.9375rem; min-width: 0; }
+  .causes-label { color: var(--muted); margin-bottom: 0.35rem; }
   .causes ul { list-style: none; display: flex; flex-direction: column; gap: 0.3rem; }
   .causes li { font-family: var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
   .causes code { font-family: var(--font-mono); color: var(--color-code-ink); }
