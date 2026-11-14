@@ -58,9 +58,7 @@
     --signal-wash: var(--primary-wash);
     --signal-ink: #fff;
 
-    /* Code colours: hanakai.org's syntax theme, in its Hanami variant (content.css). Primary
-       (hanami-500) for keywords, classes and numbers, secondary (rom) for strings and
-       symbols, neutral for variables, and neutral-500 italic for comments. */
+    /* Code colours: hanakai.org's syntax theme, Hanami variant (content.css). */
     --syn-comment: #737373;
     --syn-string: var(--color-code-ink);
     --syn-keyword: var(--color-primary);
@@ -137,9 +135,7 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* Scrollbars, as on hanakai.org (scrollbar.css): a slim rounded thumb on a light track, for the
-     page and every scrolling pane in it. The page's thumb is hanakai-300, the site's yellow, as
-     there. Panes that scroll within it are the Hanami theme's light pink. */
+  /* Scrollbars, as on hanakai.org (scrollbar.css). Panes inside the page get pink thumbs. */
   @supports not selector(::-webkit-scrollbar) {
     :root { scrollbar-color: var(--color-hanakai-300) var(--scrollbar-track); }
     :root * { scrollbar-color: var(--color-hanami-300) var(--scrollbar-track); }
