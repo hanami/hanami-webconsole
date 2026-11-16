@@ -54,7 +54,8 @@ module Hanami
         end
 
         def error_message(exception)
-          exception.message.to_s
+          # A syntax error in the source can carry ANSI colour codes (see {ErrorPage::ANSI_COLOR}).
+          exception.message.to_s.gsub(ErrorPage::ANSI_COLOR, "")
         rescue Exception # rubocop:disable Lint/RescueException
           ""
         end
