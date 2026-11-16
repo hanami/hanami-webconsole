@@ -49,6 +49,8 @@
     --panel: var(--color-rom-50);
     --evidence: oklch(95.8% 0.02 279.99 / 0.4);  /* the site's bg-secondary-subtle */
     --evidence-border: var(--color-rom-100);
+    /* The site's inline code ink: text-secondary (rom-500), 0.3 darker and 0.05 less chroma. */
+    --chip-ink: oklch(25.79% 0.194 261.2);
     --tree: #c4c4c4;
     --scrollbar-track: #f5f5f5;
 
@@ -99,6 +101,7 @@
       --panel: oklch(18.2% 0.079 261.06 / 0.6);
       --evidence: oklch(18.2% 0.079 261.06 / 0.4);
       --evidence-border: oklch(30.95% 0.136 261.25);
+      --chip-ink: oklch(90.79% 0.094 261.2);
       --tree: #4a4a4a;
       --scrollbar-track: #262626;
       --syn-comment: #a3a3a3;
@@ -128,6 +131,7 @@
     --panel: oklch(18.2% 0.079 261.06 / 0.6);
     --evidence: oklch(18.2% 0.079 261.06 / 0.4);
     --evidence-border: oklch(30.95% 0.136 261.25);
+    --chip-ink: oklch(90.79% 0.094 261.2);
     --tree: #4a4a4a;
     --scrollbar-track: #262626;
     --syn-comment: #a3a3a3;
@@ -225,7 +229,7 @@
     background: var(--color-primary);
     border: 2px solid var(--color-primary);
     border-radius: 9px;
-    padding: 0.25rem 0.75rem 0.35rem;
+    padding: 0.3rem 0.75rem;
     white-space: nowrap;
     cursor: pointer;
     flex: 0 0 auto;
@@ -245,7 +249,6 @@
      box and causes a step more, as in the design. */
   .hero .identity { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; }
   .hero .identity > * + * { margin-top: 0.75rem; }
-  .hero .identity > .exception-class + h1,
   .hero .identity > h1:first-child + .message { margin-top: 0.25rem; }
   .hero .identity > :is(.caret-box, .causes) { margin-top: 1rem; }
   .hero .callout { flex: 0 1 500px; min-width: 0; align-self: center; }
@@ -260,12 +263,14 @@
     color: var(--color-code-ink);
     overflow-wrap: anywhere;
   }
+  /* Above a diagnostic's title, the class is a label: small, muted and spaced like every other
+     line, so it doesn't read as half of the heading. */
   .hero .exception-class {
     font-family: var(--font-mono);
-    font-size: 0.875rem; /* 14px: a step above the page's 13px mono, as it heads the error */
-    font-weight: 700;
+    font-size: 0.8125rem;
+    font-weight: 500;
     line-height: 1.6;
-    color: var(--color-code-ink);
+    color: var(--muted);
     overflow-wrap: anywhere;
   }
   .hero .exception-class + h1 {
@@ -276,7 +281,6 @@
     color: rgb(var(--foreground-rgb));
   }
   .hero .exception-class ~ .lede.message { font-size: 0.9375rem; font-weight: 400; }
-  .hero .exception-class ~ .lede.message code { font-size: 0.8125rem; }
   .hero .lede {
     font-size: 0.9375rem;
     line-height: 1.55;
@@ -285,13 +289,17 @@
     color: rgb(var(--foreground-rgb));
     overflow-wrap: anywhere;
   }
-  .hero .lede :is(p, li) code {
+  /* Inline code in prose, as hanakai.org draws it (content.css, code): the theme's subtle
+     secondary background, a faint secondary border and dark secondary ink. Sized to the text
+     around it, so it suits both the large message and the smaller paragraphs. */
+  :is(.hero .lede :is(p, li), .suggestion-text, .fix-text :is(p, li)) code {
     font-family: var(--font-mono);
-    font-size: 0.8125rem;
-    color: rgb(var(--foreground-rgb));
-    background: var(--surface-strong);
-    border-radius: 4px;
-    padding: 0.1em 0.32em;
+    font-size: 0.87em;
+    color: var(--chip-ink);
+    background: var(--evidence);
+    border: 1px solid oklch(64.7% 0.188 268.82 / 0.2);
+    border-radius: 0.25rem;
+    padding: 0.1875rem 0.25rem;
   }
 
   /* The exception message, exactly as written, the same as in a terminal. Quoted names are
@@ -303,7 +311,18 @@
     line-height: 1.4;
     white-space: pre-wrap;
   }
-  .hero .lede.message code { font-family: var(--font-mono); font-size: 0.9em; color: var(--color-code-ink); }
+  .hero .lede.message > * + * { margin-top: 0.75rem; }
+  /* Quoted source, as under a syntax error: mono, so the caret lines up, and scrolled rather than
+     wrapped, since a wrapped line would break the columns. */
+  .hero .lede.message .excerpt {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.6;
+    white-space: pre;
+    overflow-x: auto;
+    color: rgb(var(--foreground-rgb));
+  }
 
   /* A diagnostic's text: paragraphs, lists and code blocks. */
   .prose { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
@@ -362,7 +381,6 @@
   .suggestion { gap: 0.75rem; }
   .fix { gap: 0.75rem; }
   .suggestion-text { font-size: 0.9375rem; line-height: 1.55; overflow-wrap: anywhere; }
-  .suggestion-text code { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-code-ink); }
   :is(.fix h2, .callout-label) {
     font-size: 0.875rem;
     font-weight: 700;
@@ -370,14 +388,9 @@
     text-transform: uppercase;
     color: var(--color-code-ink);
   }
+  .callout-label { display: flex; align-items: center; gap: 0.4em; }
+  .callout-label .star { line-height: 1; }
   .fix-text { font-size: 0.9375rem; line-height: 1.5; overflow-wrap: anywhere; }
-  .fix-text :is(p, li) code {
-    font-family: var(--font-mono);
-    font-size: 0.8125rem;
-    background: var(--surface-strong);
-    border-radius: 4px;
-    padding: 0.1em 0.32em;
-  }
 
   .cmd {
     display: flex;
@@ -746,7 +759,12 @@
     flex-direction: column;
     gap: 0.15rem;
   }
-  .repl-hint { color: rgb(var(--foreground-rgb)); font-family: var(--font-sans); }
+  .repl-hint {
+    padding: 0.5rem 0.75rem;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    color: var(--faint);
+  }
   .repl-hint code {
     font-family: var(--font-mono);
     background: var(--evidence);
@@ -787,16 +805,6 @@
   .repl-form input::placeholder { color: var(--faint); }
   .repl-form .enter { color: var(--faint); font-size: 0.85rem; display: flex; align-items: center; }
 
-  .repl-note {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    flex-wrap: wrap;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8125rem;
-    color: rgba(var(--foreground-rgb), 0.7);
-  }
-  .repl-note .icon { color: var(--muted); }
 
   .empty { padding: 1.6rem 1rem; font-size: 0.875rem; color: var(--muted); text-align: center; line-height: 1.65; }
   .empty code { font-family: var(--font-mono); background: var(--surface-strong); border-radius: 4px; padding: 0.1em 0.35em; font-size: 0.9em; }
@@ -823,9 +831,16 @@
   .ctx-toggles { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 
   /* Wide panels take rows of their own, above a grid of the rest. The grid's columns line up when
-     the panels wrap, and auto-fit collapses unused columns, so a few panels share the full width. */
+     the panels wrap, and auto-fit collapses unused columns, so a few panels share the full width.
+     Each group is its own card, so a long wide panel (a diagnostic's routes, say) ends clearly
+     before the request panels begin. */
   .context {
     margin: 0.625rem var(--gutter) 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .context > :is(.ctx-wide, .ctx-grid) {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -833,6 +848,7 @@
     /* clip, not hidden: hidden makes a scroll container, and the panel headings couldn't stick. */
     overflow: clip;
   }
+  .context > :not(:has(> .ctx-panel:not([hidden]))) { display: none; }
   /* Every panel draws its right and bottom edges, and the card clips the outer ones. */
   .ctx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
   .ctx-panel { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0 -1px -1px 0; min-width: 0; }
@@ -934,7 +950,8 @@
      Hanami theme's secondary blue, faint, with a dark navy icon. */
   .cell-copy {
     position: absolute;
-    top: 0.3rem;
+    /* Centred in a one-line row (28px row, 22px button), and so beside the first line of a longer value. */
+    top: 3px;
     right: 0.4rem;
     display: inline-flex;
     padding: 0.25rem;
@@ -970,6 +987,11 @@
     z-index: 1;
     background: rgb(var(--background-rgb));
   }
+  /* A diagnostic's dataset can run to hundreds of rows (every route in the app), so it scrolls
+     within its panel rather than pushing the request panels off the page. Its column headings
+     stick to the top of that scroll box, not below the page's sticky panel heading. */
+  .ctx-panel.is-dataset .kv-wrap { max-height: 24rem; overflow-y: auto; }
+  .ctx-panel.is-dataset .kv th { top: 0; }
   /* A table with more than two columns needs the room. */
   .ctx-panel.is-wide .kv { table-layout: auto; }
   .ctx-panel.is-wide .kv .k-name { width: auto; }
@@ -994,6 +1016,8 @@
     .frames { max-height: 17rem; }
     .code { max-height: 30vh; }
     .topbar .req { display: none; }
+    .hero { flex-direction: column; align-items: stretch; gap: 1.25rem; }
+    .hero .callout { flex-basis: auto; width: 100%; align-self: stretch; }
   }
 
   /* Phones. The top bar has to fit on one line: the status reason and the copy button's label are the
@@ -1006,8 +1030,7 @@
 
     :root { --gutter: 0.9rem; }
     .fix { max-width: none; }
-    .hero { flex-direction: column; align-items: stretch; gap: 1rem; }
-    .hero .callout { flex-basis: auto; width: 100%; }
+    .hero { gap: 1rem; }
 
     .col-head { padding: 0.6rem 0.9rem; flex-wrap: wrap; }
     .ctx-search { flex: 1 1 100%; }
@@ -1019,7 +1042,7 @@
     .tabs button { padding: 0.65rem 0.5rem; }
 
     .vars td, .vars th, .kv td { padding-left: 0.9rem; padding-right: 0.9rem; }
-    .repl-scroll, .repl-form, .repl-note { padding-left: 0.9rem; padding-right: 0.9rem; }
+    .repl-scroll, .repl-form, .repl-hint { padding-left: 0.9rem; padding-right: 0.9rem; }
     .disclosure > button { padding: 0.85rem 0.9rem; }
   }
 

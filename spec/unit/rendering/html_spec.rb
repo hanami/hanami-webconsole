@@ -36,10 +36,10 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     expect(html).to include("&lt;script&gt;alert(1)&lt;/script&gt;")
   end
 
-  it "shows a name quoted in a message as code, keeping its quotes" do
+  it "shows a name quoted in a message as code, without its quotes" do
     html = html_for(error_page)
 
-    expect(html).to include("undefined method <code>&#39;titel&#39;</code> for an instance of Book")
+    expect(html).to include("undefined method <code>titel</code> for an instance of Book")
   end
 
   it "shows a name quoted in a diagnostic's text as code, without its quotes" do
@@ -60,7 +60,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     message = "Can't find 'Books::Show' in the slice's container"
     html = html_for(error_page(message:))
 
-    expect(html).to include("Can&#39;t find <code>&#39;Books::Show&#39;</code> in the slice&#39;s container")
+    expect(html).to include("Can&#39;t find <code>Books::Show</code> in the slice&#39;s container")
   end
 
   it "escapes source lines, variables and request values" do
@@ -225,7 +225,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
   it "renders a page with no frames at all" do
     html = html_for(error_page(frames: []))
 
-    expect(html).to include("data-webconsole-frames-empty")
+    expect(html).to include("data-webconsole-frames-empty>This exception has no backtrace.</p>")
   end
 
   it "renders the detailed_message extras with the caret highlighted, without their shared indent" do
@@ -246,7 +246,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       expect(html).to include(%(<aside class="callout" data-webconsole-callout>))
       expect(html).to include("data-webconsole-suggestion")
       expect(html).to include("Did you mean <code>update</code>?")
-      expect(html).to include(%(<p class="callout-label"><span aria-hidden="true">&#x2726;</span> Suggested fix</p>))
+      expect(html).to include(%(<p class="callout-label"><span class="star" aria-hidden="true">&#x2726;</span>Suggested fix</p>))
       expect(html).to include("<code>Book</code> responds to it.")
     end
 
@@ -288,23 +288,61 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
     end
   end
 
-  it "shows a multi-line message as written" do
+  it "shows a one-paragraph message as a single paragraph" do
+    html = html_for(error_page(message: "boom"))
+
+    expect(html).to include(%(<div class="lede message" data-webconsole-message><p>boom</p></div>))
+  end
+
+  it "shows each paragraph of a message as its own paragraph, keeping the lines within it" do
     message = "Template `index' could not be found in paths:\n\n - app/templates\n - slices/main/templates"
     html = html_for(error_page(message:))
 
     expect(html).to include(
-      %(<pre class="lede message" data-webconsole-message>Template <code>`index&#39;</code> could not be found in paths:\n\n) +
-        " - app/templates\n - slices/main/templates</pre>"
+      %(<div class="lede message" data-webconsole-message>) +
+        %(<p>Template <code>index</code> could not be found in paths:</p>) +
+        %(<p> - app/templates\n - slices/main/templates</p></div>)
     )
   end
 
-  it "keeps the alignment of a message, since quoted names keep their quotes" do
-    message = "app/x.rb:3: syntax error found\n> 3 | go 'a', `b`\n    |              ^ here"
+  it "shows the source a syntax error quotes as preformatted code, apart from the lines around it" do
+    message = "app/x.rb:4: syntax error found\n  3 | def go(a\n> 4 |   puts a\n    |   ^~~~ expected a `)`\n  5 | end\n"
     html = html_for(error_page(message:))
 
     expect(html).to include(
-      "app/x.rb:3: syntax error found\n&gt; 3 | go <code>&#39;a&#39;</code>, <code>`b`</code>\n    |              ^ here"
+      %(data-webconsole-message><p>app/x.rb:4: syntax error found</p>) +
+        %{<pre class="excerpt">  3 | def go(a\n&gt; 4 |   puts a\n    |   ^~~~ expected a `)`\n  5 | end</pre></div>}
     )
+  end
+
+  it "keeps prose after a quoted excerpt as a paragraph" do
+    html = html_for(error_page(message: "Broken:\n> 1 | x = 1\nTry again"))
+
+    expect(html).to include(%(<p>Broken:</p><pre class="excerpt">&gt; 1 | x = 1</pre><p>Try again</p>))
+  end
+
+  it "doesn't take a line with a pipe in its prose for source" do
+    html = html_for(error_page(message: "expected a | b"))
+
+    expect(html).to include(%(data-webconsole-message><p>expected a | b</p></div>))
+  end
+
+  it "doesn't make empty paragraphs from extra blank lines" do
+    html = html_for(error_page(message: "one\n\n\n\ntwo\n"))
+
+    expect(html).to include(%(data-webconsole-message><p>one</p><p>two</p></div>))
+  end
+
+  it "shows quoted names in a message as code, without their quotes" do
+    html = html_for(error_page(message: "Pending: `20261101_create_books`, 'a' and `b'"))
+
+    expect(html).to include("<p>Pending: <code>20261101_create_books</code>, <code>a</code> and <code>b</code></p>")
+  end
+
+  it "doesn't mark up quoted names in an excerpt, since it's source" do
+    html = html_for(error_page(message: "> 3 | go 'a'"))
+
+    expect(html).to include(%(<pre class="excerpt">&gt; 3 | go &#39;a&#39;</pre>))
   end
 
   it "loads the fonts it ships, from the console's own path" do
@@ -421,7 +459,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       expect(html).to include(%(<h1 data-webconsole-headline>Missing method</h1>))
       expect(html).to include(%(<p class="exception-class" data-webconsole-exception-class>NoMethodError</p>))
       expect(html.index("data-webconsole-exception-class")).to be < html.index("data-webconsole-headline")
-      expect(html).to include("undefined method <code>&#39;titel&#39;</code>")
+      expect(html).to include("undefined method <code>titel</code>")
       expect(html.index("data-webconsole-headline")).to be < html.index("data-webconsole-message")
       expect(html.index("data-webconsole-message")).to be < html.index(%(<div class="caret-box" data-webconsole-extras>))
     end
@@ -448,14 +486,14 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       html = html_for(error_page(diagnostic: diagnostic(fix: "Did you mean `/books/:id`?")))
 
       expect(html).to include("<div data-webconsole-shell data-actionable>")
-      expect(html).to include(%(<p class="callout-label"><span aria-hidden="true">&#x2726;</span> Suggested fix</p>))
+      expect(html).to include(%(<p class="callout-label"><span class="star" aria-hidden="true">&#x2726;</span>Suggested fix</p>))
       expect(html).to match(/data-webconsole-workbench hidden/)
     end
 
     it "heads an unnamed fix with the label alone" do
       html = html_for(error_page(diagnostic: diagnostic(fix: "Do this.")))
 
-      expect(html).to include(%(<p class="callout-label"><span aria-hidden="true">&#x2726;</span> Suggested fix</p>))
+      expect(html).to include(%(<p class="callout-label"><span class="star" aria-hidden="true">&#x2726;</span>Suggested fix</p>))
       expect(html).not_to include("<h2>")
       expect(html).to include("<p>Do this.</p>")
     end
@@ -574,15 +612,22 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       html = html_for(page)
 
       expect(html.index(%(data-webconsole-context-panel="Pending"))).to be < html.index(%(data-webconsole-context-panel="Request"))
-      expect(html).to include(%(<div class="ctx-panel" data-webconsole-context-panel="Pending">))
+      expect(html).to include(%(<div class="ctx-panel is-dataset" data-webconsole-context-panel="Pending">))
       expect(html).not_to include("<thead>")
+    end
+
+    it "marks only the dataset's panel, so only it scrolls within a maximum height" do
+      html = html_for(error_page(diagnostic: diagnostic(dataset: {title: "Pending", rows: {"a.rb" => "1"}})))
+
+      expect(html.scan(/class="ctx-panel[^"]*is-dataset/).length).to eq(1)
+      expect(html).to include(%(<div class="ctx-panel" data-webconsole-context-panel="Request">))
     end
 
     it "puts a wide table in a row of its own, above the grid of request panels" do
       dataset = {title: "Routes", columns: ["Method", "Path", "Endpoint"], rows: [["GET", "/books", "books.index"]]}
       html = html_for(error_page(diagnostic: diagnostic(dataset:)))
 
-      expect(html).to match(%r{<div class="ctx-wide">\s*<div class="ctx-panel is-wide" data-webconsole-context-panel="Routes">})
+      expect(html).to match(%r{<div class="ctx-wide">\s*<div class="ctx-panel is-wide is-dataset" data-webconsole-context-panel="Routes">})
       expect(html).to match(%r{<div class="ctx-grid">\s*<div class="ctx-panel" data-webconsole-context-panel="Request">})
       expect(html.index("ctx-wide")).to be < html.index(%(<div class="ctx-grid">))
     end
@@ -591,7 +636,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       dataset = {title: "Routes", columns: ["Method", "Path", "Endpoint"], rows: [["GET", "/books", "books.index"]]}
       html = html_for(error_page(diagnostic: diagnostic(dataset:)))
 
-      expect(html).to include(%(<div class="ctx-panel is-wide" data-webconsole-context-panel="Routes">))
+      expect(html).to include(%(<div class="ctx-panel is-wide is-dataset" data-webconsole-context-panel="Routes">))
       expect(html).to include(%(<th scope="col">Endpoint</th>))
       expect(html).to include(%(<div class="clamp" data-webconsole-cell>books.index</div>))
     end

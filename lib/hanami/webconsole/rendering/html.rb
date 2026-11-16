@@ -47,6 +47,10 @@ module Hanami
         # repeat an action without asking.
         RETRYABLE_METHODS = %w[GET HEAD].freeze
 
+        # Matches a line of quoted source, as Ruby's syntax errors print it: an optional `>` marking
+        # the line at fault, an optional line number, then a `|` gutter.
+        EXCERPT_LINE = /\A\s*(?:>\s*)?\d*\s*\|/
+
         # Matches a `'quoted'`, `` `quoted' `` or `` `backticked` `` piece of escaped text, to show
         # as code. A piece never runs over more than one line. See {#inline_html}.
         CODE_SPAN = /
@@ -234,16 +238,23 @@ module Hanami
 
         # Returns the exception's message as HTML.
         #
-        # The message is shown exactly as written, the same as in a terminal. It's not parsed as
-        # text (see {Hanami::Diagnostics::Text}), since most messages aren't written for any format,
-        # and their layout (such as the carets under a syntax error) only makes sense as it is.
+        # The message is shown as written, the same as in a terminal. It's not parsed as text (see
+        # {Hanami::Diagnostics::Text}), since most messages aren't written for any format.
         #
-        # Quoted names are still shown as code, but they keep their quotes, so every character stays
-        # in its column.
+        # Blank lines split the message into paragraphs. Within a paragraph, every line break and
+        # indent stays as written, and quoted names are shown as code, without their quotes.
+        #
+        # Source the message quotes, like the excerpt under a syntax error, is preformatted and left
+        # alone, so the caret lands under the right character.
         #
         # @return [String]
         def message_html
-          h(page.message).gsub(CODE_SPAN) { "<code>#{Regexp.last_match[0]}</code>" }
+          page.message.split(/\n(?:[ \t]*\n)+/).map(&:chomp).reject { |part| part.strip.empty? }.flat_map { |part|
+            part.lines(chomp: true).chunk_while { |a, b| excerpt_line?(a) == excerpt_line?(b) }.map { |lines|
+              text = lines.join("\n")
+              excerpt_line?(lines.first) ? %(<pre class="excerpt">#{h(text)}</pre>) : "<p>#{code_spans(h(text))}</p>"
+            }
+          }.join
         end
 
         # Returns the diagnostic's explanation, if there is one.
@@ -430,11 +441,19 @@ module Hanami
         #
         # @return [String]
         def inline_html(text)
-          html = h(text).gsub(CODE_SPAN) {
+          apostrophes(code_spans(h(text)))
+        end
+
+        # Returns escaped text with each quoted name as code, without its quotes.
+        #
+        # @param html [String] escaped HTML
+        #
+        # @return [String]
+        def code_spans(html)
+          html.gsub(CODE_SPAN) {
             match = Regexp.last_match
             "<code>#{match[1] || match[2] || match[3]}</code>"
           }
-          apostrophes(html)
         end
 
         # Returns escaped prose with each apostrophe between two letters (as in "haven't" or
@@ -592,7 +611,11 @@ module Hanami
           return [] unless dataset
 
           rows = dataset.rows.map { |cells| Row.new(cells:, filtered: false) }
-          [panel(dataset.title, rows, columns: dataset.columns)]
+          [panel(dataset.title, rows, columns: dataset.columns).merge(dataset: true)]
+        end
+
+        def excerpt_line?(line)
+          EXCERPT_LINE.match?(line)
         end
 
         def request_panels

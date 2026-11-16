@@ -36,3 +36,28 @@ Previews.scenario "not_found", "No matching route, with a route to suggest", pat
     error.define_singleton_method(:slice) { slice }
   }
 end
+
+module Previews
+  # Enough routes to fill more than the dataset panel's maximum height.
+  BIG_ROUTER = Hanami::Router.new(resolver: ->(_path, _to) { ->(_env) { [200, {}, []] } }) {
+    root to: "home.show"
+    %w[authors books chapters publishers reviews shelves tags users].each do |name|
+      get "/#{name}", to: "#{name}.index", as: name.to_sym
+      get "/#{name}/new", to: "#{name}.new"
+      post "/#{name}", to: "#{name}.create"
+      get "/#{name}/:id", to: "#{name}.show"
+      get "/#{name}/:id/edit", to: "#{name}.edit"
+      patch "/#{name}/:id", to: "#{name}.update"
+      delete "/#{name}/:id", to: "#{name}.destroy"
+    end
+  }
+end
+
+Previews.scenario "not_found_many_routes", "No matching route, in an app with many routes", path: "/bookz" do
+  slice = Struct.new(:router).new(Previews::BIG_ROUTER)
+  env = {"REQUEST_METHOD" => "GET", "PATH_INFO" => "/bookz"}
+
+  raise Hanami::Router::NotFoundError.new(env).tap { |error|
+    error.define_singleton_method(:slice) { slice }
+  }
+end
