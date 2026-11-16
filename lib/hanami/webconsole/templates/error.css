@@ -389,7 +389,8 @@
     color: var(--color-code-ink);
   }
   .callout-label { display: flex; align-items: center; gap: 0.4em; }
-  .callout-label .star { line-height: 1; }
+  /* Cap height, so the star matches the uppercase label beside it. */
+  .callout-label .star { width: 0.75em; height: 0.75em; }
   .fix-text { font-size: 0.9375rem; line-height: 1.5; overflow-wrap: anywhere; }
 
   .cmd {

@@ -246,7 +246,7 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       expect(html).to include(%(<aside class="callout" data-webconsole-callout>))
       expect(html).to include("data-webconsole-suggestion")
       expect(html).to include("Did you mean <code>update</code>?")
-      expect(html).to include(%(<p class="callout-label"><span class="star" aria-hidden="true">&#x2726;</span>Suggested fix</p>))
+      expect(html).to include(%(<p class="callout-label"><svg class="icon star" aria-hidden="true"><use href="#i-star"/></svg>Suggested fix</p>))
       expect(html).to include("<code>Book</code> responds to it.")
     end
 
@@ -486,14 +486,14 @@ RSpec.describe Hanami::Webconsole::Rendering::HTML do
       html = html_for(error_page(diagnostic: diagnostic(fix: "Did you mean `/books/:id`?")))
 
       expect(html).to include("<div data-webconsole-shell data-actionable>")
-      expect(html).to include(%(<p class="callout-label"><span class="star" aria-hidden="true">&#x2726;</span>Suggested fix</p>))
+      expect(html).to include(%(<p class="callout-label"><svg class="icon star" aria-hidden="true"><use href="#i-star"/></svg>Suggested fix</p>))
       expect(html).to match(/data-webconsole-workbench hidden/)
     end
 
     it "heads an unnamed fix with the label alone" do
       html = html_for(error_page(diagnostic: diagnostic(fix: "Do this.")))
 
-      expect(html).to include(%(<p class="callout-label"><span class="star" aria-hidden="true">&#x2726;</span>Suggested fix</p>))
+      expect(html).to include(%(<p class="callout-label"><svg class="icon star" aria-hidden="true"><use href="#i-star"/></svg>Suggested fix</p>))
       expect(html).not_to include("<h2>")
       expect(html).to include("<p>Do this.</p>")
     end
