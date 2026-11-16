@@ -4,6 +4,8 @@ require "did_you_mean"
 require "hanami/webconsole/error_page"
 
 RSpec.describe Hanami::Webconsole::ErrorPage do
+  include ColoredSyntaxError
+
   subject(:page) do
     described_class.new(exception:, env:, config:)
   end
@@ -47,6 +49,19 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
   describe "#message" do
     it "is the exception message" do
       expect(page.message).to eq("boom")
+    end
+
+    it "removes the colour codes Ruby adds to a syntax error, keeping the columns aligned" do
+      exception = colored_syntax_error("def go(a\n  puts a\nend\n")
+      page = described_class.new(exception:, env:, config:)
+
+      expect(page.message).to eq(<<~MESSAGE)
+        app/x.rb:2: syntax error found
+          1 | def go(a
+        > 2 |   puts a
+            |   ^~~~ unexpected local variable or method; expected a `)` to close the parameters
+          3 | end
+      MESSAGE
     end
 
     it "degrades when the message raises" do
@@ -128,6 +143,12 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
       page = described_class.new(exception:, env:, config:)
 
       expect(page.detailed_extras).to eq(["  x.foo.bar", "   ^^^^"])
+    end
+
+    it "does not repeat a coloured syntax error's source excerpt" do
+      page = described_class.new(exception: colored_syntax_error("def go(a\n  puts a\nend\n"), env:, config:)
+
+      expect(page.detailed_extras).to eq([])
     end
 
     it "is empty when detailed_message adds nothing" do
@@ -302,6 +323,16 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
       expect(details.map(&:message)).to eq(
         ["Gave up after 3 attempts", "Connection refused - connect(2) for 10.0.0.5:443"]
       )
+    end
+
+    it "removes ANSI colour codes from the message" do
+      cause = RuntimeError.new("\e[1;31mboom\e[m")
+      exception = RuntimeError.new("outer")
+      allow(exception).to receive(:cause).and_return(cause)
+
+      details = described_class.new(exception:, env:, config:).cause_details
+
+      expect(details.map(&:message)).to eq(["boom"])
     end
 
     it "leaves the message empty when it can't be read" do

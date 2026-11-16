@@ -23,6 +23,18 @@ module Hanami
       # Status code used as a safe fallback for {#status}.
       DEFAULT_STATUS = 500
 
+      # Matches an ANSI colour code.
+      #
+      # Prism colors a syntax error's source excerpt when stderr is a terminal, and bakes the codes
+      # into `message` itself. Since a browser can't show these, we remove them.
+      #
+      # To determine whether to add color codes, Ruby checks the stderr of the process that raised
+      # the error. This means a web server gets these codes, if it was started in a terminal. This
+      # includes running `hanami server`, `puma`, or a process manager that gives each process a
+      # terminal (such as overmind). The default `hanami dev` doesn't, since foreman connects each
+      # process's output to a pipe.
+      ANSI_COLOR = /\e\[[0-9;]*m/
+
       # A did_you_mean suggestion for a misspelt name.
       #
       # @!attribute [r] name
@@ -73,7 +85,7 @@ module Hanami
 
       # @return [String]
       def message
-        @message ||= safely("") { exception.message.to_s }
+        @message ||= safely("") { plain(exception.message) }
       end
 
       # The lines `detailed_message` adds beyond `message`.
@@ -145,7 +157,7 @@ module Hanami
       # @return [Array<Cause>]
       def cause_details
         @cause_details ||= Hanami::Diagnostics::Causes.of(exception).map { |cause|
-          Cause.new(class_name: class_name_of(cause), message: safely("") { cause.message.to_s })
+          Cause.new(class_name: class_name_of(cause), message: safely("") { plain(cause.message) })
         }
       end
 
@@ -204,9 +216,15 @@ module Hanami
         detailed = exception.detailed_message(highlight: false)
         return [] unless detailed.is_a?(String)
 
-        lines_beyond_message(detailed)
+        # `highlight: false` doesn't help here: it only governs what `detailed_message` adds, and
+        # the codes come from `message`.
+        lines_beyond_message(plain(detailed))
       rescue *Safety::ERRORS
         []
+      end
+
+      def plain(text)
+        text.to_s.gsub(ANSI_COLOR, "")
       end
 
       def lines_beyond_message(detailed)
