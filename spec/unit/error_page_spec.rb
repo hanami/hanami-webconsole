@@ -4,6 +4,8 @@ require "did_you_mean"
 require "hanami/webconsole/error_page"
 
 RSpec.describe Hanami::Webconsole::ErrorPage do
+  include ColoredSyntaxError
+
   subject(:page) do
     described_class.new(exception:, env:, config:)
   end
@@ -49,6 +51,19 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
       expect(page.message).to eq("boom")
     end
 
+    it "removes the colour codes Ruby adds to a syntax error, keeping the columns aligned" do
+      exception = colored_syntax_error("def go(a\n  puts a\nend\n")
+      page = described_class.new(exception:, env:, config:)
+
+      expect(page.message).to eq(<<~MESSAGE)
+        app/x.rb:2: syntax error found
+          1 | def go(a
+        > 2 |   puts a
+            |   ^~~~ unexpected local variable or method; expected a `)` to close the parameters
+          3 | end
+      MESSAGE
+    end
+
     it "degrades when the message raises" do
       broken = RuntimeError.new("boom")
       allow(broken).to receive(:message).and_raise(NotImplementedError)
@@ -56,6 +71,49 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
       page = described_class.new(exception: broken, env:, config:)
 
       expect(page.message).to eq("")
+    end
+  end
+
+  describe "#suggestion" do
+    def raised
+      yield
+    rescue Exception => exception # rubocop:disable Lint/RescueException
+      exception
+    end
+
+    def page_for(exception)
+      described_class.new(exception:, env:, config:)
+    end
+
+    it "names the typo, the receiver's class and the closest methods" do
+      stub_const("SpecBook", Class.new { def title = "Ruby" })
+
+      suggestion = page_for(raised { SpecBook.new.titel }).suggestion
+
+      expect(suggestion).to have_attributes(name: "titel", corrections: ["title"], receiver_class: "SpecBook")
+    end
+
+    it "has no receiver class for a NameError" do
+      stub_const("SpecBookshelf", Module.new)
+
+      suggestion = page_for(raised { Object.const_get(:SpecBokshelf) }).suggestion
+
+      expect(suggestion).to have_attributes(name: "SpecBokshelf", corrections: ["SpecBookshelf"], receiver_class: nil)
+    end
+
+    it "is nil when nothing is close enough to suggest" do
+      expect(page_for(raised { binding.eval("xyzzy_unknown_helper") }).suggestion).to be_nil
+    end
+
+    it "is nil for an exception with no corrections" do
+      expect(page.suggestion).to be_nil
+    end
+
+    it "is nil when the corrections raise" do
+      exception = NameError.new("boom", :x)
+      allow(exception).to receive(:corrections).and_raise(NotImplementedError)
+
+      expect(page_for(exception).suggestion).to be_nil
     end
   end
 
@@ -85,6 +143,12 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
       page = described_class.new(exception:, env:, config:)
 
       expect(page.detailed_extras).to eq(["  x.foo.bar", "   ^^^^"])
+    end
+
+    it "does not repeat a coloured syntax error's source excerpt" do
+      page = described_class.new(exception: colored_syntax_error("def go(a\n  puts a\nend\n"), env:, config:)
+
+      expect(page.detailed_extras).to eq([])
     end
 
     it "is empty when detailed_message adds nothing" do
@@ -234,6 +298,52 @@ RSpec.describe Hanami::Webconsole::ErrorPage do
       page = described_class.new(exception:, env:, config:)
 
       expect(page.causes).to eq(["TypeError", "ArgumentError"])
+    end
+  end
+
+  describe "#cause_details" do
+    it "gives each cause's class and message, outermost first" do
+      exception = begin
+        begin
+          raise Errno::ECONNREFUSED, "connect(2) for 10.0.0.5:443"
+        rescue Errno::ECONNREFUSED
+          raise "Gave up after 3 attempts"
+        end
+      rescue RuntimeError
+        begin
+          raise ArgumentError, "Couldn't sync"
+        rescue ArgumentError => exception
+          exception
+        end
+      end
+
+      details = described_class.new(exception:, env:, config:).cause_details
+
+      expect(details.map(&:class_name)).to eq(["RuntimeError", "Errno::ECONNREFUSED"])
+      expect(details.map(&:message)).to eq(
+        ["Gave up after 3 attempts", "Connection refused - connect(2) for 10.0.0.5:443"]
+      )
+    end
+
+    it "removes ANSI colour codes from the message" do
+      cause = RuntimeError.new("\e[1;31mboom\e[m")
+      exception = RuntimeError.new("outer")
+      allow(exception).to receive(:cause).and_return(cause)
+
+      details = described_class.new(exception:, env:, config:).cause_details
+
+      expect(details.map(&:message)).to eq(["boom"])
+    end
+
+    it "leaves the message empty when it can't be read" do
+      cause = RuntimeError.new("hidden")
+      allow(cause).to receive(:message).and_raise(NotImplementedError)
+      exception = RuntimeError.new("outer")
+      allow(exception).to receive(:cause).and_return(cause)
+
+      details = described_class.new(exception:, env:, config:).cause_details
+
+      expect(details.map(&:message)).to eq([""])
     end
   end
 

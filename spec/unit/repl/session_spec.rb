@@ -3,6 +3,8 @@
 require "hanami/webconsole/repl/session"
 
 RSpec.describe Hanami::Webconsole::Repl::Session do
+  include ColoredSyntaxError
+
   subject(:session) { described_class.new(frame_binding) }
 
   # Stands in for the binding of a backtrace frame, with one local to reach for.
@@ -72,6 +74,17 @@ RSpec.describe Hanami::Webconsole::Repl::Session do
 
       expect(error).to be(true)
       expect(output).to start_with("SyntaxError: ")
+    end
+
+    it "removes the colour codes Ruby adds to a syntax error" do
+      # Shows that Ruby colours this error here, so the spec can't pass without testing anything.
+      colored_syntax_error("[1, 2")
+
+      output, error = on_terminal { session.eval("[1, 2") }
+
+      expect(error).to be(true)
+      expect(output).to include("> 1 | [1, 2")
+      expect(output).not_to include("\e[")
     end
 
     it "formats a SystemStackError" do

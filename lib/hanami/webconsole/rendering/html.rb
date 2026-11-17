@@ -37,23 +37,6 @@ module Hanami
           icon_sprite: "icons.svg"
         }.freeze
 
-        # Icons for panel titles. Unknown titles fall back to a list icon.
-        PANEL_ICONS = {
-          "Cookies" => "lock",
-          "Headers" => "list",
-          "Params" => "braces",
-          "Request" => "globe",
-          "Routes" => "route",
-          "Session" => "key"
-        }.freeze
-
-        # Panels longer than this get a search box. The request summary never does: it is short and
-        # fixed, and reads as a caption rather than as a table.
-        SEARCHABLE_FROM = 6
-
-        # The titles of panels that never get a search box, however many rows they have.
-        UNSEARCHABLE_PANELS = ["Request"].freeze
-
         # The most columns a panel can have and still fit alongside other panels. A panel with more
         # columns than this spans the full width of the page.
         NARROW_COLUMNS = 2
@@ -64,6 +47,10 @@ module Hanami
         # repeat an action without asking.
         RETRYABLE_METHODS = %w[GET HEAD].freeze
 
+        # Matches a line of quoted source, as Ruby's syntax errors print it: an optional `>` marking
+        # the line at fault, an optional line number, then a `|` gutter.
+        EXCERPT_LINE = /\A\s*(?:>\s*)?\d*\s*\|/
+
         # Matches a `'quoted'`, `` `quoted' `` or `` `backticked` `` piece of escaped text, to show
         # as code. A piece never runs over more than one line. See {#inline_html}.
         CODE_SPAN = /
@@ -71,6 +58,9 @@ module Hanami
           |`([^`&<>\s]+)&\#39;(?![[:alnum:]])
           |`([^`&<>\n]+)`
         /x
+
+        # An escaped straight apostrophe between a letter or digit and a letter.
+        APOSTROPHE = /(?<=[[:alnum:]])&#39;(?=[[:alpha:]])/
 
         # A row in a context panel.
         #
@@ -110,10 +100,12 @@ module Hanami
         # @param page [ErrorPage]
         # @param nonce [String] the CSP nonce for the page's `<style>` and `<script>`
         # @param csrf_token [String, nil]
-        def initialize(page, nonce:, csrf_token: nil)
+        # @param font_path [String] where the page loads its fonts from (see {Fonts})
+        def initialize(page, nonce:, csrf_token: nil, font_path: Fonts::PATH)
           @page = page
           @nonce = nonce.to_s
           @csrf_token = csrf_token
+          @font_path = font_path
         end
 
         # Returns the error page as HTML.
@@ -125,14 +117,14 @@ module Hanami
 
         private
 
-        attr_reader :nonce, :csrf_token
+        attr_reader :nonce, :csrf_token, :font_path
 
         # Inlined verbatim. These are our own files, never user input, so they are deliberately
         # not escaped — escaping them would break the CSS and JS.
         #
         # @return [String]
         def stylesheet
-          self.class.asset(:stylesheet)
+          Fonts.css(font_path) + self.class.asset(:stylesheet)
         end
 
         # @return [String]
@@ -161,18 +153,6 @@ module Hanami
           page.actionable?
         end
 
-        # Returns the name of the icon to show next to the status code.
-        #
-        # @return [String]
-        def status_icon
-          actionable? ? "wrench" : "triangle-alert"
-        end
-
-        # @return [String]
-        def status_label
-          [status_code, status_reason].reject(&:empty?).join(" ")
-        end
-
         # Split from the reason so narrow screens can keep the code and drop the words.
         #
         # @return [String]
@@ -198,6 +178,13 @@ module Hanami
         # @return [Boolean]
         def app_only?
           app_frames_count.positive?
+        end
+
+        # The frames the checkbox hides: those from gems and the framework.
+        #
+        # @return [Integer]
+        def hidden_frames_count
+          frames.length - app_frames_count
         end
 
         # Start on the first frame the developer wrote, not on the middleware that caught it.
@@ -251,16 +238,23 @@ module Hanami
 
         # Returns the exception's message as HTML.
         #
-        # The message is shown exactly as written, the same as in a terminal. It's not parsed as
-        # text (see {Hanami::Diagnostics::Text}), since most messages aren't written for any format,
-        # and their layout (such as the carets under a syntax error) only makes sense as it is.
+        # The message is shown as written, the same as in a terminal. It's not parsed as text (see
+        # {Hanami::Diagnostics::Text}), since most messages aren't written for any format.
         #
-        # Quoted names are still shown as code, but they keep their quotes, so every character stays
-        # in its column.
+        # Blank lines split the message into paragraphs. Within a paragraph, every line break and
+        # indent stays as written, and quoted names are shown as code, without their quotes.
+        #
+        # Source the message quotes, like the excerpt under a syntax error, is preformatted and left
+        # alone, so the caret lands under the right character.
         #
         # @return [String]
         def message_html
-          h(page.message).gsub(CODE_SPAN) { "<code>#{Regexp.last_match[0]}</code>" }
+          page.message.split(/\n(?:[ \t]*\n)+/).map(&:chomp).reject { |part| part.strip.empty? }.flat_map { |part|
+            part.lines(chomp: true).chunk_while { |a, b| excerpt_line?(a) == excerpt_line?(b) }.map { |lines|
+              text = lines.join("\n")
+              excerpt_line?(lines.first) ? %(<pre class="excerpt">#{h(text)}</pre>) : "<p>#{code_spans(h(text))}</p>"
+            }
+          }.join
         end
 
         # Returns the diagnostic's explanation, if there is one.
@@ -284,17 +278,13 @@ module Hanami
           !!diagnostic&.runnable_fix?
         end
 
-        # Returns the heading for the fix card.
+        # Returns the heading under the fix card's "Fix" label: the fix's name, or nil.
         #
-        # This is the fix's name, or a generic heading if the fix has no name. When a named fix can
-        # be run, there's no heading, since the name goes on the run button instead, and we don't
-        # want to show it twice.
+        # Runnable fixes show the name on the button, so we don't show those.
         #
         # @return [String, nil]
         def fix_heading
-          return nil if runnable_fix? && fix.name
-
-          fix.name || "Fix it"
+          fix.name unless runnable_fix?
         end
 
         # Returns the label for the button that runs the fix.
@@ -306,9 +296,42 @@ module Hanami
           fix.name || "Run this fix"
         end
 
+        # The `detailed_message` extras to show under the message: usually error_highlight's code
+        # line and carets.
+        #
+        # When the callout shows the suggestion, the did_you_mean lines are excluded here. A fix
+        # takes the callout instead, so then they stay.
+        #
         # @return [Array<String>]
         def extras
-          @extras ||= trim_blanks(Array(page.detailed_extras).map { |line| line.to_s.chomp })
+          @extras ||= begin
+            lines = trim_blanks(Array(page.detailed_extras).map { |line| line.to_s.chomp })
+            lines = without_did_you_mean(lines) if suggestion && !fix
+            dedent(trim_blanks(lines.reverse).reverse)
+          end
+        end
+
+        # @return [ErrorPage::Suggestion, nil]
+        def suggestion
+          page.suggestion
+        end
+
+        # The suggestion as a sentence, with names as code.
+        #
+        # @return [String]
+        def suggestion_html
+          names = suggestion.corrections.map { |name| "<code>#{h(name)}</code>" }
+          sentence = "Did you mean #{names.join(" or ")}?"
+          return sentence unless suggestion.receiver_class
+
+          "#{sentence} <code>#{h(suggestion.receiver_class)}</code> responds to it."
+        end
+
+        # The callout beside the header holds the fix if there is one, or else the suggestion.
+        #
+        # @return [Boolean]
+        def callout?
+          !fix.nil? || !suggestion.nil?
         end
 
         # `detailed_message` extras carry the error_highlight caret rows. Those get the signal
@@ -325,9 +348,9 @@ module Hanami
           }.join("\n")
         end
 
-        # @return [Array<String>]
-        def causes
-          page.causes
+        # @return [Array<ErrorPage::Cause>]
+        def cause_details
+          page.cause_details
         end
 
         # The topbar summary. Built here, from escaped parts, so the template interpolates it whole.
@@ -348,12 +371,17 @@ module Hanami
           @context_panels ||= (diagnostic_panels + request_panels)
         end
 
-        # @return [String]
-        def meta_line
-          [
-            defined?(Hanami::VERSION) ? "Hanami #{Hanami::VERSION}" : nil,
-            RUBY_DESCRIPTION
-          ].compact.join(" • ")
+        # @return [Array<Array(Boolean, Array<Hash>)>]
+        def context_panel_groups
+          wide, narrow = context_panels.partition { |panel| panel[:wide] }
+          [[true, wide], [false, narrow]].reject { |(_, panels)| panels.empty? }
+        end
+
+        # The version of Hanami, if it's loaded. Webconsole doesn't depend on Hanami, so it may not be.
+        #
+        # @return [String, nil]
+        def hanami_version
+          Hanami::VERSION.to_s if defined?(Hanami::VERSION)
         end
 
         # The single JSON island the page's JavaScript reads.
@@ -374,10 +402,24 @@ module Hanami
         # `$` prompt, and every code block gets a copy button.
         #
         # @param text [String, nil]
+        # @param lead [String, nil] words to lead into the text with, such as "Or do it yourself:"
         #
         # @return [String]
-        def text_html(text)
-          Hanami::Diagnostics::Text.blocks(text).map { |block| block_html(block) }.join("\n")
+        def text_html(text, lead: nil)
+          html = Hanami::Diagnostics::Text.blocks(text).map { |block| block_html(block) }
+          return html.join("\n") unless lead
+
+          with_lead(html, lead).join("\n")
+        end
+
+        # Puts a lead-in before the first block: inside it as the start of a sentence when it's a
+        # paragraph, or on a line of its own before code or a list.
+        def with_lead(html, lead)
+          if html.first&.start_with?("<p>")
+            [html.first.sub("<p>", %(<p><span class="fix-lead">#{h(lead)}</span> )), *html.drop(1)]
+          else
+            [%(<p class="fix-lead">#{h(lead)}</p>), *html]
+          end
         end
 
         # Returns a line of text as HTML, with any quoted or backticked names wrapped in `<code>`.
@@ -399,10 +441,38 @@ module Hanami
         #
         # @return [String]
         def inline_html(text)
-          h(text).gsub(CODE_SPAN) {
+          apostrophes(code_spans(h(text)))
+        end
+
+        # Returns escaped text with each quoted name as code, without its quotes.
+        #
+        # @param html [String] escaped HTML
+        #
+        # @return [String]
+        def code_spans(html)
+          html.gsub(CODE_SPAN) {
             match = Regexp.last_match
             "<code>#{match[1] || match[2] || match[3]}</code>"
           }
+        end
+
+        # Returns escaped prose with each apostrophe between two letters (as in "haven't" or
+        # "slice's") made typographic.
+        #
+        # @param html [String] escaped HTML
+        #
+        # @return [String]
+        def apostrophes(html)
+          html.gsub(APOSTROPHE, "\u2019")
+        end
+
+        # Escaped prose, with typographic apostrophes. See {#apostrophes}.
+        #
+        # @param text [String]
+        #
+        # @return [String]
+        def prose(text)
+          apostrophes(h(text))
         end
 
         # Returns a block of parsed text as HTML.
@@ -507,6 +577,21 @@ module Hanami
           }
         end
 
+        # Drops did_you_mean's "Did you mean?" line and the indented corrections under it, one name
+        # per line. error_highlight's carets always come before it, so they're never dropped.
+        def without_did_you_mean(lines)
+          start = lines.index { |line| line.lstrip.start_with?("Did you mean?") }
+          return lines unless start
+
+          rest = lines[(start + 1)..].drop_while { |line| line.match?(/\A\s+\S+\s*\z/) }
+          lines[0...start] + rest
+        end
+
+        def dedent(lines)
+          indent = lines.reject { |line| line.strip.empty? }.map { |line| line[/\A */].length }.min.to_i
+          lines.map { |line| line[indent..] || "" }
+        end
+
         def trim_blanks(lines)
           lines.drop_while { |line| line.strip.empty? }
             .reverse
@@ -526,7 +611,11 @@ module Hanami
           return [] unless dataset
 
           rows = dataset.rows.map { |cells| Row.new(cells:, filtered: false) }
-          [panel(dataset.title, rows, columns: dataset.columns)]
+          [panel(dataset.title, rows, columns: dataset.columns).merge(dataset: true)]
+        end
+
+        def excerpt_line?(line)
+          EXCERPT_LINE.match?(line)
         end
 
         def request_panels
@@ -571,7 +660,7 @@ module Hanami
         # Returns a context panel, ready for the template.
         #
         # A panel with more than {NARROW_COLUMNS} columns is marked as wide, so it spans the full
-        # width of the page. A panel with enough rows gets a filter box (see {#searchable?}).
+        # width of the page.
         #
         # @param title [String]
         # @param rows [Array<Row>]
@@ -583,22 +672,10 @@ module Hanami
 
           {
             title:,
-            icon: PANEL_ICONS.fetch(title, "list"),
-            search: searchable?(title, rows) ? "Filter #{title.downcase}" : nil,
-            noun: panel_noun(title),
             columns:,
             wide: [width, columns.length].max > NARROW_COLUMNS,
             rows:
           }
-        end
-
-        def searchable?(title, rows)
-          !UNSEARCHABLE_PANELS.include?(title) && rows.length >= SEARCHABLE_FROM
-        end
-
-        def panel_noun(title)
-          label = title.downcase
-          label.match?(/\A\w+s\z/) ? label : "rows"
         end
       end
     end

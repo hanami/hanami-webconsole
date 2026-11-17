@@ -23,6 +23,36 @@ module Hanami
       # Status code used as a safe fallback for {#status}.
       DEFAULT_STATUS = 500
 
+      # Matches an ANSI colour code.
+      #
+      # Prism colors a syntax error's source excerpt when stderr is a terminal, and bakes the codes
+      # into `message` itself. Since a browser can't show these, we remove them.
+      #
+      # To determine whether to add color codes, Ruby checks the stderr of the process that raised
+      # the error. This means a web server gets these codes, if it was started in a terminal. This
+      # includes running `hanami server`, `puma`, or a process manager that gives each process a
+      # terminal (such as overmind). The default `hanami dev` doesn't, since foreman connects each
+      # process's output to a pipe.
+      ANSI_COLOR = /\e\[[0-9;]*m/
+
+      # A did_you_mean suggestion for a misspelt name.
+      #
+      # @!attribute [r] name
+      #   @return [String] the name as written
+      # @!attribute [r] corrections
+      #   @return [Array<String>] the closest names, best first
+      # @!attribute [r] receiver_class
+      #   @return [String, nil] the class that responds to the corrections, for a `NoMethodError`
+      Suggestion = Data.define(:name, :corrections, :receiver_class)
+
+      # One cause of the exception.
+      #
+      # @!attribute [r] class_name
+      #   @return [String]
+      # @!attribute [r] message
+      #   @return [String] the message as written, or empty if it can't be read
+      Cause = Data.define(:class_name, :message)
+
       attr_reader :exception
 
       attr_reader :env
@@ -55,7 +85,7 @@ module Hanami
 
       # @return [String]
       def message
-        @message ||= safely("") { exception.message.to_s }
+        @message ||= safely("") { plain(exception.message) }
       end
 
       # The lines `detailed_message` adds beyond `message`.
@@ -101,11 +131,34 @@ module Hanami
         }
       end
 
-      # Class names of the exception's causes, outermost cause last.
+      # Returns did_you_mean's suggestion for the exception, or nil if it has none.
+      #
+      # This reads the corrections directly, rather than parsing them out of `detailed_message`.
+      # Computing them can call into the receiver, so a failure just means no suggestion.
+      #
+      # @return [Suggestion, nil]
+      def suggestion
+        return @suggestion if defined?(@suggestion)
+
+        @suggestion = safely(nil) { build_suggestion }
+      end
+
+      # Class names of the exception's causes, outermost first.
       #
       # @return [Array<String>]
       def causes
-        @causes ||= Hanami::Diagnostics::Causes.of(exception).map { |cause| class_name_of(cause) }
+        @causes ||= cause_details.map(&:class_name)
+      end
+
+      # The exception's causes, outermost first, each with its class name and message.
+      #
+      # The message is as Ruby wrote it, or empty if it can't be read.
+      #
+      # @return [Array<Cause>]
+      def cause_details
+        @cause_details ||= Hanami::Diagnostics::Causes.of(exception).map { |cause|
+          Cause.new(class_name: class_name_of(cause), message: safely("") { plain(cause.message) })
+        }
       end
 
       # @return [Backtrace]
@@ -144,15 +197,34 @@ module Hanami
 
       private
 
+      def build_suggestion
+        return unless exception.respond_to?(:corrections)
+
+        corrections = Array(exception.corrections).map(&:to_s).reject(&:empty?)
+        return if corrections.empty?
+
+        Suggestion.new(
+          name: exception.respond_to?(:name) ? exception.name.to_s : "",
+          corrections:,
+          receiver_class: exception.is_a?(NoMethodError) ? class_name_of(exception.receiver) : nil
+        )
+      end
+
       def compute_detailed_extras
         return [] unless exception.respond_to?(:detailed_message)
 
         detailed = exception.detailed_message(highlight: false)
         return [] unless detailed.is_a?(String)
 
-        lines_beyond_message(detailed)
+        # `highlight: false` doesn't help here: it only governs what `detailed_message` adds, and
+        # the codes come from `message`.
+        lines_beyond_message(plain(detailed))
       rescue *Safety::ERRORS
         []
+      end
+
+      def plain(text)
+        text.to_s.gsub(ANSI_COLOR, "")
       end
 
       def lines_beyond_message(detailed)

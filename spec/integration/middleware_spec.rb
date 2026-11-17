@@ -32,7 +32,7 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
     expect(last_response.headers["content-type"]).to eq("text/html; charset=utf-8")
     expect(last_response.body).to include(%(<h1 data-webconsole-headline>NoMethodError</h1>))
     # Ruby 3.4 quotes the method as 'titel', and older Rubies as `titel'.
-    expect(last_response.body).to match(%r{undefined method <code>(&#39;|`)titel&#39;</code>})
+    expect(last_response.body).to include("undefined method <code>titel</code>")
     expect(page_data["frames"][page_data["initialFrame"]]).to include(
       "displayPath" => File.basename(__FILE__),
       "label" => a_string_including("find_book")
