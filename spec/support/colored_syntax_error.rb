@@ -10,14 +10,17 @@ require "pty"
 module ColoredSyntaxError
   # Returns the syntax error Ruby raises for the given source, with its colour codes.
   #
-  # This skips the spec on Ruby versions that don't colour syntax errors, and fails it if Ruby adds
-  # no codes, since the spec would then pass without testing anything.
+  # This skips the spec on Rubies that don't colour syntax errors: CRuby before 3.4, and other
+  # engines such as JRuby, which has its own parser. It fails the spec if a Ruby that should colour
+  # adds no codes, since the spec would then pass without testing anything.
   #
   # @param source [String] Ruby source with a syntax error
   #
   # @return [SyntaxError]
   def colored_syntax_error(source)
-    skip "Ruby #{RUBY_VERSION} doesn't colour syntax errors" if RUBY_VERSION < "3.4"
+    unless RUBY_ENGINE == "ruby" && RUBY_VERSION >= "3.4"
+      skip "#{RUBY_ENGINE} #{RUBY_VERSION} doesn't colour syntax errors"
+    end
 
     exception = on_terminal do
       eval(source, binding, "app/x.rb", 1) # rubocop:disable Security/Eval
