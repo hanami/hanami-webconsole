@@ -130,14 +130,13 @@ module Hanami
         [200, headers, env["REQUEST_METHOD"] == "HEAD" ? [] : [body]]
       end
 
-      # Ported from better_errors, including its two quirks: a blank or missing `REMOTE_ADDR` is
-      # allowed (some servers do not set one), and an IPv6 zone id is stripped before parsing.
-      #
-      # Unlike better_errors, an unparseable address is denied rather than raised out of the
-      # middleware.
+      # Reads `REMOTE_ADDR` rather than `Rack::Request#ip`, which trusts `X-Forwarded-For` and
+      # `Forwarded` from private-network peers, so any host on the same network could claim to be
+      # 127.0.0.1. A missing or blank address is denied, unlike better_errors. An IPv6 zone id is
+      # stripped before parsing, and an unparseable address is denied rather than raised.
       def allow_ip?(env)
-        ip = Rack::Request.new(env).ip
-        return true if ip.nil? || ip.strip.empty?
+        ip = env["REMOTE_ADDR"]
+        return false if ip.nil? || ip.strip.empty?
 
         address = IPAddr.new(ip.split("%").first)
         ALLOWED_IPS.any? { |subnet| subnet.include?(address) }

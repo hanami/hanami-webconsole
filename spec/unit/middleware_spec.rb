@@ -95,16 +95,40 @@ RSpec.describe Hanami::Webconsole::Middleware, type: :rack do
       expect(last_response.status).to eq(200)
     end
 
-    it "allows a request with no usable REMOTE_ADDR, as better_errors does" do
-      get "/", {}, "REMOTE_ADDR" => ""
-
-      expect(last_response.status).to eq(200)
-    end
-
     it "denies an unparseable address rather than raising" do
       expect { get "/", {}, "REMOTE_ADDR" => "not-an-ip" }.not_to raise_error
 
       expect(last_response.body).to eq("from the app")
+    end
+
+    context "with a raising app" do
+      let(:raised) { RuntimeError.new("boom") }
+
+      it "renders the console for a genuine loopback peer, even with a forwarding header" do
+        get "/", {}, "REMOTE_ADDR" => "127.0.0.1", "HTTP_ACCEPT" => "text/html",
+          "HTTP_X_FORWARDED_FOR" => "203.0.113.10"
+
+        expect(last_response.status).to eq(500)
+        expect(Hanami::Webconsole::ErrorPage).to have_received(:new)
+      end
+
+      it "denies a request with no usable REMOTE_ADDR" do
+        expect { get "/", {}, "REMOTE_ADDR" => "", "HTTP_ACCEPT" => "text/html" }
+          .to raise_error(RuntimeError, "boom")
+
+        expect(Hanami::Webconsole::ErrorPage).not_to have_received(:new)
+      end
+
+      %w[HTTP_X_FORWARDED_FOR HTTP_CLIENT_IP HTTP_FORWARDED].each do |header|
+        value = header == "HTTP_FORWARDED" ? "for=127.0.0.1" : "127.0.0.1"
+
+        it "denies a non-loopback peer that spoofs loopback via #{header}" do
+          env = {"REMOTE_ADDR" => "192.168.1.50", "HTTP_ACCEPT" => "text/html", header => value}
+
+          expect { get "/", {}, env }.to raise_error(RuntimeError, "boom")
+          expect(Hanami::Webconsole::ErrorPage).not_to have_received(:new)
+        end
+      end
     end
 
     context "when the address is not allowed" do
