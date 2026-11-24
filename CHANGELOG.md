@@ -19,9 +19,15 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Security
 
+[Unreleased]: https://github.com/hanami/hanami-webconsole/compare/v3.0.1...HEAD
+
+## [3.0.1] - 2026-11-24
+
+### Security
+
 - Decide whether a request may reach the console from `REMOTE_ADDR` alone, overriding BetterErrors' check. Previously, `X-Forwarded-For`, `Client-IP` and `Forwarded` headers were trusted from peers on private networks, so anyone on the same network could claim a loopback address and run code in the app. Requests without a `REMOTE_ADDR` are now denied. (@parndt in GHSA-qxv3-3w54-whwp)
 
-[Unreleased]: https://github.com/hanami/hanami-webconsole/compare/v3.0.0...HEAD
+[3.0.1]: https://github.com/hanami/hanami-webconsole/compare/v3.0.0...v3.0.1
 
 ## [3.0.0] - 2026-06-30
 
