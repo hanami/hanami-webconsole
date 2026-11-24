@@ -35,6 +35,22 @@ module Hanami
 
           super
         end
+
+        private
+
+        # Reads `REMOTE_ADDR` rather than `Rack::Request#ip`, which trusts `X-Forwarded-For` and
+        # `Forwarded` from private-network peers, so any host on the same network could claim to be
+        # 127.0.0.1. A missing or blank address is denied, unlike in BetterErrors. An IPv6 zone id
+        # is stripped before parsing, and an unparseable address is denied rather than raised.
+        def allow_ip?(env)
+          ip = env["REMOTE_ADDR"]
+          return false if ip.nil? || ip.strip.empty?
+
+          address = IPAddr.new(ip.split("%").first)
+          BetterErrors::Middleware::ALLOWED_IPS.any? { |subnet| subnet.include?(address) }
+        rescue IPAddr::InvalidAddressError
+          false
+        end
       end
       BetterErrors::Middleware.prepend(BetterErrorsExtension)
 
