@@ -9,19 +9,33 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 ### Added
 
-- Error diagnostics (experimental): error pages can explain an error and offer a fix for it, including a fix that runs from the page. (@afomera in #15, @timriley in #18)
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+[Unreleased]: https://github.com/hanami/hanami-webconsole/compare/v3.1.0.rc1...HEAD
+
+## [3.1.0.rc1] - 2026-11-27
+
+### Added
+
 - Error pages now show the exception's `#cause` chain, `did_you_mean` suggestions and `error_highlight` carets, none of which better_errors surfaced. (@afomera in #15)
+- For `Hanami::Router::NotFoundError`, show the app's routes and suggest the closest match (e.g. `/books/:id` for `/bookz/1`), or say where to add a route. (@afomera and @timriley in #16 and #18)
+- Error diagnostics (experimental): error pages can explain an error and offer a fix for it, including a fix that runs from the page. (@afomera in #15, @timriley in #18)
 - A "copy as text" button, putting the error, request and backtrace on the clipboard as Markdown. (@afomera in #15)
 - The per-frame console now keeps a history, navigable with the up and down arrows. (@afomera in #15)
-- For `Hanami::Router::NotFoundError`, show the app's routes and suggests the closest match (e.g. `/books/:id` for `/bookz/1`), or says where to add a route. (@afomera and @timriley in #16 and #18)
 
 ### Changed
 
 - Replace better_errors with a Hanami-native error page, styled to match `Hanami::Web::Welcome`. The console and its security model carry over unchanged: loopback only, a double-submit CSRF token in an httponly cookie, and a strict Content-Security-Policy with a per-response nonce. (@afomera in #15)
 - Status codes now come from `config.render_error_responses` directly, so `Hanami::Router::NotFoundError` renders a 404 without patching `BetterErrors::Middleware#show_error_page`. (@afomera in #15)
 - Error pages are held in a bounded registry, so more than one error page is interactive at a time. A page from before a code reload reports an expired session rather than evaluating against unloaded constants. (@afomera in #15)
-
-### Deprecated
 
 ### Removed
 
@@ -31,11 +45,15 @@ and this project adheres to [Break Versioning](https://www.taoensso.com/break-ve
 
 - binding_of_caller is now probed at load rather than only required. On an engine where it loads but raises when called, the error page degrades to one without local variables or a console, instead of breaking every exception raised in the process. (@afomera in #15)
 
+[3.1.0.rc1]: https://github.com/hanami/hanami-webconsole/compare/v3.0.1...v3.1.0.rc1
+
+## [3.0.1] - 2026-11-24
+
 ### Security
 
-- Decide whether a request may reach the console from `REMOTE_ADDR` alone. Previously, `X-Forwarded-For`, `Client-IP` and `Forwarded` headers were trusted from peers on private networks, so anyone on the same network could claim a loopback address and run code in the app. Requests without a `REMOTE_ADDR` are now denied. (@parndt in GHSA-qxv3-3w54-whwp)
+- Decide whether a request may reach the console from `REMOTE_ADDR` alone, overriding BetterErrors' check. Previously, `X-Forwarded-For`, `Client-IP` and `Forwarded` headers were trusted from peers on private networks, so anyone on the same network could claim a loopback address and run code in the app. Requests without a `REMOTE_ADDR` are now denied. (@parndt in GHSA-qxv3-3w54-whwp)
 
-[Unreleased]: https://github.com/hanami/hanami-webconsole/compare/v3.0.0...HEAD
+[3.0.1]: https://github.com/hanami/hanami-webconsole/compare/v3.0.0...v3.0.1
 
 ## [3.0.0] - 2026-06-30
 
